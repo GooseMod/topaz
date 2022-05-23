@@ -372,14 +372,16 @@ const install = async (info) => {
       __theme: true
     };
   } else {
-    plugin = eval(newCode);
+    const PluginClass = eval(newCode);
+    PluginClass.prototype.entityID = info; // Setup internal metadata
+    PluginClass.prototype.manifest = manifest;
+
+    plugin = new PluginClass();
   }
 
   plugins[info] = plugin;
 
   plugin.enabled = true;
-  plugin.entityID = info; // setup internal metadata
-  plugin.manifest = manifest;
 
   lastStarted = info;
   plugin.start();
@@ -395,11 +397,13 @@ const transform = async (path, code, info) => {
 
   code = globals.powercord + '\n\n' + code;
 
-  code = code.replace('module.exports =', 'return new');
+  code = code.replace('module.exports =', 'return');
 
   // console.log({ code });
 
   updatePending(null, 'Transforming...');
+
+  console.log(code);
 
   code = sucrase.transform(code, { transforms: [ "typescript", "jsx" ], disableESTransforms: true }).code;
 
