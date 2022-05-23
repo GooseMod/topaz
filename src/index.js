@@ -167,6 +167,8 @@ const makeChunk = async (root, p) => {
   if (!builtins[p]) code = await includeRequires(join(root, p), code);
   const id = genId(join(root, p));
 
+  if (p.endsWith('.json') || code.startsWith('{')) code = 'return ' + code;
+
   const chunk = `// ${p}
 let ${id} = {};
 (() => {
