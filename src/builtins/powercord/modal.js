@@ -1,3 +1,3 @@
 module.exports = {
-  open: goosemod.webpackModules.findByProps('openModal', 'updateModal')
+  open: goosemod.webpackModules.findByProps('openModal', 'updateModal').openModal
 };
