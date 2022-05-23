@@ -1728,7 +1728,7 @@ class Settings extends React.PureComponent {
         el.onkeydown = async (e) => {
           if (e.keyCode !== 13) return;
 
-          const info = el.value;
+          const info = el.value.replace('https://github.com/', '');
           el.value = '';
           // el.value = 'Installing...';
 
