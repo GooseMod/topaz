@@ -614,6 +614,8 @@ const builtins = {
 class Plugin {
   constructor() {
     this.stylesheets = [];
+
+    Settings.makeStore(this.entityID);
   }
 
   loadStylesheet(css) {
@@ -641,8 +643,6 @@ class Plugin {
   }
 
   start() {
-    Settings.makeStore(this.entityID);
-
     this.startPlugin.bind(this)();
   }
 
@@ -856,7 +856,7 @@ module.exports = {
   Divider
 };`,
   'powercord/modal': `module.exports = {
-  open: goosemod.webpackModules.findByProps('openModal', 'updateModal')
+  open: goosemod.webpackModules.findByProps('openModal', 'updateModal').openModal
 };`,
   'electron': `const { copy } = goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy'); // Use Webpack module for Web support (instead of DiscordNative)
 
@@ -1141,6 +1141,8 @@ const makeChunk = async (root, p) => {
   if (!builtins[p]) code = await includeRequires(join(root, p), code);
   const id = genId(join(root, p));
 
+  if (p.endsWith('.json') || code.startsWith('{')) code = 'return ' + code;
+
   const chunk = `// ${p}
 let ${id} = {};
 (() => {
@@ -1346,14 +1348,16 @@ const install = async (info) => {
       __theme: true
     };
   } else {
-    plugin = eval(newCode);
+    const PluginClass = eval(newCode);
+    PluginClass.prototype.entityID = info; // Setup internal metadata
+    PluginClass.prototype.manifest = manifest;
+
+    plugin = new PluginClass();
   }
 
   plugins[info] = plugin;
 
   plugin.enabled = true;
-  plugin.entityID = info; // setup internal metadata
-  plugin.manifest = manifest;
 
   lastStarted = info;
   plugin.start();
@@ -1369,11 +1373,13 @@ const transform = async (path, code, info) => {
 
   code = globals.powercord + '\n\n' + code;
 
-  code = code.replace('module.exports =', 'return new');
+  code = code.replace('module.exports =', 'return');
 
   // console.log({ code });
 
   updatePending(null, 'Transforming...');
+
+  console.log(code);
 
   code = sucrase.transform(code, { transforms: [ "typescript", "jsx" ], disableESTransforms: true }).code;
 
