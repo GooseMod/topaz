@@ -3,6 +3,8 @@ const { Settings } = powercord.__topaz;
 class Plugin {
   constructor() {
     this.stylesheets = [];
+
+    Settings.makeStore(this.entityID);
   }
 
   loadStylesheet(css) {
@@ -30,8 +32,6 @@ class Plugin {
   }
 
   start() {
-    Settings.makeStore(this.entityID);
-
     this.startPlugin.bind(this)();
   }
 
