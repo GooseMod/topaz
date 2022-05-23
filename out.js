@@ -855,6 +855,9 @@ module.exports = {
   FormItem,
   Divider
 };`,
+  'powercord/modal': `module.exports = {
+  open: goosemod.webpackModules.findByProps('openModal', 'updateModal')
+};`,
   'electron': `const { copy } = goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy'); // Use Webpack module for Web support (instead of DiscordNative)
 
 module.exports = {
