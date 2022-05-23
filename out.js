@@ -1446,7 +1446,7 @@ window.topaz = {
   },
 
   reload: async () => {
-    eval(await (await fetch(`https://goosemod.github.io/topaz/src/index.js`)).text());
+    eval(await (await fetch(`https://goosemod.github.io/topaz/out.js`)).text());
   },
 
   log
