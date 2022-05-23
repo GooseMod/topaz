@@ -1,0 +1,125 @@
+#topaz-repo-autocomplete {
+  position: absolute;
+  z-index: 999;
+  background: var(--background-floating);
+  max-height: 200px;
+  overflow: auto;
+}
+
+#topaz-repo-autocomplete > h5 {
+  padding: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
+  font-family: var(--font-display);
+  color: var(--header-secondary);
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--background-primary);
+}
+
+#topaz-repo-autocomplete > div {
+  padding: 12px;
+  border-bottom: 2px solid var(--background-primary);
+  color: var(--header-secondary);
+  cursor: pointer;
+}
+
+#topaz-repo-autocomplete > div:hover {
+  background: var(--background-secondary);
+}
+
+.topaz-settings > [role="tablist"] {
+  margin-bottom: 20px;
+}
+
+.topaz-loading-text {
+  display: flex;
+  flex: unset;
+  height: 40px;
+  width: 200px;
+  justify-content: flex-end;
+}
+
+.topaz-loading-text > :first-child {
+  width: 24px;
+  height: 24px;
+  margin-right: 12px;
+  margin-top: 10px;
+}
+
+.topaz-loading-text > :last-child > :last-child {
+  position: relative;
+  top: 20px;
+  left: -76px;
+}
+
+.topaz-settings div[style="display: flex; justify-content: space-between;"] {
+  position: relative;
+  /* margin-bottom: 10px; */
+}
+
+.topaz-settings div[style="display: flex; justify-content: space-between;"] > div:first-child {
+  width: 90%;
+}
+
+.topaz-plugin-icons {
+  position: absolute;
+  /* top: 36px; */
+  bottom: -12px;
+  right: 0px;
+
+  display: flex;
+  gap: 4px;
+}
+
+.topaz-plugin-icons [aria-label="Uninstall"]:hover,
+.topaz-plugin-icons [aria-label="Fresh Reinstall"]:hover {
+  background: hsla(359,calc(var(--saturation-factor, 1)*82.6%),59.4%,0.6);
+}
+
+#app-mount .root-g14mjS {
+  background: var(--background-primary);
+}
+
+#app-mount .root-g14mjS .separator-2lLxgC {
+  box-shadow: unset;
+  -webkit-box-shadow: unset;
+  border-bottom: thin solid var(--background-modifier-accent);
+}
+
+.topaz-settings-modal-content {
+  padding-top: 20px;
+}
+
+.topaz-settings .divider-q3P9HC {
+  display: inline-flex;
+  vertical-align: middle;
+  margin: 0 20px;
+  margin-right: 12px;
+}
+
+.topaz-settings h5 + .dividerDefault-3C2-ws {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+
+.topaz-settings .topPill-3DJJNV {
+  display: inline-flex;
+}
+
+.topaz-settings [aria-controls="reload-tab"] {
+  position: absolute;
+  right: 42px;
+
+  padding: 4px;
+  min-width: 0;
+}
+
+.topaz-settings [aria-controls="reload-tab"]:hover {
+  background: hsla(359,calc(var(--saturation-factor, 1)*82.6%),59.4%,0.3) !important;
+}
+
+.topaz-settings {
+  --input-background: var(--background-secondary);
+}
