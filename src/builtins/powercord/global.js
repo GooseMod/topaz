@@ -33,6 +33,8 @@ class SimpleStore {
   getKeys = () => Object.keys(this.store)
 }
 
+const settingStore = new SimpleStore();
+
 const settingsUnpatch = {};
 
 const updateOpenSettings = async () => {
@@ -106,38 +108,35 @@ powercord = {
       
         const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
         const FormSection = goosemod.webpackModules.findByDisplayName('FormSection');
-      
-        if (!Settings.settingStores[category]) Settings.makeStore(category);
+
         if (!SettingsView) return;
-      
-        topaz.internal.registerSettings(id, { label, render, category, props: { ...Settings.settingStores[category] } });
+
+        topaz.internal.registerSettings(id, { render, category, props: { ...settingStore[category] } });
 
 
-        if (topaz.settings.pluginSettingsSidebar) {
-          settingsUnpatch[id] = goosemod.patcher.patch(SettingsView.prototype, 'getPredicateSections', (_, sections) => {
-            const logout = sections.find((c) => c.section === 'logout');
-            if (!logout) return sections;
+        settingsUnpatch[id] = goosemod.patcher.patch(SettingsView.prototype, 'getPredicateSections', (_, sections) => {
+          const logout = sections.find((c) => c.section === 'logout');
+          if (!logout || !topaz.settings.pluginSettingsSidebar) return sections;
 
-            const finalLabel = typeof label === 'function' ? label() : label;
+          const finalLabel = typeof label === 'function' ? label() : label;
           
-            sections.splice(sections.indexOf(logout) - 1, 0, {
-              section: finalLabel,
-              label: finalLabel,
-              predicate: () => { },
-              element: () => React.createElement(FormSection, { },
-                React.createElement(FormTitle, { tag: 'h2' }, finalLabel),
+          sections.splice(sections.indexOf(logout) - 1, 0, {
+            section: finalLabel,
+            label: finalLabel,
+            predicate: () => { },
+            element: () => React.createElement(FormSection, { },
+              React.createElement(FormTitle, { tag: 'h2' }, finalLabel),
           
-                React.createElement(render, {
-                  ...Settings.settingStores[category]
-                })
-              )
-            });
-          
-            return sections;
+              React.createElement(render, {
+                ...settingStore[category]
+              })
+            )
           });
 
-          updateOpenSettings();
-        }
+          return sections;
+        });
+
+        updateOpenSettings();
       },
 
       unregisterSettings: (id) => {
@@ -170,12 +169,7 @@ powercord = {
   },
 
   __topaz: {
-    Settings: {
-      settingStores: {},
-      makeStore: (key) => {
-        powercord.__topaz.Settings.settingStores[key] = new SimpleStore();
-      },
-    }
+    settingStore
   }
 };
 })();

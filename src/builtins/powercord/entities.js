@@ -1,10 +1,6 @@
-const { Settings } = powercord.__topaz;
-
 class Plugin {
   constructor() {
     this.stylesheets = [];
-
-    Settings.makeStore(this.entityID);
   }
 
   loadStylesheet(css) {
@@ -18,7 +14,7 @@ class Plugin {
   }
 
   get settings() {
-    const store = Settings.settingStores[this.entityID];
+    const store = powercord.__topaz.settingStore;
 
     return { // Basic wrapper with renamed functions
       get: store.getSetting,
@@ -26,6 +22,8 @@ class Plugin {
       delete: store.deleteSetting,
 
       getKeys: store.getKeys,
+
+      store: store.store,
 
       connectStore: () => {} // Unneeded util func, but here incase it is attempted to be called
     };
