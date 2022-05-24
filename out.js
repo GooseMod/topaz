@@ -1430,7 +1430,7 @@ window.topaz = {
 
     log('install', `installed ${info}! took ${(performance.now() - installStartTime).toFixed(2)}ms`);
 
-    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x), () => { acc[x] = plugins[x].settings.store; return acc; }, {})));
+    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings.store; return acc; }, {})));
   },
 
   uninstall: (info) => {
