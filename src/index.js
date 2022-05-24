@@ -1,20 +1,11 @@
 (async () => {
-let pluginsToInstall = [];
+let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '[]');
 if (window.topaz) { // live reload handling
-  const oldPlugins = topaz.getInstalled(); // get plugins installed from old session
-
   topaz.__noSettingsUpdate = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
 
-  pluginsToInstall = oldPlugins;
-
   const settingItem = goosemod.settings.items.find((x) => x[1] === 'Topaz');
   if (settingItem) goosemod.settings.items.splice(goosemod.settings.items.indexOf(settingItem), 1);
-}
-
-if (pluginsToInstall.length === 0) {
-  const savedPlugins = localStorage.getItem('topaz_plugins');
-  if (savedPlugins) pluginsToInstall = JSON.parse(savedPlugins);
 }
 
 const initStartTime = performance.now();
@@ -321,7 +312,7 @@ const resolveFileFromTree = (path) => {
 };
 
 let lastStarted = '';
-const install = async (info) => {
+const install = async (info, settings = {}) => {
   // log('installing', info);
 
   let [ repo, branch ] = info.split('@');
@@ -413,6 +404,8 @@ const install = async (info) => {
 
   plugin.__enabled = true;
 
+  if (settings) plugin.settings.store = settings;
+
   lastStarted = info;
   plugin.start();
 
@@ -460,7 +453,7 @@ window.topaz = {
 
     log('install', `installed ${info}! took ${(performance.now() - installStartTime).toFixed(2)}ms`);
 
-    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins)));
+    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x), () => { acc[x] = plugins[x].settings.store; return acc; }, {})));
   },
 
   uninstall: (info) => {
@@ -518,8 +511,8 @@ console.clear();
 log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)}ms`);
 
 (async () => {
-  for (const p of pluginsToInstall) {
-    await topaz.install(p);
+  for (const p in pluginsToInstall) {
+    await install(p, pluginsToInstall[p]);
   }
 
   try { updateOpenSettings(); } catch { }
