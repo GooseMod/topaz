@@ -1453,6 +1453,8 @@ window.topaz = {
 
     plugins[info].stop();
     delete plugins[info];
+
+    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings.store; return acc; }, {})));
   },
   uninstallAll: () => Object.keys(plugins).forEach((x) => topaz.uninstall(x)),
 
