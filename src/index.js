@@ -411,7 +411,7 @@ const install = async (info) => {
 
   plugins[info] = plugin;
 
-  plugin.enabled = true;
+  plugin.__enabled = true;
 
   lastStarted = info;
   plugin.start();
@@ -478,14 +478,14 @@ window.topaz = {
 
     lastStarted = info;
     plugins[info].start();
-    plugins[info].enabled = true;
+    plugins[info].__enabled = true;
   },
   disable: (info) => {
     if (!plugins[info]) return log('disable', 'plugin not installed');
     log('disable', info);
 
     plugins[info].stop();
-    plugins[info].enabled = false;
+    plugins[info].__enabled = false;
   },
 
   purge: () => {
@@ -935,10 +935,10 @@ class Settings extends React.PureComponent {
 
         React.createElement(Divider),
 
-        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ enabled, manifest, entityID, __settings }) => React.createElement(Plugin, {
+        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ __enabled, manifest, entityID, __settings }) => React.createElement(Plugin, {
           manifest,
           entityID,
-          enabled,
+          enabled: __enabled,
           settings: __settings,
           onUninstall: async () => {
             const rmPending = addPending({ repo: entityID, state: 'Uninstalling...' });
