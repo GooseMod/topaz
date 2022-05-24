@@ -123,3 +123,9 @@
 .topaz-settings {
   --input-background: var(--background-secondary);
 }
+
+.topaz-pc-modal-jank {
+  width: auto !important;
+  max-width: initial !important;
+  min-height: initial !important;
+}
