@@ -8,5 +8,5 @@ code = code.replace(/await \(await fetch\(\'http:\/\/localhost\:1337\/src\/([A-Z
 code = code.replace('`http://localhost:1337/src/index.js`', '`https://goosemod.github.io/topaz/out.js`');
 code = code.replaceAll('http://localhost:1337/src/', 'https://goosemod.github.io/topaz/src/');
 
-console.log(code);
+// console.log(code);
 fs.writeFileSync('out.js', code);
