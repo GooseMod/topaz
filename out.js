@@ -1,20 +1,11 @@
 (async () => {
-let pluginsToInstall = [];
+let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '[]');
 if (window.topaz) { // live reload handling
-  const oldPlugins = topaz.getInstalled(); // get plugins installed from old session
-
   topaz.__noSettingsUpdate = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
 
-  pluginsToInstall = oldPlugins;
-
   const settingItem = goosemod.settings.items.find((x) => x[1] === 'Topaz');
   if (settingItem) goosemod.settings.items.splice(goosemod.settings.items.indexOf(settingItem), 1);
-}
-
-if (pluginsToInstall.length === 0) {
-  const savedPlugins = localStorage.getItem('topaz_plugins');
-  if (savedPlugins) pluginsToInstall = JSON.parse(savedPlugins);
 }
 
 const initStartTime = performance.now();
@@ -614,13 +605,9 @@ const transformCSS = async (root, code, skipTransform = false, updateProgress = 
 const getBuiltin = async (name) => await (await fetch('https://goosemod.github.io/topaz/src/builtins/' + name + '.js')).text();
 
 const builtins = {
-  'powercord/entities': `const { Settings } = powercord.__topaz;
-
-class Plugin {
+  'powercord/entities': `class Plugin {
   constructor() {
     this.stylesheets = [];
-
-    Settings.makeStore(this.entityID);
   }
 
   loadStylesheet(css) {
@@ -634,7 +621,7 @@ class Plugin {
   }
 
   get settings() {
-    const store = Settings.settingStores[this.entityID];
+    const store = powercord.__topaz.settingStore;
 
     return { // Basic wrapper with renamed functions
       get: store.getSetting,
@@ -642,6 +629,8 @@ class Plugin {
       delete: store.deleteSetting,
 
       getKeys: store.getKeys,
+
+      store: store.store,
 
       connectStore: () => {} // Unneeded util func, but here incase it is attempted to be called
     };
@@ -920,6 +909,8 @@ class SimpleStore {
   getKeys = () => Object.keys(this.store)
 }
 
+const settingStore = new SimpleStore();
+
 const settingsUnpatch = {};
 
 const updateOpenSettings = async () => {
@@ -993,38 +984,35 @@ powercord = {
       
         const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
         const FormSection = goosemod.webpackModules.findByDisplayName('FormSection');
-      
-        if (!Settings.settingStores[category]) Settings.makeStore(category);
+
         if (!SettingsView) return;
-      
-        topaz.internal.registerSettings(id, { label, render, category, props: { ...Settings.settingStores[category] } });
+
+        topaz.internal.registerSettings(id, { render, category, props: { ...settingStore[category] } });
 
 
-        if (topaz.settings.pluginSettingsSidebar) {
-          settingsUnpatch[id] = goosemod.patcher.patch(SettingsView.prototype, 'getPredicateSections', (_, sections) => {
-            const logout = sections.find((c) => c.section === 'logout');
-            if (!logout) return sections;
+        settingsUnpatch[id] = goosemod.patcher.patch(SettingsView.prototype, 'getPredicateSections', (_, sections) => {
+          const logout = sections.find((c) => c.section === 'logout');
+          if (!logout || !topaz.settings.pluginSettingsSidebar) return sections;
 
-            const finalLabel = typeof label === 'function' ? label() : label;
+          const finalLabel = typeof label === 'function' ? label() : label;
           
-            sections.splice(sections.indexOf(logout) - 1, 0, {
-              section: finalLabel,
-              label: finalLabel,
-              predicate: () => { },
-              element: () => React.createElement(FormSection, { },
-                React.createElement(FormTitle, { tag: 'h2' }, finalLabel),
+          sections.splice(sections.indexOf(logout) - 1, 0, {
+            section: finalLabel,
+            label: finalLabel,
+            predicate: () => { },
+            element: () => React.createElement(FormSection, { },
+              React.createElement(FormTitle, { tag: 'h2' }, finalLabel),
           
-                React.createElement(render, {
-                  ...Settings.settingStores[category]
-                })
-              )
-            });
-          
-            return sections;
+              React.createElement(render, {
+                ...settingStore[category]
+              })
+            )
           });
 
-          updateOpenSettings();
-        }
+          return sections;
+        });
+
+        updateOpenSettings();
       },
 
       unregisterSettings: (id) => {
@@ -1057,12 +1045,7 @@ powercord = {
   },
 
   __topaz: {
-    Settings: {
-      settingStores: {},
-      makeStore: (key) => {
-        powercord.__topaz.Settings.settingStores[key] = new SimpleStore();
-      },
-    }
+    settingStore
   }
 };
 })();`
@@ -1306,7 +1289,7 @@ const resolveFileFromTree = (path) => {
 };
 
 let lastStarted = '';
-const install = async (info) => {
+const install = async (info, settings = {}) => {
   // log('installing', info);
 
   let [ repo, branch ] = info.split('@');
@@ -1396,7 +1379,9 @@ const install = async (info) => {
 
   plugins[info] = plugin;
 
-  plugin.enabled = true;
+  plugin.__enabled = true;
+
+  if (settings) plugin.settings.store = settings;
 
   lastStarted = info;
   plugin.start();
@@ -1445,7 +1430,7 @@ window.topaz = {
 
     log('install', `installed ${info}! took ${(performance.now() - installStartTime).toFixed(2)}ms`);
 
-    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins)));
+    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x), () => { acc[x] = plugins[x].settings.store; return acc; }, {})));
   },
 
   uninstall: (info) => {
@@ -1463,14 +1448,14 @@ window.topaz = {
 
     lastStarted = info;
     plugins[info].start();
-    plugins[info].enabled = true;
+    plugins[info].__enabled = true;
   },
   disable: (info) => {
     if (!plugins[info]) return log('disable', 'plugin not installed');
     log('disable', info);
 
     plugins[info].stop();
-    plugins[info].enabled = false;
+    plugins[info].__enabled = false;
   },
 
   purge: () => {
@@ -1503,8 +1488,8 @@ console.clear();
 log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)}ms`);
 
 (async () => {
-  for (const p of pluginsToInstall) {
-    await topaz.install(p);
+  for (const p in pluginsToInstall) {
+    await install(p, pluginsToInstall[p]);
   }
 
   try { updateOpenSettings(); } catch { }
@@ -1920,10 +1905,10 @@ class Settings extends React.PureComponent {
 
         React.createElement(Divider),
 
-        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ enabled, manifest, entityID, __settings }) => React.createElement(Plugin, {
+        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ __enabled, manifest, entityID, __settings }) => React.createElement(Plugin, {
           manifest,
           entityID,
-          enabled,
+          enabled: __enabled,
           settings: __settings,
           onUninstall: async () => {
             const rmPending = addPending({ repo: entityID, state: 'Uninstalling...' });
