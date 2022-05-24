@@ -4,5 +4,9 @@ module.exports = {
   clipboard: {
     writeText: (text) => copy(text),
     readText: () => DiscordNative.clipboard.read()
+  },
+
+  shell: {
+    openExternal: (url) => window.open(url)
   }
 };
