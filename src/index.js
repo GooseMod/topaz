@@ -12,6 +12,11 @@ if (window.topaz) { // live reload handling
   if (settingItem) goosemod.settings.items.splice(goosemod.settings.items.indexOf(settingItem), 1);
 }
 
+if (pluginsToInstall.length === 0) {
+  const savedPlugins = localStorage.getItem('topaz_plugins');
+  if (savedPlugins) pluginsToInstall = JSON.parse(savedPlugins);
+}
+
 const initStartTime = performance.now();
 
 const sucrase = eval(await (await fetch('http://localhost:1337/src/sucrase.js')).text());
@@ -454,6 +459,8 @@ window.topaz = {
     const [ manifest ] = await install(info);
 
     log('install', `installed ${info}! took ${(performance.now() - installStartTime).toFixed(2)}ms`);
+
+    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins)));
   },
 
   uninstall: (info) => {
