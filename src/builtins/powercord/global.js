@@ -112,7 +112,7 @@ powercord = {
 
         if (!SettingsView) return;
 
-        topaz.internal.registerSettings(id, { render, category, props: { ...settingStore[category] } });
+        topaz.internal.registerSettings(id, { render, category, props: { ...settingStore } });
 
 
         settingsUnpatch[id] = goosemod.patcher.patch(SettingsView.prototype, 'getPredicateSections', (_, sections) => {
@@ -129,7 +129,7 @@ powercord = {
               React.createElement(FormTitle, { tag: 'h2' }, finalLabel),
           
               React.createElement(render, {
-                ...settingStore[category]
+                ...settingStore
               })
             )
           });
