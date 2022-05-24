@@ -501,7 +501,7 @@ window.topaz = {
   },
 
   reload: async () => {
-    eval(await (await fetch(`http://localhost:1337/src/index.js`)).text());
+    eval(await (await fetch(`http://localhost:1337/src/index.js`, { cache: 'no-store' })).text());
   },
 
   log

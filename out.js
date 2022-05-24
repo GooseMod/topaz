@@ -1492,7 +1492,7 @@ window.topaz = {
   },
 
   reload: async () => {
-    eval(await (await fetch(`https://goosemod.github.io/topaz/out.js`)).text());
+    eval(await (await fetch(`https://goosemod.github.io/topaz/out.js`, { cache: 'no-store' })).text());
   },
 
   log
