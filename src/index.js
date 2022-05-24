@@ -497,7 +497,7 @@ log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)
 
 const recommended = {
   plugins: [
-    'CanadaHonk/wpm', // my fork as borked and my PR hasn't been accepted yet
+    'romdotdog/wpm',
     'TaiAurori/custom-timestamps',
     'RazerMoon/vcTimer',
     '12944qwerty/Slowmode-Counter',
@@ -507,6 +507,7 @@ const recommended = {
     '12944qwerty/copy-server-icon',
     '12944qwerty/showAllMessageButtons',
     'yuwui/powercord-greentext',
+    'CanadaHonk/powercord-stafftags' // todo: change to upstream after PR merged
   ],
 
   themes: [
@@ -516,12 +517,7 @@ const recommended = {
     'DiscordStyles/Slate',
     'DiscordStyles/HorizontalServerList',
     'DiscordStyles/RadialStatus'
-  ],
-
-  // ''
-
-  // SammCheese/AFK-on-exit
-
+  ]
 };
 
 const updateOpenSettings = async () => {
