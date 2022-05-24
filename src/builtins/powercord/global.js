@@ -152,7 +152,7 @@ powercord = {
     },
 
     notices: {
-
+      sendToast: (_id, { header, content, type, buttons }) => goosemod.showToast(content) // todo: improve to use all given
     },
 
     i18n: {
