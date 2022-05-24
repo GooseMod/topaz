@@ -1300,6 +1300,8 @@ const resolveFileFromTree = (path) => {
 
   console.log('RESOLVE', path, tree, 'OUT', res);
 
+  if (path.startsWith('powercord/') && !builtins[path]) console.warn('Missing builtin', path);
+
   return res ? ('./' + res) : undefined;
 };
 
