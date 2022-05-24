@@ -495,7 +495,7 @@ window.topaz = {
 
   internal: {
     registerSettings: (id, { label, render, category, props }) => {
-      const entityID = lastStarted; // category;
+      const entityID = plugins[category] ? category : lastStarted;
       plugins[entityID].__settings = { category, label, render, props };
     }
   },

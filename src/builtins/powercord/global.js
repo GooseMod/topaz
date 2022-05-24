@@ -102,7 +102,6 @@ powercord = {
 
     settings: {
       registerSettings: (id, { label, render, category }) => {
-        const { Settings } = powercord.__topaz;
         const { React } = goosemod.webpackModules.common;
       
         const SettingsView = goosemod.webpackModules.findByDisplayName('SettingsView');
@@ -112,7 +111,7 @@ powercord = {
 
         if (!SettingsView) return;
 
-        topaz.internal.registerSettings(id, { render, category, props: { ...settingStore } });
+        topaz.internal.registerSettings(id, { label, render, category, props: { ...settingStore } });
 
 
         settingsUnpatch[id] = goosemod.patcher.patch(SettingsView.prototype, 'getPredicateSections', (_, sections) => {
