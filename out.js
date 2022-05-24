@@ -1526,7 +1526,9 @@ const recommended = {
     '12944qwerty/copy-server-icon',
     '12944qwerty/showAllMessageButtons',
     'yuwui/powercord-greentext',
-    'Puyodead1/powercord-stafftags'
+    'Puyodead1/powercord-stafftags',
+    'VenPlugs/Unindent',
+    'SpoonMcForky/replace-timestamps-pc',
   ],
 
   themes: [
