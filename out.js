@@ -1492,7 +1492,7 @@ const recommended = {
     '12944qwerty/copy-server-icon',
     '12944qwerty/showAllMessageButtons',
     'yuwui/powercord-greentext',
-    'CanadaHonk/powercord-stafftags' // todo: change to upstream after PR merged
+    'Puyodead1/powercord-stafftags'
   ],
 
   themes: [
