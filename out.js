@@ -1296,9 +1296,10 @@ const updatePending = (repo, substate) => {
 };
 
 const resolveFileFromTree = (path) => {
-  console.log('RESOLVE', path, tree, 'OUT', tree.find((x) => x.path.startsWith(path.replace('./', '')))?.path);
+  const res = tree.find((x) => x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
 
-  const res = tree.find((x) => x.path.startsWith(path.replace('./', '')))?.path;
+  console.log('RESOLVE', path, tree, 'OUT', res);
+
   return res ? ('./' + res) : undefined;
 };
 
