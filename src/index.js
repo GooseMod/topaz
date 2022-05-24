@@ -81,21 +81,45 @@ const globals = {
 const join = (root, p) => root + p.replace('./', '/'); // Add .jsx to empty require paths with no file extension
 
 class Cache {
-  constructor() {
+  constructor(id) {
+    this.id = id;
     this.store = {};
+
+    this.load();
   }
 
   get(key, def) {
-    return this.store[key] || def;
+    return this.store[key] ?? def;
   }
 
   set(key, val) {
     this.store[key] = val;
+
+    this.save();
+
     return this.store[key];
+  }
+
+  purge() {
+    this.store = {};
+
+    this.save();
+  }
+
+  load() {
+    const saved = localStorage.getItem(`topaz_cache_${this.id}`);
+    if (!saved) return;
+    
+    this.store = JSON.parse(saved);
+  }
+
+  save() {
+    localStorage.setItem(`topaz_cache_${this.id}`, JSON.stringify(this.store));
   }
 }
 
-let fetchCache = {};
+let fetchCache = new Cache('fetch'), finalCache = new Cache('final');
+
 const getCode = async (root, p, ...backups) => {
   if (builtins[p]) return builtins[p];
 
@@ -259,7 +283,6 @@ const log = (_region, ...args) => {
 };
 
 let plugins = {};
-let finalCache = {};
 let pending = [];
 
 const addPending = (obj) => {
@@ -465,8 +488,8 @@ window.topaz = {
   },
 
   purgeCache: () => {
-    fetchCache = {};
-    finalCache = {};
+    fetchCache.purge();
+    finalCache.purge();
   },
   getInstalled: () => Object.keys(plugins),
 
