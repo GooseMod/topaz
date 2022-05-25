@@ -427,7 +427,7 @@ const install = async (info, settings = {}) => {
   if (settings && plugin.settings) plugin.settings.store = settings;
 
   lastStarted = info;
-  plugin.start();
+  plugin._topaz_start();
 
   return [ manifest ];
 };
@@ -477,7 +477,7 @@ window.topaz = {
     if (!plugins[info]) return log('uninstall', 'plugin not installed');
     log('uninstall', info);
 
-    plugins[info].stop();
+    plugins[info]._topaz_stop();
     delete plugins[info];
 
     localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
@@ -489,14 +489,14 @@ window.topaz = {
     log('enable', info);
 
     lastStarted = info;
-    plugins[info].start();
+    plugins[info]._topaz_start();
     plugins[info].__enabled = true;
   },
   disable: (info) => {
     if (!plugins[info]) return log('disable', 'plugin not installed');
     log('disable', info);
 
-    plugins[info].stop();
+    plugins[info]._topaz_stop();
     plugins[info].__enabled = false;
   },
 

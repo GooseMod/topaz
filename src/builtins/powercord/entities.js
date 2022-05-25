@@ -29,11 +29,11 @@ class Plugin {
     };
   }
 
-  start() {
+  _topaz_start() {
     this.startPlugin.bind(this)();
   }
 
-  stop() {
+  _topaz_stop() {
     this.stylesheets.forEach((x) => x.remove());
 
     this.pluginWillUnload.bind(this)();
