@@ -32,11 +32,19 @@
   margin-bottom: 20px;
 }
 
+.topaz-settings .title-2dsDLn {
+  font-weight: 600;
+}
+
+.topaz-settings .labelRow-2jl9gK > :first-child {
+  font-size: 18px;
+}
+
 .topaz-loading-text {
   display: flex;
   flex: unset;
   height: 40px;
-  width: 200px;
+  min-width: 200px;
   justify-content: flex-end;
 }
 
@@ -47,10 +55,13 @@
   margin-top: 10px;
 }
 
+.topaz-loading-text > :last-child {
+  width: 160px;
+}
+
 .topaz-loading-text > :last-child > :last-child {
-  position: relative;
-  top: 20px;
-  left: -76px;
+  display: block;
+  font-size: 12px;
 }
 
 .topaz-settings div[style="display: flex; justify-content: space-between;"] {

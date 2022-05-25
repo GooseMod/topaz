@@ -304,18 +304,27 @@ const updatePending = (repo, substate) => {
   // }
 };
 
+let lastError;
 const resolveFileFromTree = (path) => {
   const res = tree.find((x) => x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
 
   console.log('RESOLVE', path, tree, 'OUT', res);
 
-  if (path.startsWith('powercord/') && !builtins[path]) console.warn('Missing builtin', path);
+  if (path.startsWith('powercord/') && !builtins[path]) {
+    console.warn('Missing builtin', path);
+    lastError = `Missing builtin: ${path}`;
+  } else if (!res && !builtins[path]) {
+    console.warn('Failed to resolve', path);
+    lastError = `Failed to resolve: ${path}`;
+  }
 
   return res ? ('./' + res) : undefined;
 };
 
 let lastStarted = '';
 const install = async (info, settings = {}) => {
+  lastError = '';
+
   // log('installing', info);
 
   let [ repo, branch ] = info.split('@');
@@ -353,6 +362,9 @@ const install = async (info, settings = {}) => {
 
         manifest = themeManifest;
 
+        const pend = pending.find(x => x.repo === info);
+        if (pend) pend.manifest = manifest;
+
         const indexUrl = join(root, './' + themeManifest.theme);
         const indexRoot = getDir(indexUrl);
         indexCode = await getCode(root, './' + themeManifest.theme);
@@ -361,9 +373,14 @@ const install = async (info, settings = {}) => {
         newCode = await transformCSS(indexRoot, indexCode, themeManifest.theme.endsWith('.css'), true);
       }
     } else {
+      manifest = await (await fetch(join(root, './manifest.json'))).json();
+
+      const pend = pending.find(x => x.repo === info);
+      console.log('WOW', pend);
+      if (pend) pend.manifest = manifest;
+
       indexCode = await getCode(root, indexFile ?? './index.js', './index.jsx');
 
-      manifest = await (await fetch(join(root, './manifest.json'))).json();
       updatePending(info, 'Bundling...');
       newCode = await transform(indexUrl, indexCode, info);
 
@@ -407,7 +424,7 @@ const install = async (info, settings = {}) => {
 
   plugin.__enabled = true;
 
-  if (settings) plugin.settings.store = settings;
+  if (settings && plugin.settings) plugin.settings.store = settings;
 
   lastStarted = info;
   plugin.start();
@@ -425,18 +442,15 @@ const transform = async (path, code, info) => {
 
   code = code.replace('module.exports =', 'return');
 
-  // console.log({ code });
+  console.log({ code });
 
   updatePending(null, 'Transforming...');
 
-  console.log(code);
-
   code = sucrase.transform(code, { transforms: [ "typescript", "jsx" ], disableESTransforms: true }).code;
 
-  const makeSourceURL = () => encodeURI(`Topaz | ${info}`); // e `${info}`.replace()
   code = `(function () {
 ${code}
-})(); //# sourceURL=${makeSourceURL()}`;
+})(); //# sourceURL=${encodeURI(`Topaz | ${info}`)}`;
 
   return code;
 };
@@ -456,7 +470,7 @@ window.topaz = {
 
     log('install', `installed ${info}! took ${(performance.now() - installStartTime).toFixed(2)}ms`);
 
-    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings.store; return acc; }, {})));
+    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
   },
 
   uninstall: (info) => {
@@ -466,7 +480,7 @@ window.topaz = {
     plugins[info].stop();
     delete plugins[info];
 
-    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings.store; return acc; }, {})));
+    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
   },
   uninstallAll: () => Object.keys(plugins).forEach((x) => topaz.uninstall(x)),
 
@@ -616,13 +630,8 @@ class Plugin extends React.PureComponent {
     const { manifest, repo, state, substate, settings, entityID } = this.props;
 
     return React.createElement(TextAndChild, {
-      text: state ? repo : [
-        React.createElement('span', {
-          class: 'title-2dsDLn',
-          style: {
-            display: 'inline'
-          }
-        }, manifest.name),
+      text: !manifest ? repo : [
+        manifest.name,
 
         React.createElement('span', {
           class: 'description-30xx7u',
@@ -639,19 +648,14 @@ class Plugin extends React.PureComponent {
           }
         }, 'by'),
 
-        React.createElement('span', {
-          class: 'title-2dsDLn',
-          style: {
-            display: 'inline'
-          }
-        }, manifest.author.split('#')[0]),
+        manifest.author.split('#')[0],
 
-        manifest.author.split('#')[1] ? React.createElement('span', {
+        /* manifest.author.split('#')[1] ? React.createElement('span', {
           class: 'description-30xx7u',
           style: {
             marginLeft: '1px'
           }
-        }, '#' + manifest.author.split('#')[1]) : null
+        }, '#' + manifest.author.split('#')[1]) : null */
       ],
 
       subtext: manifest?.description,
@@ -665,17 +669,20 @@ class Plugin extends React.PureComponent {
         size: goosemod.webpackModules.findByProps('size16', 'size32').size16,
         className: goosemod.webpackModules.findByProps('title', 'dividerDefault').title + ' topaz-loading-text'
       },
-        React.createElement(Spinner, {
+        state !== 'Error' ? React.createElement(Spinner, {
           type: 'spinningCircle'
+        }) : React.createElement(goosemod.webpackModules.findByDisplayNameAll('CloseCircle')[1], {
+          // backgroundColor: "hsl(359, calc(var(--saturation-factor, 1) * 82.6%), 59.4%)",
+          // color: "hsl(0, calc(var(--saturation-factor, 1) * 0%), 100%)",
+          color: "hsl(359, calc(var(--saturation-factor, 1) * 82.6%), 59.4%)",
+          width: 24,
+          height: 24
         }),
 
         React.createElement('span', {
         }, state,
           React.createElement('span', {
-            class: 'description-30xx7u',
-            style: {
-              marginLeft: '4px'
-            }
+            class: 'description-30xx7u'
           }, substate || 'Finding index...')
         )
       ),
@@ -783,6 +790,30 @@ class Settings extends React.PureComponent {
     const textInputHandler = (inp) => {
       const el = document.querySelector('.topaz-settings .input-2g-os5');
 
+      const install = async (info) => {
+        const rmPending = addPending({ repo: info, state: 'Installing...' });
+        this.forceUpdate();
+
+        setTimeout(() => { this.forceUpdate(); }, 300);
+
+        try {
+          await topaz.install(info);
+
+          rmPending();
+        } catch (e) {
+          console.error('INSTALL', e);
+
+          const currentPend = pending.find(x => x.repo === info);
+          const rmError = addPending({ repo: info, state: 'Error', substate: lastError ?? e.toString().substring(0, 30), manifest: currentPend.manifest });
+          setTimeout(rmError, 2000);
+        }
+
+        rmPending();
+
+        this.forceUpdate();
+      };
+
+
       if (!el.placeholder) {
         el.placeholder = 'GitHub repo / URL';
 
@@ -793,13 +824,7 @@ class Settings extends React.PureComponent {
           el.value = '';
           // el.value = 'Installing...';
 
-          const rmPending = addPending({ repo: info, state: 'Installing...' });
-          this.forceUpdate();
-
-          await topaz.install(info);
-          rmPending();
-
-          this.forceUpdate();
+          install(info);
         };
 
         el.onblur = () => {
@@ -845,15 +870,7 @@ class Settings extends React.PureComponent {
             el.value = '';
             // el.value = 'Installing...';
 
-            const rmPending = addPending({ repo: x, state: 'Installing...' });
-            this.forceUpdate();
-
-            await topaz.install(x);
-            rmPending();
-
-            this.forceUpdate();
-            // el.value = '';
-            /* el.value = x; */
+            install(x);
           };
 
           autocomplete.appendChild(nel);
