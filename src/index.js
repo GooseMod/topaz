@@ -406,7 +406,7 @@ const install = async (info, settings = {}) => {
   if (isTheme) {
     let el;
     plugin = {
-      start: () => {
+      _topaz_start: () => {
         if (el) el.remove();
         el = document.createElement('style');
 
@@ -415,7 +415,7 @@ const install = async (info, settings = {}) => {
         document.head.appendChild(el);
       },
 
-      stop: () => {
+      _topaz_stop: () => {
         el.remove();
       },
 
