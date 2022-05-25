@@ -798,8 +798,6 @@ class Settings extends React.PureComponent {
 
         try {
           await topaz.install(info);
-
-          rmPending();
         } catch (e) {
           console.error('INSTALL', e);
 
@@ -811,6 +809,7 @@ class Settings extends React.PureComponent {
         rmPending();
 
         this.forceUpdate();
+        setTimeout(() => { this.forceUpdate(); }, 300);
       };
 
 
