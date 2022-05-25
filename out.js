@@ -664,7 +664,7 @@ const AsyncComponent = powercord.__topaz.AsyncComponent;
 
 // jank Flux addition because yes
 Flux.connectStoresAsync = (stores, callback) => comp => AsyncComponent.from((async () => {
-  const ret = await Promise.all(stores);awaitedStores
+  const ret = await Promise.all(stores);
   return Flux.connectStores(ret, p => callback(ret, p))(comp);
 })());
 
