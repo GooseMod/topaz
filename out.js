@@ -734,9 +734,7 @@ module.exports = {
   Tooltip: goosemod.webpackModules.findByProps('TooltipContainer').TooltipContainer,
   Spinner: goosemod.webpackModules.findByDisplayName('Spinner'),
 
-  AsyncComponent: { // perfect
-    from: (comp) => comp
-  }
+  AsyncComponent: powercord.__topaz.AsyncComponent
 };`,
   'powercord/components/settings': `const { React } = goosemod.webpackModules.common;
 const OriginalSwitchItem = goosemod.webpackModules.findByDisplayName('SwitchItem');
@@ -1613,6 +1611,7 @@ const recommended = {
     'Puyodead1/powercord-stafftags',
     'VenPlugs/Unindent',
     'SpoonMcForky/replace-timestamps-pc',
+    'powercord-community/channel-typing',
   ],
 
   themes: [

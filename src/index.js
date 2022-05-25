@@ -561,6 +561,7 @@ const recommended = {
     'Puyodead1/powercord-stafftags',
     'VenPlugs/Unindent',
     'SpoonMcForky/replace-timestamps-pc',
+    'powercord-community/channel-typing',
   ],
 
   themes: [
