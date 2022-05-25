@@ -96,6 +96,15 @@ class Cache {
     return this.store[key];
   }
 
+  remove(key) {
+    this.store[key] = undefined;
+    delete this.store[key];
+  }
+
+  keys() {
+    return Object.keys(this.store);
+  }
+
   purge() {
     this.store = {};
 
@@ -120,7 +129,7 @@ const getCode = async (root, p, ...backups) => {
   if (builtins[p]) return builtins[p];
 
   const origPath = join(root, p);
-  if (fetchCache[origPath]) return fetchCache[origPath];
+  if (fetchCache.get(origPath)) return fetchCache.get(origPath);
 
   let code = '404: Not Found';
   let path;
@@ -173,7 +182,7 @@ const getCode = async (root, p, ...backups) => {
   }
   console.log('two', { path, code }); */
 
-  return fetchCache[origPath] = code;
+  return fetchCache.set(origPath, code);
 };
 
 const genId = (p) => `__topaz_${p.split('/').slice(6).join('_').split('.')[0]}`;
@@ -332,7 +341,7 @@ const install = async (info, settings = {}) => {
 
   let isGitHub = !info.startsWith('http');
 
-  let [ newCode, manifest, isTheme ] = finalCache[info] ?? [];
+  let [ newCode, manifest, isTheme ] = finalCache.get(info) ?? [];
 
   if (!newCode) {
     updatePending(info, 'Treeing...');
@@ -387,7 +396,7 @@ const install = async (info, settings = {}) => {
       isTheme = false;
     }
   
-    finalCache[info] = [ newCode, manifest, isTheme ];
+    finalCache.set(info, [ newCode, manifest, isTheme ]);
   }
 
   updatePending(info, 'Executing...');
@@ -742,8 +751,8 @@ class Plugin extends React.PureComponent {
           icon: goosemod.webpackModules.findByDisplayName('Retry'),
           tooltipText: 'Fresh Reinstall',
           onClick: async () => {
-            delete finalCache[entityID]; // remove final cache
-            Object.keys(fetchCache).filter((x) => x.includes(entityID)).forEach((x) => delete fetchCache[x]); // remove fetch caches
+            finalCache.remove(entityID); // remove final cache
+            fetchCache.keys().filter(x => x.includes(entityID)).forEach(y => fetchCache.remove(y)); // remove fetch caches
             
             await topaz.uninstall(entityID);
 
