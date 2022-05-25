@@ -7,6 +7,15 @@ const makeFinalFilter = (filter) => {
   return filter;
 };
 
+const Flux = goosemod.webpackModules.findByProps('Store', 'connectStores');
+const AsyncComponent = powercord.__topaz.AsyncComponent;
+
+// jank Flux addition because yes
+Flux.connectStoresAsync = (stores, callback) => comp => AsyncComponent.from((async () => {
+  const ret = await Promise.all(stores);awaitedStores
+  return Flux.connectStores(ret, p => callback(ret, p))(comp);
+})());
+
 module.exports = {
   getModule: (filter, retry, _forever) => { // Ignoring retry and forever arguments for basic implementation
     filter = makeFinalFilter(filter);
