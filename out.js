@@ -723,7 +723,7 @@ module.exports = {
 };`,
   'powercord/components': `module.exports = {
   Tooltip: goosemod.webpackModules.findByProps('TooltipContainer').TooltipContainer,
-  Spinner: goosemod.webpackModules.findByProps('Spinner').Spinner,
+  Spinner: goosemod.webpackModules.findByDisplayName('Spinner'),
 
   AsyncComponent: { // perfect
     from: (comp) => comp
