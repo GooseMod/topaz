@@ -562,6 +562,7 @@ const recommended = {
     'VenPlugs/Unindent',
     'SpoonMcForky/replace-timestamps-pc',
     'powercord-community/channel-typing',
+    '12944qwerty/click-mentions',
   ],
 
   themes: [
