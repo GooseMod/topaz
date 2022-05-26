@@ -1481,6 +1481,9 @@ const install = async (info, settings = {}) => {
 
   plugins[info] = plugin;
 
+  plugins[info].entityID = info; // Re-set metadata for themes and assurance
+  plugins[info].manifest = manifest;
+
   plugin.__enabled = true;
 
   if (settings && plugin.settings) plugin.settings.store = settings;
