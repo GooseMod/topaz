@@ -71,7 +71,8 @@ const builtins = {
 };
 
 const globals = {
-  powercord: await getBuiltin('powercord/global')
+  powercord: await getBuiltin('powercord/global'),
+  betterdiscord: await getBuiltin('betterdiscord/global')
 };
 
 const join = (root, p) => root + p.replace('./', '/'); // Add .jsx to empty require paths with no file extension
@@ -339,20 +340,15 @@ const install = async (info, settings = {}) => {
   let [ repo, branch ] = info.split('@');
   if (!branch) branch = 'HEAD'; // default to HEAD
 
-  let subdir;
-  /* if (info.includes('github.com/')) {
-    repo = info.split('/').slice(3, 5).join('/');
-    subdir = info.split('/').slice(7, -1).join('/');
-    branch = info.split('/')[6];
+  let bd;
+  if (info.endsWith('.plugin.js')) {
+    bd = true;
+    if (info.includes('github.com/')) info = info.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '');
+  } else {
+    info = info.replace('https://github.com/', '');
   }
 
-  if (info.includes('raw.githubusercontent.com/')) {
-    repo = info.split('/').slice(3, 5).join('/');
-    subdir = info.split('/').slice(6, -1).join('/');
-    branch = info.split('/')[5];
-  } */
-
-  let isGitHub = !info.startsWith('http') || subdir;
+  let isGitHub = !info.startsWith('http');
 
   let [ newCode, manifest, isTheme ] = finalCache.get(info) ?? [];
 
@@ -362,15 +358,6 @@ const install = async (info, settings = {}) => {
     tree = [];
     if (isGitHub) {
       tree = (await (await fetch(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`)).json()).tree;
-
-      /* if (subdir) {
-        tree = tree.filter(x => x.path.startsWith(subdir)).map(x => x.replace(subdir + '/', ''));
-        console.log('WOW', tree);
-        return;
-      } */
-
-      // tree = treeInfo.tree;
-      // hash = treeInfo.sha;
     }
 
     updatePending(info, 'Fetching index...');
@@ -402,13 +389,16 @@ const install = async (info, settings = {}) => {
         newCode = await transformCSS(indexRoot, indexCode, themeManifest.theme.endsWith('.css'), true);
       }
     } else {
-      manifest = await (await fetch(join(root, './manifest.json'))).json();
+      indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
+
+      if (!bd) {
+        manifest = await (await fetch(join(root, './manifest.json'))).json();
+      } else { // read BD manifest from comment
+        manifest = [...indexCode.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
+      }
 
       const pend = pending.find(x => x.repo === info);
-      console.log('WOW', pend);
       if (pend) pend.manifest = manifest;
-
-      indexCode = await getCode(root, indexFile ?? './index.js', './index.jsx');
 
       updatePending(info, 'Bundling...');
       newCode = await transform(indexUrl, indexCode, info);
@@ -447,6 +437,11 @@ const install = async (info, settings = {}) => {
     PluginClass.prototype.manifest = manifest;
 
     plugin = new PluginClass();
+
+    if (bd) {
+      plugin._topaz_start = plugin.start;
+      plugin._topaz_stop = plugin.stop;
+    }
   }
 
   plugins[info] = plugin;
@@ -470,7 +465,8 @@ const transform = async (path, code, info) => {
   code = await includeRequires(path, code);
   code = Object.values(chunks).join('\n\n') + '\n\n' + code;
 
-  code = globals.powercord + '\n\n' + code;
+  const global = path.endsWith('.plugin.js') ? globals.betterdiscord : globals.powercord;
+  code = global + '\n\n' + code;
 
   code = code.replace('module.exports =', 'return');
 
@@ -853,7 +849,7 @@ class Settings extends React.PureComponent {
         el.onkeydown = async (e) => {
           if (e.keyCode !== 13) return;
 
-          const info = el.value.replace('https://github.com/', '');
+          const info = el.value;
           el.value = '';
           // el.value = 'Installing...';
 
