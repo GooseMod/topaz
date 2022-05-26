@@ -339,7 +339,20 @@ const install = async (info, settings = {}) => {
   let [ repo, branch ] = info.split('@');
   if (!branch) branch = 'HEAD'; // default to HEAD
 
-  let isGitHub = !info.startsWith('http');
+  let subdir;
+  /* if (info.includes('github.com/')) {
+    repo = info.split('/').slice(3, 5).join('/');
+    subdir = info.split('/').slice(7, -1).join('/');
+    branch = info.split('/')[6];
+  }
+
+  if (info.includes('raw.githubusercontent.com/')) {
+    repo = info.split('/').slice(3, 5).join('/');
+    subdir = info.split('/').slice(6, -1).join('/');
+    branch = info.split('/')[5];
+  } */
+
+  let isGitHub = !info.startsWith('http') || subdir;
 
   let [ newCode, manifest, isTheme ] = finalCache.get(info) ?? [];
 
@@ -349,6 +362,13 @@ const install = async (info, settings = {}) => {
     tree = [];
     if (isGitHub) {
       tree = (await (await fetch(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`)).json()).tree;
+
+      /* if (subdir) {
+        tree = tree.filter(x => x.path.startsWith(subdir)).map(x => x.replace(subdir + '/', ''));
+        console.log('WOW', tree);
+        return;
+      } */
+
       // tree = treeInfo.tree;
       // hash = treeInfo.sha;
     }
