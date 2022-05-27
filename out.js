@@ -1949,8 +1949,8 @@ class Settings extends React.PureComponent {
 
       const install = async (info) => {
         const rmPending = addPending({ repo: info, state: 'Installing...' });
-        this.forceUpdate();
 
+        this.forceUpdate();
         setTimeout(() => { this.forceUpdate(); }, 300);
 
         try {
@@ -1966,7 +1966,8 @@ class Settings extends React.PureComponent {
         rmPending();
 
         this.forceUpdate();
-        setTimeout(() => { this.forceUpdate(); }, 300);
+        setTimeout(() => { this.forceUpdate(); }, 500); // force update because jank
+        setTimeout(() => { this.forceUpdate(); }, 1000);
       };
 
 
