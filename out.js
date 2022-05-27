@@ -1628,7 +1628,7 @@ window.topaz = {
 
     log('install', `installed ${info}! took ${(performance.now() - installStartTime).toFixed(2)}ms`);
 
-    savePlugins();
+    setTimeout(savePlugins, 1000);
   },
 
   uninstall: (info) => {
@@ -1638,8 +1638,8 @@ window.topaz = {
     plugins[info]._topaz_stop();
     delete plugins[info];
 
-    finalCache.remove(entityID); // remove final cache
-    fetchCache.keys().filter(x => x.includes(entityID)).forEach(y => fetchCache.remove(y)); // remove fetch caches
+    finalCache.remove(info); // remove final cache
+    fetchCache.keys().filter(x => x.includes(info)).forEach(y => fetchCache.remove(y)); // remove fetch caches
 
     savePlugins();
   },
