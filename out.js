@@ -1,7 +1,7 @@
 (async () => {
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
-  topaz.__noSettingsUpdate = true;
+  topaz.__reloading = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
 }
 
@@ -937,7 +937,7 @@ const updateOpenSettings = async () => {
   try {
     await new Promise((res) => setTimeout(res, 100));
 
-    if (topaz.__noSettingsUpdate || !document.querySelector('.selected-g-kMVV[aria-controls="gm-topaz-tab"]')) return;
+    if (topaz.__reloading || !document.querySelector('.selected-g-kMVV[aria-controls="gm-topaz-tab"]')) return;
 
     const prevScroll = document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop;
 
@@ -1608,7 +1608,7 @@ const topazSettings = {
   sandboxEnabled: false
 };
 
-const savePlugins = () => localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
+const savePlugins = () => !topaz.__reloading && localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
 
 window.topaz = {
   settings: topazSettings,
@@ -1630,8 +1630,10 @@ window.topaz = {
     plugins[info]._topaz_stop();
     delete plugins[info];
 
-    finalCache.remove(info); // remove final cache
-    fetchCache.keys().filter(x => x.includes(info)).forEach(y => fetchCache.remove(y)); // remove fetch caches
+    if (!topaz.__reloading) {
+      finalCache.remove(info); // remove final cache
+      fetchCache.keys().filter(x => x.includes(info)).forEach(y => fetchCache.remove(y)); // remove fetch caches
+    }
 
     savePlugins();
   },

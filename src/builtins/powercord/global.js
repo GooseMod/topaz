@@ -49,7 +49,7 @@ const updateOpenSettings = async () => {
   try {
     await new Promise((res) => setTimeout(res, 100));
 
-    if (topaz.__noSettingsUpdate || !document.querySelector('.selected-g-kMVV[aria-controls="gm-topaz-tab"]')) return;
+    if (topaz.__reloading || !document.querySelector('.selected-g-kMVV[aria-controls="gm-topaz-tab"]')) return;
 
     const prevScroll = document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop;
 
