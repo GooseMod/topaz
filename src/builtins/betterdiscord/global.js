@@ -1,4 +1,5 @@
 let BdApi;
+let global = window;
 
 (() => {
 const cssEls = {};
