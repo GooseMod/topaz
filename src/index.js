@@ -1,5 +1,5 @@
 (async () => {
-let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '[]');
+let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
   topaz.__noSettingsUpdate = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
@@ -947,7 +947,7 @@ class Settings extends React.PureComponent {
           className: TabBarClasses2.tabBar,
     
           onItemSelect: (x) => {
-            if (x === 'RELOAD') return topaz.reload();
+            if (x === 'RELOAD') return;
 
             const textInputEl = document.querySelector('.topaz-settings .input-2g-os5');
             if (textInputEl) textInputs[selectedTab] = textInputEl.value;

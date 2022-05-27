@@ -1,5 +1,5 @@
 (async () => {
-let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '[]');
+let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
   topaz.__noSettingsUpdate = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
@@ -911,9 +911,7 @@ class SimpleStore {
   }
 
   updateSetting = (key, value) => {
-    if (value === undefined) {
-      return this.toggleSetting(key);
-    }
+    if (value === undefined) value = !this.store[key];
 
     this.store[key] = value;
 
@@ -923,11 +921,7 @@ class SimpleStore {
   }
 
   toggleSetting = (key) => {
-    this.store[key] = !this.store[key];
-
-    this.onChange?.();
-
-    return this.store[key];
+    return this.updateSetting(key);
   }
 
   deleteSetting = (key) => {
@@ -2075,7 +2069,7 @@ class Settings extends React.PureComponent {
           className: TabBarClasses2.tabBar,
     
           onItemSelect: (x) => {
-            if (x === 'RELOAD') return topaz.reload();
+            if (x === 'RELOAD') return;
 
             const textInputEl = document.querySelector('.topaz-settings .input-2g-os5');
             if (textInputEl) textInputs[selectedTab] = textInputEl.value;
