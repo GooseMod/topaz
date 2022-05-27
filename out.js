@@ -3,9 +3,6 @@ let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '[]')
 if (window.topaz) { // live reload handling
   topaz.__noSettingsUpdate = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
-
-  const settingItem = goosemod.settings.items.find((x) => x[1] === 'Topaz');
-  if (settingItem) goosemod.settings.items.splice(goosemod.settings.items.indexOf(settingItem), 1);
 }
 
 const initStartTime = performance.now();
@@ -920,17 +917,23 @@ class SimpleStore {
 
     this.store[key] = value;
 
+    this.onChange?.();
+
     return this.store[key];
   }
 
   toggleSetting = (key) => {
     this.store[key] = !this.store[key];
 
+    this.onChange?.();
+
     return this.store[key];
   }
 
   deleteSetting = (key) => {
     delete this.store[key];
+
+    this.onChange?.();
   }
 
   getKeys = () => Object.keys(this.store)
@@ -1572,7 +1575,11 @@ const install = async (info, settings = {}) => {
   plugin.__enabled = true;
   plugin.__mod = bd ? 'bd' : 'pc';
 
-  if (settings && plugin.settings) plugin.settings.store = settings;
+  if (!bd && plugin.settings) {
+    if (settings) plugin.settings.store = settings;
+
+    plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
+  }
 
   lastStarted = info;
   plugin._topaz_start();
@@ -1609,6 +1616,8 @@ const topazSettings = {
   sandboxEnabled: false
 };
 
+const savePlugins = () => localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
+
 window.topaz = {
   settings: topazSettings,
 
@@ -1619,7 +1628,7 @@ window.topaz = {
 
     log('install', `installed ${info}! took ${(performance.now() - installStartTime).toFixed(2)}ms`);
 
-    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
+    savePlugins();
   },
 
   uninstall: (info) => {
@@ -1632,7 +1641,7 @@ window.topaz = {
     finalCache.remove(entityID); // remove final cache
     fetchCache.keys().filter(x => x.includes(entityID)).forEach(y => fetchCache.remove(y)); // remove fetch caches
 
-    localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
+    savePlugins();
   },
   uninstallAll: () => Object.keys(plugins).forEach((x) => topaz.uninstall(x)),
 
@@ -1656,6 +1665,9 @@ window.topaz = {
     topaz.uninstallAll();
     cssEl.remove();
     msgUnpatch();
+
+    const settingItem = goosemod.settings.items.find((x) => x[1] === 'Topaz');
+    if (settingItem) goosemod.settings.items.splice(goosemod.settings.items.indexOf(settingItem), 1);
   },
 
   purgeCache: () => {

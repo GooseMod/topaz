@@ -17,17 +17,23 @@ class SimpleStore {
 
     this.store[key] = value;
 
+    this.onChange?.();
+
     return this.store[key];
   }
 
   toggleSetting = (key) => {
     this.store[key] = !this.store[key];
 
+    this.onChange?.();
+
     return this.store[key];
   }
 
   deleteSetting = (key) => {
     delete this.store[key];
+
+    this.onChange?.();
   }
 
   getKeys = () => Object.keys(this.store)
