@@ -344,9 +344,9 @@ const install = async (info, settings = {}) => {
   if (info.endsWith('.plugin.js')) {
     bd = true;
     if (info.includes('github.com/')) info = info.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '');
-  } else {
-    info = info.replace('https://github.com/', '');
   }
+
+  info = info.replace('https://github.com/', '');
 
   let isGitHub = !info.startsWith('http');
 
