@@ -335,11 +335,6 @@ let lastStarted = '';
 const install = async (info, settings = {}) => {
   lastError = '';
 
-  // log('installing', info);
-
-  let [ repo, branch ] = info.split('@');
-  if (!branch) branch = 'HEAD'; // default to HEAD
-
   let bd;
   if (info.endsWith('.plugin.js')) {
     bd = true;
@@ -347,6 +342,9 @@ const install = async (info, settings = {}) => {
   }
 
   info = info.replace('https://github.com/', '');
+
+  let [ repo, branch ] = info.split('@');
+  if (!branch) branch = 'HEAD'; // default to HEAD
 
   let isGitHub = !info.startsWith('http');
 
