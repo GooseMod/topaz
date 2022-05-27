@@ -842,8 +842,7 @@ class Settings extends React.PureComponent {
         rmPending();
 
         this.forceUpdate();
-        setTimeout(() => { this.forceUpdate(); }, 500); // force update because jank
-        setTimeout(() => { this.forceUpdate(); }, 1000);
+        setTimeout(() => { updateOpenSettings(); }, 500); // force update because jank
       };
 
 
