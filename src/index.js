@@ -775,6 +775,14 @@ class Plugin extends React.PureComponent {
         }) : null,
 
         React.createElement(PanelButton, {
+          icon: goosemod.webpackModules.findByDisplayName('Link'),
+          tooltipText: 'Open Link',
+          onClick: async () => {
+            window.open(entityID.includes('http') ? entityID : `https://github.com/${entityID}`);
+          }
+        }),
+
+        React.createElement(PanelButton, {
           icon: goosemod.webpackModules.findByDisplayName('Retry'),
           tooltipText: 'Reinstall',
           onClick: async () => {
