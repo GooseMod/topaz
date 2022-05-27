@@ -618,19 +618,7 @@ const builtins = {
   }
 
   get settings() {
-    const store = powercord.__topaz.settingStore;
-
-    return { // Basic wrapper with renamed functions
-      get: store.getSetting,
-      set: store.updateSetting,
-      delete: store.deleteSetting,
-
-      getKeys: store.getKeys,
-
-      store: store.store,
-
-      connectStore: () => {} // Unneeded util func, but here incase it is attempted to be called
-    };
+    return powercord.__topaz.settingStore;
   }
 
   _topaz_start() {
@@ -915,6 +903,8 @@ class SimpleStore {
 
     this.store[key] = value;
 
+    console.log('updateSetting', key, value, this.onChange);
+
     this.onChange?.();
 
     return this.store[key];
@@ -931,6 +921,14 @@ class SimpleStore {
   }
 
   getKeys = () => Object.keys(this.store)
+
+  // alt names for other parts
+  get = this.getSetting
+  set = this.updateSetting
+  delete = this.deleteSetting
+
+  // random stub
+  connectStore = () => {}
 }
 
 const settingStore = new SimpleStore();

@@ -14,19 +14,7 @@ class Plugin {
   }
 
   get settings() {
-    const store = powercord.__topaz.settingStore;
-
-    return { // Basic wrapper with renamed functions
-      get: store.getSetting,
-      set: store.updateSetting,
-      delete: store.deleteSetting,
-
-      getKeys: store.getKeys,
-
-      store: store.store,
-
-      connectStore: () => {} // Unneeded util func, but here incase it is attempted to be called
-    };
+    return powercord.__topaz.settingStore;
   }
 
   _topaz_start() {

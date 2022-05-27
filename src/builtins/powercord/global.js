@@ -15,6 +15,8 @@ class SimpleStore {
 
     this.store[key] = value;
 
+    console.log('updateSetting', key, value, this.onChange);
+
     this.onChange?.();
 
     return this.store[key];
@@ -31,6 +33,14 @@ class SimpleStore {
   }
 
   getKeys = () => Object.keys(this.store)
+
+  // alt names for other parts
+  get = this.getSetting
+  set = this.updateSetting
+  delete = this.deleteSetting
+
+  // random stub
+  connectStore = () => {}
 }
 
 const settingStore = new SimpleStore();
