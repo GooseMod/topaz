@@ -2086,7 +2086,13 @@ class Settings extends React.PureComponent {
             id: 'RELOAD',
     
             className: TabBarClasses2.item
-          }, React.createElement(goosemod.webpackModules.findByDisplayName('Retry'), { width: 20, height: 20 }))
+          }, React.createElement(PanelButton, {
+            icon: goosemod.webpackModules.findByDisplayName('Retry'),
+            tooltipText: 'Reload Topaz',
+            onClick: async () => {
+              topaz.reload();
+            }
+          }))
         ),
       ),
 
@@ -2271,12 +2277,16 @@ cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
   position: absolute;
   right: 42px;
 
-  padding: 4px;
-  min-width: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.topaz-settings [aria-controls="reload-tab"] > button:hover {
+  background: hsla(359,calc(var(--saturation-factor, 1)*82.6%),59.4%,0.3) !important;
 }
 
 .topaz-settings [aria-controls="reload-tab"]:hover {
-  background: hsla(359,calc(var(--saturation-factor, 1)*82.6%),59.4%,0.3) !important;
+  background: none !important;
 }
 
 .topaz-settings {
