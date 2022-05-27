@@ -964,7 +964,13 @@ class Settings extends React.PureComponent {
             id: 'RELOAD',
     
             className: TabBarClasses2.item
-          }, React.createElement(goosemod.webpackModules.findByDisplayName('Retry'), { width: 20, height: 20 }))
+          }, React.createElement(PanelButton, {
+            icon: goosemod.webpackModules.findByDisplayName('Retry'),
+            tooltipText: 'Reload Topaz',
+            onClick: async () => {
+              topaz.reload();
+            }
+          }))
         ),
       ),
 

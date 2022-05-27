@@ -135,12 +135,16 @@
   position: absolute;
   right: 42px;
 
-  padding: 4px;
-  min-width: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.topaz-settings [aria-controls="reload-tab"] > button:hover {
+  background: hsla(359,calc(var(--saturation-factor, 1)*82.6%),59.4%,0.3) !important;
 }
 
 .topaz-settings [aria-controls="reload-tab"]:hover {
-  background: hsla(359,calc(var(--saturation-factor, 1)*82.6%),59.4%,0.3) !important;
+  background: none !important;
 }
 
 .topaz-settings {
