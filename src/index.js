@@ -673,7 +673,7 @@ class Plugin extends React.PureComponent {
 
     return React.createElement(TextAndChild, {
       text: !manifest ? repo : [
-        React.createElement('span', {
+        !mod ? null : React.createElement('span', {
           className: 'topaz-tag'
         }, mod.toUpperCase()),
 
