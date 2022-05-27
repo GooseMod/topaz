@@ -88,6 +88,18 @@
   background: hsla(359,calc(var(--saturation-factor, 1)*82.6%),59.4%,0.6);
 }
 
+.topaz-tag {
+  padding: 2px 8px;
+  margin-right: 6px;
+  border-radius: 8px;
+
+  font-size: 14px;
+  vertical-align: top;
+
+  color: var(--text-normal);
+  background: var(--background-floating);
+}
+
 #app-mount .root-g14mjS {
   background: var(--background-primary);
 }

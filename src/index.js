@@ -446,10 +446,11 @@ const install = async (info, settings = {}) => {
 
   plugins[info] = plugin;
 
-  plugins[info].entityID = info; // Re-set metadata for themes and assurance
-  plugins[info].manifest = manifest;
+  plugin.entityID = info; // Re-set metadata for themes and assurance
+  plugin.manifest = manifest;
 
   plugin.__enabled = true;
+  plugin.__mod = bd ? 'bd' : 'pc';
 
   if (settings && plugin.settings) plugin.settings.store = settings;
 
@@ -657,10 +658,14 @@ class Switch extends React.PureComponent {
 
 class Plugin extends React.PureComponent {
   render() {
-    const { manifest, repo, state, substate, settings, entityID } = this.props;
+    const { manifest, repo, state, substate, settings, entityID, mod } = this.props;
 
     return React.createElement(TextAndChild, {
       text: !manifest ? repo : [
+        React.createElement('span', {
+          className: 'topaz-tag'
+        }, mod.toUpperCase()),
+
         manifest.name,
 
         React.createElement('span', {
@@ -981,11 +986,12 @@ class Settings extends React.PureComponent {
 
         React.createElement(Divider),
 
-        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ __enabled, manifest, entityID, __settings }) => React.createElement(Plugin, {
+        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ __enabled, manifest, entityID, __settings, __mod }) => React.createElement(Plugin, {
           manifest,
           entityID,
           enabled: __enabled,
           settings: __settings,
+          mod: __mod,
           onUninstall: async () => {
             const rmPending = addPending({ repo: entityID, state: 'Uninstalling...' });
             this.forceUpdate();
