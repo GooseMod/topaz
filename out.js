@@ -899,19 +899,17 @@ class SimpleStore {
   }
 
   updateSetting = (key, value) => {
-    if (value === undefined) value = !this.store[key];
+    if (value === undefined) return this.deleteSetting(key);
 
     this.store[key] = value;
-
-    console.log('updateSetting', key, value, this.onChange);
 
     this.onChange?.();
 
     return this.store[key];
   }
 
-  toggleSetting = (key) => {
-    return this.updateSetting(key);
+  toggleSetting = (key, def) => {
+    return this.updateSetting(key, !(this.store[key] ?? def));
   }
 
   deleteSetting = (key) => {
