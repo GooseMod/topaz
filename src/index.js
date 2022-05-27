@@ -776,7 +776,7 @@ class Plugin extends React.PureComponent {
 
         React.createElement(PanelButton, {
           icon: goosemod.webpackModules.findByDisplayName('Retry'),
-          tooltipText: 'Fresh Reinstall',
+          tooltipText: 'Reinstall',
           onClick: async () => {
             await topaz.uninstall(entityID);
 

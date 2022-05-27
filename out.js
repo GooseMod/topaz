@@ -1629,6 +1629,9 @@ window.topaz = {
     plugins[info]._topaz_stop();
     delete plugins[info];
 
+    finalCache.remove(entityID); // remove final cache
+    fetchCache.keys().filter(x => x.includes(entityID)).forEach(y => fetchCache.remove(y)); // remove fetch caches
+
     localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
   },
   uninstallAll: () => Object.keys(plugins).forEach((x) => topaz.uninstall(x)),
@@ -1895,11 +1898,8 @@ class Plugin extends React.PureComponent {
 
         React.createElement(PanelButton, {
           icon: goosemod.webpackModules.findByDisplayName('Retry'),
-          tooltipText: 'Fresh Reinstall',
+          tooltipText: 'Reinstall',
           onClick: async () => {
-            finalCache.remove(entityID); // remove final cache
-            fetchCache.keys().filter(x => x.includes(entityID)).forEach(y => fetchCache.remove(y)); // remove fetch caches
-            
             await topaz.uninstall(entityID);
 
             const rmPending = addPending({ repo: entityID, state: 'Installing...' });
