@@ -1467,7 +1467,9 @@ const install = async (info, settings = {}) => {
 
   let isGitHub = !info.startsWith('http');
 
-  let [ newCode, manifest, isTheme ] = finalCache.get(info) ?? [];
+  // disable final cache for now as currently no way to make it update after changes
+  // let [ newCode, manifest, isTheme ] = finalCache.get(info) ?? [];
+  let [ newCode, manifest, isTheme ] = [];
 
   if (!newCode) {
     updatePending(info, 'Treeing...');
