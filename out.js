@@ -882,7 +882,9 @@ module.exports = {
   shell: {
     openExternal: (url) => window.open(url)
   }
-};`
+};`,
+  'path': `module.exports = {};`,
+  'fs': `module.exports = {};`
 };
 
 const globals = {

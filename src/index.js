@@ -64,7 +64,9 @@ const builtins = {
   'powercord/components': await getBuiltin('powercord/components/index'),
   'powercord/components/settings': await getBuiltin('powercord/components/settings'),
   'powercord/modal': await getBuiltin('powercord/modal'),
-  'electron': await getBuiltin('electron')
+  'electron': await getBuiltin('node/electron'),
+  'path': await getBuiltin('node/path'),
+  'fs': await getBuiltin('node/fs')
 };
 
 const globals = {
