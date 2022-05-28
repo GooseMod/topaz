@@ -489,7 +489,8 @@ ${code}
 
 const topazSettings = {
   pluginSettingsSidebar: true,
-  sandboxEnabled: false
+  sandboxEnabled: false,
+  simpleUI: false
 };
 
 const savePlugins = () => !topaz.__reloading && localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
@@ -675,13 +676,13 @@ class Plugin extends React.PureComponent {
 
     return React.createElement(TextAndChild, {
       text: !manifest ? repo : [
-        !mod ? null : React.createElement('span', {
+        (!mod || topazSettings.simpleUI) ? null : React.createElement('span', {
           className: 'topaz-tag'
         }, mod.toUpperCase()),
 
         manifest.name,
 
-        React.createElement('span', {
+        topazSettings.simpleUI ? null : React.createElement('span', {
           class: 'description-30xx7u',
           style: {
             marginLeft: '4px'
@@ -786,7 +787,7 @@ class Plugin extends React.PureComponent {
           }
         }) : null,
 
-        React.createElement(PanelButton, {
+        topazSettings.simpleUI ? null : React.createElement(PanelButton, {
           icon: goosemod.webpackModules.findByDisplayName('Link'),
           tooltipText: 'Open Link',
           onClick: async () => {
@@ -794,7 +795,7 @@ class Plugin extends React.PureComponent {
           }
         }),
 
-        React.createElement(PanelButton, {
+        topazSettings.simpleUI ? null : React.createElement(PanelButton, {
           icon: goosemod.webpackModules.findByDisplayName('Retry'),
           tooltipText: 'Reinstall',
           onClick: async () => {
@@ -832,7 +833,18 @@ class TopazSettings extends React.PureComponent {
         text: 'Add Plugin Settings To Sidebar',
         subtext: 'Adds plugin\'s settings to sidebar',
         isToggled: () => topazSettings.pluginSettingsSidebar,
-        onChange: x => { topazSettings.pluginSettingsSidebar = x; }
+        onToggle: x => { topazSettings.pluginSettingsSidebar = x; }
+      }),
+
+      React.createElement(Header, {
+        text: 'Appearance',
+      }),
+
+      React.createElement(TextAndToggle, {
+        text: 'Simple UI',
+        subtext: 'Hides some more technical UI elements',
+        isToggled: () => topazSettings.simpleUI,
+        onToggle: x => { topazSettings.simpleUI = x; }
       }),
     )
   }
