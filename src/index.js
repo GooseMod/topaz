@@ -185,7 +185,7 @@ const getCode = async (root, p, ...backups) => {
   return fetchCache.set(origPath, code);
 };
 
-const genId = (p) => `__topaz_${p.split('/').slice(6).join('_').split('.')[0]}`;
+const genId = (p) => `__topaz_${p.split('/').slice(6).join('_').split('.')[0].replace('-', '_')}`;
 
 const makeChunk = async (root, p) => {
   // console.log('makeChunk', p);
@@ -345,6 +345,17 @@ const install = async (info, settings = {}) => {
   let [ repo, branch ] = info.split('@');
   if (!branch) branch = 'HEAD'; // default to HEAD
 
+  let subdir;
+  if (!bd) {
+    const spl = info.split('/');
+    if (spl.length > 2) { // Not just repo
+      repo = spl.slice(0, 2).join('/');
+      subdir = spl.slice(4).join('/');
+
+      console.log('SUBDIR', repo, subdir);
+    }
+  }
+
   let isGitHub = !info.startsWith('http');
 
   // disable final cache for now as currently no way to make it update after changes
@@ -357,13 +368,15 @@ const install = async (info, settings = {}) => {
     tree = [];
     if (isGitHub) {
       tree = (await (await fetch(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`)).json()).tree;
+
+      if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
     }
 
     updatePending(info, 'Fetching index...');
 
     const indexFile = resolveFileFromTree('index');
 
-    const indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/index.js`;
+    const indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/${subdir ? (subdir + '/') : ''}index.js`;
     const root = getDir(indexUrl);
 
     chunks = {}; // reset chunks
