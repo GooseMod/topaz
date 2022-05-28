@@ -593,33 +593,34 @@ log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)
   try { updateOpenSettings(); } catch { }
 })();
 
-const recommended = {
-  plugins: [
-    'romdotdog/wpm',
-    'TaiAurori/custom-timestamps',
-    'RazerMoon/vcTimer',
-    '12944qwerty/Slowmode-Counter',
-    'skullyplugs/collapsible-ui',
-    'E-boi/ShowConnections',
-    '12944qwerty/betterInvites',
-    '12944qwerty/copy-server-icon',
-    '12944qwerty/showAllMessageButtons',
-    'yuwui/powercord-greentext',
-    'Puyodead1/powercord-stafftags',
-    'VenPlugs/Unindent',
-    'SpoonMcForky/replace-timestamps-pc',
-    'powercord-community/channel-typing',
-    '12944qwerty/click-mentions',
-  ],
-
-  themes: [
-    'leeprky/MaterialYouTheme',
-    'eternal404/dark-discord',
-    'NYRI4/Comfy',
-    'DiscordStyles/Slate',
-    'DiscordStyles/HorizontalServerList',
-    'DiscordStyles/RadialStatus'
-  ]
+const recommended = { // Automatically generated
+  plugins: {
+    'PC%WPM%rom#5692': 'romdotdog/wpm',
+    'PC%Custom Timestamps%TaiAurori#6781': 'TaiAurori/custom-timestamps',
+    'PC%VCTimer%RazerMoon': 'RazerMoon/vcTimer',
+    'PC%Slowmode Counter%12944qwerty, Harley ツ': '12944qwerty/Slowmode-Counter',
+    'PC%Collapsble UI%Skullbite': 'skullyplugs/collapsible-ui',
+    'PC%Show Connections%ugly-patootie#0611': 'E-boi/ShowConnections',
+    'PC%Better Invites%bakzkndd#2819, 12944qwerty': '12944qwerty/betterInvites',
+    'PC%Copy Server Icon Url%12944qwerty': '12944qwerty/copy-server-icon',
+    'PC%Show All Message Buttons%Kyza, 12944qwerty': '12944qwerty/showAllMessageButtons',
+    'PC%Greentext%yui': 'yuwui/powercord-greentext',
+    'PC%Staff Tags%Puyodead1': 'Puyodead1/powercord-stafftags',
+    'PC%Unindent%Vendicated': 'VenPlugs/Unindent',
+    'PC%Replace Timestamps - Powercord%SpoonMcForky': 'SpoonMcForky/replace-timestamps-pc',
+    'PC%Channel Typing%Bowser65': 'powercord-community/channel-typing',
+    'PC%Click Mentions%12944qwerty': '12944qwerty/click-mentions',
+    'PC%Better Codeblocks%Powercord Team': 'https://raw.githubusercontent.com/powercord-org/powercord/HEAD/src/Powercord/plugins/pc-codeblocks',
+    'BD%PreviewMessageLinks%dylan-dang': 'https://github.com/dylan-dang/BetterDiscordPlugins/blob/main/PreviewMessageLinks.plugin.js'
+  },
+  themes: {
+    'PC%Material You%Leeprky#2063': 'leeprky/MaterialYouTheme',
+    'PC%Dark Discord%eternal': 'eternal404/dark-discord',
+    'PC%Comfy%Nyria#3863': 'NYRI4/Comfy',
+    'PC%Slate%Gibbu#1211 & Tropical#8908': 'DiscordStyles/Slate',
+    'PC%Horizontal Server List%Gibbu#1211': 'DiscordStyles/HorizontalServerList',
+    'PC%RadialStatus%Gibbu#1211': 'DiscordStyles/RadialStatus'
+  }
 };
 
 const updateOpenSettings = async () => {
@@ -865,7 +866,7 @@ class TopazSettings extends React.PureComponent {
 
 class Settings extends React.PureComponent {
   render() {
-    const textInputHandler = (inp) => {
+    const textInputHandler = (inp, init = false) => {
       const el = document.querySelector('.topaz-settings .input-2g-os5');
 
       const install = async (info) => {
@@ -904,10 +905,12 @@ class Settings extends React.PureComponent {
           install(info);
         };
 
+        el.onfocus = () => textInputHandler('');
+
         el.onblur = () => {
           setTimeout(() => {
             autocomplete.style.display = 'none';
-          }, 200);
+          }, 100);
         };
       }
 
@@ -926,10 +929,12 @@ class Settings extends React.PureComponent {
       autocomplete.style.left = inputPos.left + 'px';
       autocomplete.style.width = inputPos.width + 'px';
 
-      const fuzzySearch = new RegExp(`.*${inp.replace(' ', '[-_]')}.*`, 'i');
-      const matching = recommended[selectedTab.toLowerCase()].filter((x) => !plugins[x] && fuzzySearch.test(x));
+      const fuzzySearch = new RegExp(`.*${inp.replace(' ', '[-_ ]')}.*`, 'i');
 
-      if (inp.length > 0 && matching.length > 0) {
+      const recom = recommended[selectedTab.toLowerCase()];
+      const matching = Object.keys(recom).filter((x) => !plugins[x] && fuzzySearch.test(x));
+
+      if (!init && matching.length > 0) {
         autocomplete.style.display = 'block';
         autocomplete.innerHTML = '';
 
@@ -938,8 +943,14 @@ class Settings extends React.PureComponent {
         autocomplete.appendChild(hel);
 
         for (const x of matching) {
+          const [ mod, name, author ] = x.split('%');
+  
+          let place = recom[x];
+          if (place.length > 40) place = place.slice(0, 40) + '...';
+
           const nel = document.createElement('div');
-          nel.textContent = x;
+          nel.className = 'title-2dsDLn';
+          nel.innerHTML = `<span class="topaz-tag tag-floating">${mod}</span> ${name} <span class="description-30xx7u">by</span> ${author.split('#')[0]} <span class="code-style">${place}</span>`; // sad
 
           nel.onclick = async () => {
             autocomplete.style.display = 'none';
@@ -947,7 +958,7 @@ class Settings extends React.PureComponent {
             el.value = '';
             // el.value = 'Installing...';
 
-            install(x);
+            install(recom[x]);
           };
 
           autocomplete.appendChild(nel);
@@ -959,7 +970,7 @@ class Settings extends React.PureComponent {
 
     setTimeout(() => {
       let tmpEl = document.querySelector('.topaz-settings .input-2g-os5');
-      if (tmpEl && !tmpEl.placeholder) textInputHandler('');
+      if (tmpEl && !tmpEl.placeholder) textInputHandler('', true);
     }, 10);
 
 

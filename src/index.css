@@ -2,7 +2,7 @@
   position: absolute;
   z-index: 999;
   background: var(--background-floating);
-  max-height: 200px;
+  max-height: 230px;
   overflow: auto;
 }
 
@@ -22,6 +22,19 @@
   border-bottom: 2px solid var(--background-primary);
   color: var(--header-secondary);
   cursor: pointer;
+}
+
+#topaz-repo-autocomplete .title-2dsDLn {
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+#topaz-repo-autocomplete .code-style {
+  float: right;
+
+  font-family: var(--font-code);
+  font-weight: 400;
+  font-size: 10px;
 }
 
 #topaz-repo-autocomplete > div:hover {
@@ -98,6 +111,10 @@
 
   color: var(--text-normal);
   background: var(--background-floating);
+}
+
+.topaz-tag.tag-floating {
+  background: var(--background-modifier-hover);
 }
 
 #app-mount .root-g14mjS {
