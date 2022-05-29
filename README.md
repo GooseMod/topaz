@@ -1,7 +1,7 @@
 # topaz
 A "next-gen" mod bundling client-side in web, with compat abilities.
 
-> **Warning**
+> **Warning** |
 > Topaz is in **early alpha**, you should not rely on it.
 
 <br>
