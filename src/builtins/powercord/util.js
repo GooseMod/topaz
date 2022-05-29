@@ -1,4 +1,5 @@
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const { getOwnerInstance } = goosemod.reactUtils;
 
 module.exports = {
   sleep,
@@ -9,6 +10,13 @@ module.exports = {
       if (el) return el;
 
       await sleep(5);
+    }
+  },
+
+  forceUpdateElement: (query, all = false) => {
+    for (const x of document[all ? 'querySelectorAll' : 'querySelector'](query)) {
+      if (!x) continue;
+      getOwnerInstance(x)?.forceUpdate?.();
     }
   },
 
