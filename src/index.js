@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 111; // Auto increments on build
+const topazVersion = 112; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -964,7 +964,6 @@ class Settings extends React.PureComponent {
             autocomplete.style.display = 'none';
 
             el.value = '';
-            // el.value = 'Installing...';
 
             install(recom[x]);
           };
