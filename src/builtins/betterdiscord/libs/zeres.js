@@ -28,6 +28,24 @@ let ZeresPluginLibrary = {
           getByDisplayName: goosemod.webpackModules.findByDisplayName,
           getModule: goosemod.webpackModules.find,
           getModules: goosemod.webpackModules.findAll
+        },
+
+        DiscordModules: {
+
+        },
+
+        ReactComponents: {
+          getComponentByName: (displayName, selector) => {
+
+          },
+
+          getComponent: (displayName, selector, filter) => {
+
+          }
+        },
+
+        DiscordSelectors: {
+
         }
       }
     ];
