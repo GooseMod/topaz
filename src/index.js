@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 110; // Auto increments on build
+const topazVersion = 111; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -605,6 +605,7 @@ const recommended = { // Automatically generated
     'PC%Channel Typing%Bowser65': 'powercord-community/channel-typing',
     'PC%Click Mentions%12944qwerty': '12944qwerty/click-mentions',
     'PC%User Details%Juby210#0577': 'Juby210/user-details',
+    'PC%Tone Indicators%asportnoy#6969': 'asportnoy/powercord-tone-indicators',
     'PC%Better Codeblocks%Powercord Team': 'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-codeblocks',
     'PC%Clickable Message Edits%Harley': 'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-clickableEdits',
     'BD%PreviewMessageLinks%dylan-dang': 'https://github.com/dylan-dang/BetterDiscordPlugins/blob/main/PreviewMessageLinks.plugin.js',

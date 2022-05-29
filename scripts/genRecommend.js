@@ -20,6 +20,7 @@ const pc = {
     'powercord-community/channel-typing',
     '12944qwerty/click-mentions',
     'Juby210/user-details',
+    'asportnoy/powercord-tone-indicators',
     'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-codeblocks',
     'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-clickableEdits',
   ],
