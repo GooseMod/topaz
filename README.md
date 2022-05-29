@@ -1,10 +1,15 @@
 # topaz
-Client-side bundler with compat abilities. **Very alpha, don't use, probably.**
+A "next-gen" mod bundling client-side in web, with compat abilities.
+
+> **Warning**
+> Topaz is in **early alpha**, you should not rely on it.
+
+<br>
 
 ## Usage
 
 - Use GM with development channel
-- Run this JS in your console, choose temporary if you just want it until refresh/restart, or persistent for every GM boot (refresh)
+- Run this JS in your console, choose temporary if you just want it until refresh/restart, or persistent for every GM boot (needs refresh)
 
 ### Temporary
 ```js
