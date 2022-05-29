@@ -19,7 +19,7 @@ const pc = {
     'SpoonMcForky/replace-timestamps-pc',
     'powercord-community/channel-typing',
     '12944qwerty/click-mentions',
-    'https://raw.githubusercontent.com/powercord-org/powercord/HEAD/src/Powercord/plugins/pc-codeblocks'
+    'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-codeblocks'
   ],
 
   themes: [
@@ -46,7 +46,7 @@ const getManifest_pc = async (place, theme) => { // just repo or url
   let manifestUrl = place + '/' + manifestName;
   if (!place.startsWith('http')) manifestUrl = `https://raw.githubusercontent.com/${place}/HEAD/${manifestName}`;
 
-  return await (await fetch(manifestUrl)).json();
+  return await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', ''))).json();
 };
 
 const getManifest_bd = async (place, theme) => { // .plugin.js url

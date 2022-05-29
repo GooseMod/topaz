@@ -610,7 +610,7 @@ const recommended = { // Automatically generated
     'PC%Replace Timestamps - Powercord%SpoonMcForky': 'SpoonMcForky/replace-timestamps-pc',
     'PC%Channel Typing%Bowser65': 'powercord-community/channel-typing',
     'PC%Click Mentions%12944qwerty': '12944qwerty/click-mentions',
-    'PC%Better Codeblocks%Powercord Team': 'https://raw.githubusercontent.com/powercord-org/powercord/HEAD/src/Powercord/plugins/pc-codeblocks',
+    'PC%Better Codeblocks%Powercord Team': 'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-codeblocks',
     'BD%PreviewMessageLinks%dylan-dang': 'https://github.com/dylan-dang/BetterDiscordPlugins/blob/main/PreviewMessageLinks.plugin.js'
   },
   themes: {
@@ -932,7 +932,8 @@ class Settings extends React.PureComponent {
       const fuzzySearch = new RegExp(`.*${inp.replace(' ', '[-_ ]')}.*`, 'i');
 
       const recom = recommended[selectedTab.toLowerCase()];
-      const matching = Object.keys(recom).filter((x) => !plugins[x] && fuzzySearch.test(x));
+      const infoFromRecom = (x) => x.endsWith('.plugin.js') ? x.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '') : x.replace('https://github.com/', '');
+      const matching = Object.keys(recom).filter((x) => !plugins[infoFromRecom(recom[x])] && fuzzySearch.test(x));
 
       if (!init && matching.length > 0) {
         autocomplete.style.display = 'block';
