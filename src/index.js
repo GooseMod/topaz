@@ -66,14 +66,18 @@ const builtins = {
   'powercord/components': await getBuiltin('powercord/components/index'),
   'powercord/components/settings': await getBuiltin('powercord/components/settings'),
   'powercord/modal': await getBuiltin('powercord/modal'),
+
   'electron': await getBuiltin('node/electron'),
   'path': await getBuiltin('node/path'),
-  'fs': await getBuiltin('node/fs')
+  'fs': await getBuiltin('node/fs'),
+  'request': await getBuiltin('node/request')
 };
 
 const globals = {
   powercord: await getBuiltin('powercord/global'),
-  betterdiscord: await getBuiltin('betterdiscord/global')
+  betterdiscord: await getBuiltin('betterdiscord/global'),
+
+  bd_zeres: await getBuiltin('betterdiscord/libs/zeres')
 };
 
 const join = (root, p) => root + p.replace('./', '/'); // Add .jsx to empty require paths with no file extension
@@ -455,6 +459,8 @@ const install = async (info, settings = {}) => {
     if (bd) {
       plugin._topaz_start = plugin.start;
       plugin._topaz_stop = plugin.stop;
+
+      for (const x of [ 'name', 'description', 'version', 'author' ]) manifest[x] = plugin['get' + x.toUpperCase()[0] + x.slice(1)]?.() ?? manifest[x] ?? '';
     }
   }
 
@@ -486,6 +492,9 @@ const transform = async (path, code, info) => {
 
   const global = path.endsWith('.plugin.js') ? globals.betterdiscord : globals.powercord;
   code = global + '\n\n' + code;
+
+  // BD: add our own micro-implementations of popular 3rd party plugin libraries
+  if (code.includes('ZeresPluginLibrary')) code = globals.bd_zeres + '\n\n' + code;
 
   code = code.replace('module.exports =', 'return');
 
@@ -574,7 +583,9 @@ window.topaz = {
     registerSettings: (id, { label, render, category, props }) => {
       const entityID = plugins[category] ? category : lastStarted;
       plugins[entityID].__settings = { category, label, render, props };
-    }
+    },
+
+    plugins
   },
 
   reload: async () => {
@@ -714,7 +725,7 @@ class Plugin extends React.PureComponent {
           }
         }, 'by'),
 
-        manifest.author.split('#')[0],
+        (manifest.author ?? '').split('#')[0],
 
         /* manifest.author.split('#')[1] ? React.createElement('span', {
           class: 'description-30xx7u',

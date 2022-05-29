@@ -717,7 +717,7 @@ module.exports = {
   },
 
   forceUpdateElement: (query, all = false) => {
-    for (const x of document[all ? 'querySelectorAll' : 'querySelector'](query)) {
+    for (const x of (all ? document.querySelectorAll(query) : [ document.querySelector(query) ])) {
       if (!x) continue;
       getOwnerInstance(x)?.forceUpdate?.();
     }
@@ -881,6 +881,7 @@ module.exports = {
 
   closeAll: () => modalManager.closeAllModals()
 };`,
+
   'electron': `const { copy } = goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy'); // Use Webpack module for Web support (instead of DiscordNative)
 
 module.exports = {
@@ -894,7 +895,8 @@ module.exports = {
   }
 };`,
   'path': `module.exports = {};`,
-  'fs': `module.exports = {};`
+  'fs': `module.exports = {};`,
+  'request': `module.exports = {};`
 };
 
 const globals = {
@@ -1199,8 +1201,44 @@ BdApi = {
 
   React: goosemod.webpackModules.common.React,
   ReactDOM: goosemod.webpackModules.common.ReactDOM
-}
-})();`
+};
+})();`,
+
+  bd_zeres: `let ZeresPluginLibrary = {
+  buildPlugin: (config) => {
+    const meta = config.info;
+    const id = meta.name;
+
+    return [
+      class Plugin {
+        start() {
+          this.onStart();
+        }
+
+        stop() {
+          this.onStop();
+        }
+
+        getName() { return meta.name; }
+        getDescription() { return meta.description; }
+        getVersion() { return meta.version; }
+        getAuthor() { return meta.authors.map(x => x.name).join(', '); }
+      },
+
+      {
+        Patcher: Object.keys(BdApi.Patcher).reduce((acc, x) => { acc[x] = BdApi.Patcher[x].bind(this, id); return acc; }),
+
+        WebpackModules: {
+          getByProps: goosemod.webpackModules.findByProps,
+          getAllByProps: goosemod.webpackModules.findByPropsAll,
+          getByDisplayName: goosemod.webpackModules.findByDisplayName,
+          getModule: goosemod.webpackModules.find,
+          getModules: goosemod.webpackModules.findAll
+        }
+      }
+    ];
+  }
+};`
 };
 
 const join = (root, p) => root + p.replace('./', '/'); // Add .jsx to empty require paths with no file extension
@@ -1582,6 +1620,8 @@ const install = async (info, settings = {}) => {
     if (bd) {
       plugin._topaz_start = plugin.start;
       plugin._topaz_stop = plugin.stop;
+
+      for (const x of [ 'name', 'description', 'version', 'author' ]) manifest[x] = plugin['get' + x.toUpperCase()[0] + x.slice(1)]?.() ?? manifest[x] ?? '';
     }
   }
 
@@ -1613,6 +1653,9 @@ const transform = async (path, code, info) => {
 
   const global = path.endsWith('.plugin.js') ? globals.betterdiscord : globals.powercord;
   code = global + '\n\n' + code;
+
+  // BD: add our own micro-implementations of popular 3rd party plugin libraries
+  if (code.includes('ZeresPluginLibrary')) code = globals.bd_zeres + '\n\n' + code;
 
   code = code.replace('module.exports =', 'return');
 
@@ -1701,7 +1744,9 @@ window.topaz = {
     registerSettings: (id, { label, render, category, props }) => {
       const entityID = plugins[category] ? category : lastStarted;
       plugins[entityID].__settings = { category, label, render, props };
-    }
+    },
+
+    plugins
   },
 
   reload: async () => {
@@ -1841,7 +1886,7 @@ class Plugin extends React.PureComponent {
           }
         }, 'by'),
 
-        manifest.author.split('#')[0],
+        (manifest.author ?? '').split('#')[0],
 
         /* manifest.author.split('#')[1] ? React.createElement('span', {
           class: 'description-30xx7u',

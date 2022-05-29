@@ -70,5 +70,5 @@ BdApi = {
 
   React: goosemod.webpackModules.common.React,
   ReactDOM: goosemod.webpackModules.common.ReactDOM
-}
+};
 })();

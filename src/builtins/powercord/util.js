@@ -14,7 +14,7 @@ module.exports = {
   },
 
   forceUpdateElement: (query, all = false) => {
-    for (const x of document[all ? 'querySelectorAll' : 'querySelector'](query)) {
+    for (const x of (all ? document.querySelectorAll(query) : [ document.querySelector(query) ])) {
       if (!x) continue;
       getOwnerInstance(x)?.forceUpdate?.();
     }
