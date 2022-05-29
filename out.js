@@ -1799,9 +1799,12 @@ const recommended = { // Automatically generated
     'PC%Replace Timestamps - Powercord%SpoonMcForky': 'SpoonMcForky/replace-timestamps-pc',
     'PC%Channel Typing%Bowser65': 'powercord-community/channel-typing',
     'PC%Click Mentions%12944qwerty': '12944qwerty/click-mentions',
+    'PC%User Details%Juby210#0577': 'Juby210/user-details',
     'PC%Better Codeblocks%Powercord Team': 'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-codeblocks',
     'PC%Clickable Message Edits%Harley': 'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-clickableEdits',
-    'BD%PreviewMessageLinks%dylan-dang': 'https://github.com/dylan-dang/BetterDiscordPlugins/blob/main/PreviewMessageLinks.plugin.js'
+    'BD%PreviewMessageLinks%dylan-dang': 'https://github.com/dylan-dang/BetterDiscordPlugins/blob/main/PreviewMessageLinks.plugin.js',
+    'BD%NoSpotifyPause%undefined': 'https://github.com/bepvte/bd-addons/blob/main/plugins/NoSpotifyPause.plugin.js',
+    'BD%FreeEmojis%An0': 'https://github.com/BetterDiscordPlugins/DiscordFreeEmojis/blob/master/DiscordFreeEmojis64px.plugin.js'
   },
   themes: {
     'PC%Material You%Leeprky#2063': 'leeprky/MaterialYouTheme',

@@ -19,6 +19,7 @@ const pc = {
     'SpoonMcForky/replace-timestamps-pc',
     'powercord-community/channel-typing',
     '12944qwerty/click-mentions',
+    'Juby210/user-details',
     'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-codeblocks',
     'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-clickableEdits',
   ],
@@ -35,7 +36,9 @@ const pc = {
 
 const bd = {
   plugins: [
-    'https://github.com/dylan-dang/BetterDiscordPlugins/blob/main/PreviewMessageLinks.plugin.js'
+    'https://github.com/dylan-dang/BetterDiscordPlugins/blob/main/PreviewMessageLinks.plugin.js',
+    'https://github.com/bepvte/bd-addons/blob/main/plugins/NoSpotifyPause.plugin.js',
+    'https://github.com/BetterDiscordPlugins/DiscordFreeEmojis/blob/master/DiscordFreeEmojis64px.plugin.js',
   ]
 };
 
