@@ -19,7 +19,8 @@ const pc = {
     'SpoonMcForky/replace-timestamps-pc',
     'powercord-community/channel-typing',
     '12944qwerty/click-mentions',
-    'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-codeblocks'
+    'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-codeblocks',
+    'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-clickableEdits',
   ],
 
   themes: [
@@ -28,7 +29,7 @@ const pc = {
     'NYRI4/Comfy',
     'DiscordStyles/Slate',
     'DiscordStyles/HorizontalServerList',
-    'DiscordStyles/RadialStatus'
+    'DiscordStyles/RadialStatus',
   ]
 };
 
@@ -46,7 +47,7 @@ const getManifest_pc = async (place, theme) => { // just repo or url
   let manifestUrl = place + '/' + manifestName;
   if (!place.startsWith('http')) manifestUrl = `https://raw.githubusercontent.com/${place}/HEAD/${manifestName}`;
 
-  return await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', ''))).json();
+  return await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
 };
 
 const getManifest_bd = async (place, theme) => { // .plugin.js url

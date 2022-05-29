@@ -613,6 +613,7 @@ const recommended = { // Automatically generated
     'PC%Channel Typing%Bowser65': 'powercord-community/channel-typing',
     'PC%Click Mentions%12944qwerty': '12944qwerty/click-mentions',
     'PC%Better Codeblocks%Powercord Team': 'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-codeblocks',
+    'PC%Clickable Message Edits%Harley': 'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-clickableEdits',
     'BD%PreviewMessageLinks%dylan-dang': 'https://github.com/dylan-dang/BetterDiscordPlugins/blob/main/PreviewMessageLinks.plugin.js'
   },
   themes: {
