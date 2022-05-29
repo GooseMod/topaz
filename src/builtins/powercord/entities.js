@@ -26,6 +26,9 @@ class Plugin {
 
     this.pluginWillUnload.bind(this)();
   }
+  
+  _load = this._topaz_start
+  _unload = this._topaz_stop
 }
 
 module.exports = {

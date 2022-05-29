@@ -45,6 +45,10 @@
   margin-bottom: 20px;
 }
 
+.topaz-settings .topaz-version {
+  margin-left: 6px;
+}
+
 .topaz-settings .title-2dsDLn {
   font-weight: 600;
 }

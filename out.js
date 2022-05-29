@@ -1,8 +1,12 @@
 (async () => {
+const topazVersion = 101; // Auto increments on build
+
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
   topaz.__reloading = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
+
+  setTimeout(() => updateOpenSettings(), 1000);
 }
 
 const initStartTime = performance.now();
@@ -632,6 +636,9 @@ const builtins = {
 
     this.pluginWillUnload.bind(this)();
   }
+  
+  _load = this._topaz_start
+  _unload = this._topaz_stop
 }
 
 module.exports = {
@@ -2174,6 +2181,10 @@ class Settings extends React.PureComponent {
       React.createElement(FormTitle, {
         tag: 'h1'
       }, 'Topaz',
+        React.createElement('span', {
+          className: 'description-30xx7u topaz-version'
+        }, 'v' + topazVersion),
+
         React.createElement(HeaderBarContainer.Divider),
 
         React.createElement(TabBar, {
@@ -2313,6 +2324,10 @@ cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
 
 .topaz-settings > [role="tablist"] {
   margin-bottom: 20px;
+}
+
+.topaz-settings .topaz-version {
+  margin-left: 6px;
 }
 
 .topaz-settings .title-2dsDLn {
