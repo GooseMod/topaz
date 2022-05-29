@@ -25,6 +25,8 @@ const includeImports = async (root, code, updateProgress) => {
 
     let code;
     if (isExternal) {
+      if (_.includes('@import') && !_.includes('scss')) return _;
+
       const req = await fetch(path);
       if (req.status !== 200) {
         code = '';
