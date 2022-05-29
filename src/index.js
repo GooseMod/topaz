@@ -191,26 +191,31 @@ const getCode = async (root, p, ...backups) => {
   return fetchCache.set(origPath, code);
 };
 
-const genId = (p) => `__topaz_${p.split('/').slice(6).join('_').split('.')[0].replace('-', '_')}`;
+const genId = (p) => `__topaz_${p.replace(transformRoot, '').replaceAll('./', '/').replace(/[\/\-]/g, '_').split('.')[0]}`;
 
 const makeChunk = async (root, p) => {
   // console.log('makeChunk', p);
   downloadingProgress++;
   updatePending(null, `Fetching (${downloadingProgress})...`);
 
-  let code = await getCode(root, resolveFileFromTree(p) ?? p, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
+  const joined = (root + '/' + p).replace(transformRoot, '');
+  const resPath = builtins[p] ? p : resolvePath(joined).slice(1);
+  const resolved = resolveFileFromTree(resPath);
+  console.log('CHUNK', genId(resPath), joined, resPath, resolved);
+
+  let code = await getCode(transformRoot, resolved ?? p, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
   if (!builtins[p]) code = await includeRequires(join(root, p), code);
-  const id = genId(join(root, p));
+  const id = genId(resPath);
 
   if (p.endsWith('.json') || code.startsWith('{')) code = 'module.exports = ' + code;
 
-  const chunk = `// ${p}
+  const chunk = `// ${resolved}
 let ${id} = {};
 (() => {
 ` + code.replace('module.exports =', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`) + `
 })();`;
 
-  return chunk;
+  return [ id, chunk ];
 };
 
 async function replaceAsync(str, regex, asyncFn) {
@@ -249,9 +254,10 @@ const includeRequires = async (path, code) => {
 
   code = await replaceAsync(code, /require\(["'`](.*?)["'`]\)/g, async (_, p) => {
     // console.log('within replace', join(root, p), chunks);
-    if (!chunks[join(root, p)]) chunks[join(root, p)] = await makeChunk(root, p);
+    const [ chunkId, code ] = await makeChunk(root, p);
+    if (!chunks[chunkId]) chunks[chunkId] = code;
 
-    return genId(join(root, p));
+    return chunkId;
   });
 
   code = await replaceAsync(code, /this\.loadStylesheet\(['"`](.*?)['"`]\)/g, async (_, p) => {
@@ -318,6 +324,13 @@ const updatePending = (repo, substate) => {
     el.textContent = substate;
   // }
 };
+
+const resolvePath = (x) => {
+  let ind;
+  while (ind = x.indexOf('../') !== -1) x = x.slice(0, ind) + x.slice(ind + 3);
+
+  return x;
+}
 
 let lastError;
 const resolveFileFromTree = (path) => {
@@ -484,8 +497,10 @@ const install = async (info, settings = {}) => {
   return [ manifest ];
 };
 
+let transformRoot;
 const transform = async (path, code, info) => {
   downloadingProgress = 0;
+  transformRoot = path.split('/').slice(0, -1).join('/');
 
   code = await includeRequires(path, code);
   code = Object.values(chunks).join('\n\n') + '\n\n' + code;
