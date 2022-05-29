@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 106; // Auto increments on build
+const topazVersion = 107; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1336,43 +1336,6 @@ const getCode = async (root, p, ...backups) => {
     break;
     // console.log(join(root, path), req.status, code);
   }
-
-  /* let code = await (await fetch(path)).text();
-  console.log('one', { path, code });
-  if (code === '404: Not Found') {
-    if (path.includes('.jsx')) {
-      path = path.replace('.jsx', '.js');
-    } else {
-      path = path.replace('.js', '.jsx');
-    }
-
-    if (path.includes('.scss')) {
-      path = path.replace('.scss', '.css');
-    }
-
-    code = await (await fetch(path)).text();
-
-    if (code === '404: Not Found' && path.includes('i18n')) {
-      code = 'module.exports = {}'; // i18n jank placeholder fix
-    }
-
-    /* if (code === '404: Not Found') {
-      if (path.includes('.js')) {
-        path = path.replace('.js', '/index.js');
-      }
-
-      code = await (await fetch(path)).text();
-
-      if (code === '404: Not Found') {
-        if (path.includes('/index.js')) {
-          path = path.replace('/index.js', '.json');
-        }
-  
-        code = await (await fetch(path)).text();
-      }
-    } */ /*
-  }
-  console.log('two', { path, code }); */
 
   return fetchCache.set(origPath, code);
 };
