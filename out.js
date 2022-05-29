@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 101; // Auto increments on build
+const topazVersion = 102; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -2328,6 +2328,8 @@ cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
 
 .topaz-settings .topaz-version {
   margin-left: 6px;
+  font-family: var(--font-code);
+  font-size: 10px;
 }
 
 .topaz-settings .title-2dsDLn {

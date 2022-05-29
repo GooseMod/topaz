@@ -47,6 +47,8 @@
 
 .topaz-settings .topaz-version {
   margin-left: 6px;
+  font-family: var(--font-code);
+  font-size: 10px;
 }
 
 .topaz-settings .title-2dsDLn {
