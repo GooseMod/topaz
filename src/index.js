@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 107; // Auto increments on build
+const topazVersion = 110; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -69,6 +69,7 @@ const builtins = {
   'powercord/util': await getBuiltin('powercord/util'),
   'powercord/components': await getBuiltin('powercord/components/index'),
   'powercord/components/settings': await getBuiltin('powercord/components/settings'),
+  'powercord/components/modal': await getBuiltin('powercord/components/modal'),
   'powercord/modal': await getBuiltin('powercord/modal'),
 
   'electron': await getBuiltin('node/electron'),
@@ -171,7 +172,7 @@ const makeChunk = async (root, p) => {
   console.log('CHUNK', genId(resPath), '|', root.replace(transformRoot, ''), p, '|', joined, resPath, resolved);
 
   let code = await getCode(transformRoot, resolved ?? p, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
-  if (!builtins[p]) code = await includeRequires(join(root, p), code);
+  if (!builtins[p]) code = await includeRequires(join(transformRoot, resolved), code);
   const id = genId(resPath);
 
   if (p.endsWith('.json') || code.startsWith('{')) code = 'module.exports = ' + code;
@@ -211,8 +212,6 @@ async function replaceAsync(str, regex, asyncFn) {
 let chunks = {}, tree = [];
 let downloadingProgress = 0;
 const includeRequires = async (path, code) => {
-  // console.log('requires', path, code);
-
   const root = getDir(path);
 
   // console.log({ path, root });

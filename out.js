@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 107; // Auto increments on build
+const topazVersion = 110; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -874,6 +874,9 @@ module.exports = {
   FormItem,
   Divider
 };`,
+  'powercord/components/modal': `module.exports = {
+  Modal: goosemod.webpackModules.findByProps('ModalRoot')
+};`,
   'powercord/modal': `const modalManager = goosemod.webpackModules.findByProps('openModal', 'updateModal');
 const Modal = goosemod.webpackModules.findByProps('ModalRoot');
 
@@ -1353,7 +1356,7 @@ const makeChunk = async (root, p) => {
   console.log('CHUNK', genId(resPath), '|', root.replace(transformRoot, ''), p, '|', joined, resPath, resolved);
 
   let code = await getCode(transformRoot, resolved ?? p, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
-  if (!builtins[p]) code = await includeRequires(join(root, p), code);
+  if (!builtins[p]) code = await includeRequires(join(transformRoot, resolved), code);
   const id = genId(resPath);
 
   if (p.endsWith('.json') || code.startsWith('{')) code = 'module.exports = ' + code;
@@ -1393,8 +1396,6 @@ async function replaceAsync(str, regex, asyncFn) {
 let chunks = {}, tree = [];
 let downloadingProgress = 0;
 const includeRequires = async (path, code) => {
-  // console.log('requires', path, code);
-
   const root = getDir(path);
 
   // console.log({ path, root });
