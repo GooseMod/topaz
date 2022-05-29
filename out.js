@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 105; // Auto increments on build
+const topazVersion = 106; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1387,7 +1387,7 @@ const makeChunk = async (root, p) => {
   const joined = (root + '/' + p).replace(transformRoot, '');
   const resPath = builtins[p] ? p : resolvePath(joined).slice(1);
   const resolved = resolveFileFromTree(resPath);
-  console.log('CHUNK', genId(resPath), joined, resPath, resolved);
+  console.log('CHUNK', genId(resPath), '|', root.replace(transformRoot, ''), p, '|', joined, resPath, resolved);
 
   let code = await getCode(transformRoot, resolved ?? p, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
   if (!builtins[p]) code = await includeRequires(join(root, p), code);
