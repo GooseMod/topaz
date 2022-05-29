@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 104; // Auto increments on build
+const topazVersion = 105; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -530,7 +530,7 @@ ${code}
   return code;
 };
 
-const topazSettings = {
+const topazSettings = JSON.parse(localStorage.getItem('topaz_settings') ?? 'null') ?? {
   pluginSettingsSidebar: true,
   sandboxEnabled: false,
   simpleUI: false
@@ -870,6 +870,8 @@ class Plugin extends React.PureComponent {
   }
 }
 
+const saveTopazSettings = () => localStorage.setItem('topaz_settings', JSON.stringify(topazSettings));
+
 class TopazSettings extends React.PureComponent {
   render() {
     return React.createElement('div', {
@@ -883,7 +885,10 @@ class TopazSettings extends React.PureComponent {
         text: 'Add Plugin Settings To Sidebar',
         subtext: 'Adds plugin\'s settings to sidebar',
         isToggled: () => topazSettings.pluginSettingsSidebar,
-        onToggle: x => { topazSettings.pluginSettingsSidebar = x; }
+        onToggle: x => {
+          topazSettings.pluginSettingsSidebar = x;
+          saveTopazSettings();
+        }
       }),
 
       React.createElement(Header, {
@@ -894,7 +899,10 @@ class TopazSettings extends React.PureComponent {
         text: 'Simple UI',
         subtext: 'Hides some more technical UI elements',
         isToggled: () => topazSettings.simpleUI,
-        onToggle: x => { topazSettings.simpleUI = x; }
+        onToggle: x => {
+          topazSettings.simpleUI = x;
+          saveTopazSettings();
+        }
       }),
     )
   }
