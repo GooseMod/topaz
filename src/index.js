@@ -609,7 +609,7 @@ const recommended = { // Automatically generated
     'PC%Clickable Message Edits%Harley': 'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-clickableEdits',
     'BD%PreviewMessageLinks%dylan-dang': 'https://github.com/dylan-dang/BetterDiscordPlugins/blob/main/PreviewMessageLinks.plugin.js',
     'BD%NoSpotifyPause%undefined': 'https://github.com/bepvte/bd-addons/blob/main/plugins/NoSpotifyPause.plugin.js',
-    'BD%undefined%undefined': 'https://github.com/BetterDiscordPlugins/DiscordFreeEmojis/blob/master/DiscordFreeEmojisSplit48px.plugin.js'
+    'BD%FreeEmojis%An0': 'https://github.com/BetterDiscordPlugins/DiscordFreeEmojis/blob/master/DiscordFreeEmojis64px.plugin.js'
   },
   themes: {
     'PC%Material You%Leeprky#2063': 'leeprky/MaterialYouTheme',
