@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 132; // Auto increments on build
+const topazVersion = 133; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1596,7 +1596,7 @@ const resolvePath = (x) => {
   while (ind = x.indexOf('../') !== -1) x = x.slice(0, ind) + x.slice(ind + 3);
 
   return x;
-}
+};
 
 let lastError;
 const resolveFileFromTree = (path) => {
