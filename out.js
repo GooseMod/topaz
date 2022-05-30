@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 123; // Auto increments on build
+const topazVersion = 124; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1265,25 +1265,36 @@ BdApi = {
       if (!unpatches[id]) unpatches[id] = [];
 
       const original = Object.assign({}, parent)[key];
-      unpatches[id].push(goosemod.patcher.patch(parent, key, function (args) { return patch(this, args, original.bind(this)); }, true));
+
+      const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(this, args, original.bind(this)); }, true);
+
+      unpatches[id].push(unpatch);
+      return unpatch;
     },
 
     before: (id, parent, key, patch) => {
       if (!unpatches[id]) unpatches[id] = [];
 
-      unpatches[id].push(goosemod.patcher.patch(parent, key, function (args) { return patch(this, args); }, true));
+      const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(this, args); }, true);
+
+      unpatches[id].push(unpatch);
+      return unpatch;
     },
 
     after: (id, parent, key, patch) => {
       if (!unpatches[id]) unpatches[id] = [];
 
-      unpatches[id].push(goosemod.patcher.patch(parent, key, function (args, ret) { return patch(this, args, ret); }, false));
+      const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return patch(this, args, ret); }, false);
+
+      unpatches[id].push(unpatch);
+      return unpatch;
     },
 
     unpatchAll: (id) => {
-      if (!unpatches[id]) return;
+      let arr = id;
+      if (typeof id === 'string') arr = unpatches[id] ?? [];
       
-      unpatches[id].forEach(x => x());
+      arr.forEach(x => x());
     }
   },
 
