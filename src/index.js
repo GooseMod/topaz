@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 128; // Auto increments on build
+const topazVersion = 129; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -429,7 +429,7 @@ const install = async (info, settings = {}) => {
       __theme: true
     };
   } else {
-    const PluginClass = eval(newCode);
+    const PluginClass = eval(`const __entityID = \`${info}\`;\n` + newCode);
     PluginClass.prototype.entityID = info; // Setup internal metadata
     PluginClass.prototype.manifest = manifest;
 
@@ -560,8 +560,8 @@ window.topaz = {
   getInstalled: () => Object.keys(plugins),
 
   internal: {
-    registerSettings: (id, { label, render, category, props }) => {
-      const entityID = plugins[category] ? category : lastStarted;
+    registerSettings: (entityID, id, { label, render, category, props }) => {
+      // const entityID = plugins[category] ? category : lastStarted;
       plugins[entityID].__settings = { category, label, render, props };
     },
 

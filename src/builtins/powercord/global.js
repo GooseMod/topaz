@@ -164,7 +164,7 @@ powercord = {
 
         if (!SettingsView) return;
 
-        topaz.internal.registerSettings(id, { label, render, category, props: { ...settingStore } });
+        topaz.internal.registerSettings(__entityID, id, { label, render, category, props: { ...settingStore } });
 
 
         settingsUnpatch[id] = goosemod.patcher.patch(SettingsView.prototype, 'getPredicateSections', (_, sections) => {

@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 128; // Auto increments on build
+const topazVersion = 129; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1109,7 +1109,7 @@ powercord = {
 
         if (!SettingsView) return;
 
-        topaz.internal.registerSettings(id, { label, render, category, props: { ...settingStore } });
+        topaz.internal.registerSettings(__entityID, id, { label, render, category, props: { ...settingStore } });
 
 
         settingsUnpatch[id] = goosemod.patcher.patch(SettingsView.prototype, 'getPredicateSections', (_, sections) => {
@@ -1703,7 +1703,7 @@ const install = async (info, settings = {}) => {
       __theme: true
     };
   } else {
-    const PluginClass = eval(newCode);
+    const PluginClass = eval(`const __entityID = \`${info}\`;\n` + newCode);
     PluginClass.prototype.entityID = info; // Setup internal metadata
     PluginClass.prototype.manifest = manifest;
 
@@ -1834,8 +1834,8 @@ window.topaz = {
   getInstalled: () => Object.keys(plugins),
 
   internal: {
-    registerSettings: (id, { label, render, category, props }) => {
-      const entityID = plugins[category] ? category : lastStarted;
+    registerSettings: (entityID, id, { label, render, category, props }) => {
+      // const entityID = plugins[category] ? category : lastStarted;
       plugins[entityID].__settings = { category, label, render, props };
     },
 
