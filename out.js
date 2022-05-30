@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 124; // Auto increments on build
+const topazVersion = 125; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -2355,7 +2355,7 @@ class Settings extends React.PureComponent {
 
 let settingsUnpatch = goosemod.patcher.patch(goosemod.webpackModules.findByDisplayName('SettingsView').prototype, 'getPredicateSections', (_, sections) => {
   const logout = sections.find((c) => c.section === 'logout');
-  if (!logout || !topaz.settings.pluginSettingsSidebar) return sections;
+  if (!logout) return sections;
 
   sections.splice(0, 0,
   {
