@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 121; // Auto increments on build
+const topazVersion = 122; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -994,12 +994,12 @@ const updateOpenSettings = async () => {
   try {
     await new Promise((res) => setTimeout(res, 100));
 
-    if (topaz.__reloading || !document.querySelector('.selected-g-kMVV[aria-controls="gm-topaz-tab"]')) return;
+    if (topaz.__reloading || !document.querySelector('.selected-g-kMVV[aria-controls="topaz-tab"]')) return;
 
     const prevScroll = document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop;
 
     goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('Advanced');
-    goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('gm-Topaz');
+    goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('Topaz');
 
     document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop = prevScroll;
   } catch (_e) { }
@@ -1885,7 +1885,7 @@ const recommended = { // Automatically generated
 };
 
 const updateOpenSettings = async () => {
-  if (!document.querySelector('.selected-g-kMVV[aria-controls="gm-topaz-tab"]')) return;
+  if (!document.querySelector('.selected-g-kMVV[aria-controls="topaz-tab"]')) return;
 
   try {
     await new Promise((res) => setTimeout(res, 10));
@@ -1893,7 +1893,7 @@ const updateOpenSettings = async () => {
     const prevScroll = document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop;
 
     goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('Advanced');
-    goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('gm-Topaz');
+    goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('Topaz');
 
     document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop = prevScroll;
   } catch (_e) { console.log('AAAAAA', _e); }

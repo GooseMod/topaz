@@ -49,12 +49,12 @@ const updateOpenSettings = async () => {
   try {
     await new Promise((res) => setTimeout(res, 100));
 
-    if (topaz.__reloading || !document.querySelector('.selected-g-kMVV[aria-controls="gm-topaz-tab"]')) return;
+    if (topaz.__reloading || !document.querySelector('.selected-g-kMVV[aria-controls="topaz-tab"]')) return;
 
     const prevScroll = document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop;
 
     goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('Advanced');
-    goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('gm-Topaz');
+    goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('Topaz');
 
     document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop = prevScroll;
   } catch (_e) { }
