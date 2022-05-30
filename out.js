@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 129; // Auto increments on build
+const topazVersion = 130; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1184,6 +1184,7 @@ const { React } = Webpack.common;
 
 const i18n = Webpack.findByPropsAll('Messages')[1];
 
+const dataLSId = (id) => 'topaz_bd_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
 
 BdApi = {
   findModule: Webpack.find,
@@ -1212,16 +1213,29 @@ BdApi = {
   },
 
 
-  saveData: (id, key, value) => { // todo: implement save/load data
+  saveData: (id, key, value) => {
+    const lsId = dataLSId(id);
+    const data = JSON.parse(localStorage.getItem(lsId) ?? '{}');
 
+    data[key] = value;
+
+    localStorage.setItem(lsId, JSON.stringify(data));
+
+    return data[key];
   },
 
-  loadData: (id, key) => {
-
-  },
+  loadData: (id, key) => JSON.parse(localStorage.getItem(dataLSId(id)) ?? '{}')[key],
 
   deleteData: (id, key) => {
+    const lsId = dataLSId(id);
+    const data = JSON.parse(localStorage.getItem(lsId) ?? '{}');
 
+    data[key] = undefined;
+    delete data[key];
+
+    localStorage.setItem(lsId, JSON.stringify(data));
+
+    return data[key];
   },
 
 
