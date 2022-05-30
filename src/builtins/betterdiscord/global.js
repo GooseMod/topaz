@@ -45,6 +45,11 @@ BdApi = {
   },
 
 
+  showConfirmationModal: (title, content, opts) => {
+
+  },
+
+
   Patcher: {
     instead: (id, parent, key, patch) => {
       if (!unpatches[id]) unpatches[id] = [];
