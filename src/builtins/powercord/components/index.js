@@ -8,16 +8,16 @@ module.exports = {
   HeaderBar: goosemod.webpackModules.findByDisplayName('HeaderBar'),
   TabBar: goosemod.webpackModules.findByDisplayName('TabBar'),
 
-  Tooltip: goosemod.webpackModules.findByProps('TooltipContainer'),
+  Tooltip: goosemod.webpackModules.findByProps('TooltipContainer').TooltipContainer,
 
   FormTitle: goosemod.webpackModules.findByDisplayName('FormTitle'),
   FormNotice: goosemod.webpackModules.findByDisplayName('FormNotice'),
   Text: goosemod.webpackModules.findByDisplayName('LegacyText'),
   Flex: goosemod.webpackModules.findByDisplayName('Flex'),
 
-  AdvancedScrollerThin: goosemod.webpackModules.findByProps('AdvancedScrollerThin'),
-  AdvancedScrollerAuto: goosemod.webpackModules.findByProps('AdvancedScrollerAuto'),
-  AdvancedScrollerNone: goosemod.webpackModules.findByProps('AdvancedScrollerNone'),
+  AdvancedScrollerThin: goosemod.webpackModules.findByProps('AdvancedScrollerThin').AdvancedScrollerThin,
+  AdvancedScrollerAuto: goosemod.webpackModules.findByProps('AdvancedScrollerAuto').AdvancedScrollerAuto,
+  AdvancedScrollerNone: goosemod.webpackModules.findByProps('AdvancedScrollerNone').AdvancedScrollerNone,
 
   AsyncComponent: powercord.__topaz.AsyncComponent
 };
