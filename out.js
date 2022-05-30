@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 126; // Auto increments on build
+const topazVersion = 127; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1907,7 +1907,7 @@ const updateOpenSettings = async () => {
     goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('Topaz');
 
     document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop = prevScroll;
-  } catch (_e) { console.log('AAAAAA', _e); }
+  } catch { }
 };
 
 const { React } = goosemod.webpackModules.common;
