@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 131; // Auto increments on build
+const topazVersion = 132; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -937,7 +937,19 @@ module.exports = {
     openExternal: (url) => window.open(url)
   }
 };`,
-  'path': `module.exports = {};`,
+  'path': `const resolve = (x) => {
+  let ind;
+  x = x.replaceAll('./', '/').replaceAll('//', ''); // example/./test -> example/test
+
+  while (ind = x.indexOf('../') !== -1) x = x.slice(0, ind) + x.slice(ind + 3); // example/test/../sub -> example/sub
+
+  return x;
+};
+
+module.exports = {
+  join: (...parts) => resolve(parts.join('/')),
+  resolve
+};`,
   'fs': `module.exports = {};`,
   'request': `module.exports = {};`
 };
