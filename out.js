@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 119; // Auto increments on build
+const topazVersion = 120; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1179,11 +1179,17 @@ let global = window;
 const cssEls = {};
 const unpatches = {};
 
+const Webpack = goosemodScope.webpackModules;
+const { React } = Webpack.common;
+
+const i18n = Webpack.findByPropsAll('Messages')[1];
+
+
 BdApi = {
-  findModule: goosemod.webpackModules.find,
-  findAllModules: goosemod.webpackModules.findAll,
-  findModuleByProps: goosemod.webpackModules.findByProps,
-  findModuleByDisplayName: goosemod.webpackModules.findByDisplayName,
+  findModule: Webpack.find,
+  findAllModules: Webpack.findAll,
+  findModuleByProps: Webpack.findByProps,
+  findModuleByDisplayName: Webpack.findByDisplayName,
 
 
   injectCSS: (id, css) => {
@@ -1219,8 +1225,38 @@ BdApi = {
   },
 
 
-  showConfirmationModal: (title, content, opts) => {
+  showConfirmationModal: async (title, content, { onConfirm, onCancel, confirmText, cancelText, danger, key } = {}) => {
+    const Text = findByDisplayName("Text");
+    const Markdown = find((x) => x.displayName === 'Markdown' && x.rules);
+    const ButtonColors = findByProps('button', 'colorRed');
 
+    const res = await new Promise((res) => Webpack.findByProps('openModal', 'updateModal').openModal(e => {
+      if (e.transitionState === 3) res(false);
+
+      return React.createElement(findByDisplayName("ConfirmModal"), {
+        header: title,
+        confirmText: confirmText ?? i18n.Messages.OKAY,
+        cancelText: cancelText ?? i18n.Messages.CANCEL,
+        confirmButtonColor: ButtonColors[danger ? 'colorRed' : 'colorBrand'],
+        onClose: () => res(false), // General close (?)
+        onCancel: () => { // Cancel text
+          res(false);
+          e.onClose();
+        },
+        onConfirm: () => { // Confirm button
+          res(true);
+          e.onClose();
+        },
+        transitionState: e.transitionState
+      },
+        ...content.split('\\n').map((x) => React.createElement(Markdown, {
+          size: Text.Sizes.SIZE_16
+        }, x))
+      );
+    }, { modalKey: key }));
+
+    if (res) onConfirm?.();
+      else onCancel?.();
   },
 
 
@@ -1252,8 +1288,8 @@ BdApi = {
   },
 
 
-  React: goosemod.webpackModules.common.React,
-  ReactDOM: goosemod.webpackModules.common.ReactDOM
+  React: Webpack.common.React,
+  ReactDOM: Webpack.common.ReactDOM
 };
 })();`,
 
