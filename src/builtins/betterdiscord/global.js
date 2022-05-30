@@ -40,6 +40,10 @@ BdApi = {
 
   },
 
+  deleteData: (id, key) => {
+
+  },
+
 
   Patcher: {
     instead: (id, parent, key, patch) => {
