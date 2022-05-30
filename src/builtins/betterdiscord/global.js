@@ -5,7 +5,7 @@ let global = window;
 const cssEls = {};
 const unpatches = {};
 
-const Webpack = goosemodScope.webpackModules;
+const Webpack = goosemod.webpackModules;
 const { React } = Webpack.common;
 
 const i18n = Webpack.findByPropsAll('Messages')[1];

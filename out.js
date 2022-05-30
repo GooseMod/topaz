@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 122; // Auto increments on build
+const topazVersion = 123; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1179,7 +1179,7 @@ let global = window;
 const cssEls = {};
 const unpatches = {};
 
-const Webpack = goosemodScope.webpackModules;
+const Webpack = goosemod.webpackModules;
 const { React } = Webpack.common;
 
 const i18n = Webpack.findByPropsAll('Messages')[1];
