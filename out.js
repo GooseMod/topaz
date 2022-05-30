@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 120; // Auto increments on build
+const topazVersion = 121; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1811,10 +1811,9 @@ window.topaz = {
   purge: () => {
     topaz.uninstallAll();
     cssEl.remove();
-    msgUnpatch();
 
-    const settingItem = goosemod.settings.items.find((x) => x[1] === 'Topaz');
-    if (settingItem) goosemod.settings.items.splice(goosemod.settings.items.indexOf(settingItem), 1);
+    msgUnpatch();
+    settingsUnpatch();
   },
 
   purgeCache: () => {
@@ -2343,9 +2342,24 @@ class Settings extends React.PureComponent {
   }
 }
 
-goosemod.settings.createItem('Topaz', ['',
-  Settings
-]);
+let settingsUnpatch = goosemod.patcher.patch(goosemod.webpackModules.findByDisplayName('SettingsView').prototype, 'getPredicateSections', (_, sections) => {
+  const logout = sections.find((c) => c.section === 'logout');
+  if (!logout || !topaz.settings.pluginSettingsSidebar) return sections;
+
+  sections.splice(0, 0,
+  {
+    section: 'Topaz',
+    label: 'Topaz',
+    predicate: () => { },
+    element: () => React.createElement(Settings)
+  },
+
+  {
+    section: 'DIVIDER',
+  },);
+
+  return sections;
+});
 
 const cssEl = document.createElement('style');
 cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
