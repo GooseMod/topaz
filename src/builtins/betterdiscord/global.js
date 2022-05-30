@@ -7,6 +7,7 @@ const unpatches = {};
 
 BdApi = {
   findModule: goosemod.webpackModules.find,
+  findAllModules: goosemod.webpackModules.findAll,
   findModuleByProps: goosemod.webpackModules.findByProps,
   findModuleByDisplayName: goosemod.webpackModules.findByDisplayName,
 

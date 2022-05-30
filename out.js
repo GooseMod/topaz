@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 116; // Auto increments on build
+const topazVersion = 117; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1181,6 +1181,7 @@ const unpatches = {};
 
 BdApi = {
   findModule: goosemod.webpackModules.find,
+  findAllModules: goosemod.webpackModules.findAll,
   findModuleByProps: goosemod.webpackModules.findByProps,
   findModuleByDisplayName: goosemod.webpackModules.findByDisplayName,
 
