@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 127; // Auto increments on build
+const topazVersion = 128; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -650,7 +650,6 @@ let textInputs = {
   THEMES: ''
 };
 
-const Button = goosemod.webpackModules.findByProps('Sizes', 'Colors', 'Looks', 'DropdownSizes');
 const Text = goosemod.webpackModules.findByDisplayName('LegacyText');
 const Spinner = goosemod.webpackModules.findByDisplayName('Spinner');
 const PanelButton = goosemod.webpackModules.findByDisplayName('PanelButton');
@@ -663,7 +662,6 @@ const Margins = goosemod.webpackModules.findByProps('marginTop20', 'marginBottom
 const _Switch = goosemod.webpackModules.findByDisplayName('Switch');
 
 const Header = goosemod.settings.Items['header'];
-const Subtext = goosemod.settings.Items['subtext'];
 const TextAndChild = goosemod.settings.Items['text-and-child'];
 const TextAndToggle = goosemod.settings.Items['toggle'];
 const Divider = goosemod.settings.Items['divider'];
