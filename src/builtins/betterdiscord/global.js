@@ -39,6 +39,8 @@ BdApi = {
   },
 
 
+  loadData: (id, key) => JSON.parse(localStorage.getItem(dataLSId(id)) ?? '{}')[key],
+
   saveData: (id, key, value) => {
     const lsId = dataLSId(id);
     const data = JSON.parse(localStorage.getItem(lsId) ?? '{}');
@@ -49,8 +51,6 @@ BdApi = {
 
     return data[key];
   },
-
-  loadData: (id, key) => JSON.parse(localStorage.getItem(dataLSId(id)) ?? '{}')[key],
 
   deleteData: (id, key) => {
     const lsId = dataLSId(id);
