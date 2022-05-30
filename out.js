@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 114; // Auto increments on build
+const topazVersion = 115; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -891,8 +891,14 @@ module.exports = {
   FormItem,
   Divider
 };`,
-  'powercord/components/modal': `module.exports = {
-  Modal: goosemod.webpackModules.findByProps('ModalRoot')
+  'powercord/components/modal': `const Modal = goosemod.webpackModules.findByProps('ModalRoot');
+
+// PC has custom exports because
+for (const x of [ 'Header', 'Footer', 'Content', 'ListContent', 'CloseButton' ]) Modal[x] = Modal['Modal' + x];
+Modal.Sizes = Modal.ModalSize;
+
+module.exports = {
+  Modal
 };`,
   'powercord/modal': `const modalManager = goosemod.webpackModules.findByProps('openModal', 'updateModal');
 const Modal = goosemod.webpackModules.findByProps('ModalRoot');
