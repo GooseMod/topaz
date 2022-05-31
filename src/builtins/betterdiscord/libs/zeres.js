@@ -1,4 +1,4 @@
-let ZeresPluginLibrary;
+let ZeresPluginLibrary, ZLibrary;
 
 (() => {
 const WebpackModules = {
@@ -9,7 +9,7 @@ const WebpackModules = {
   getModules: goosemod.webpackModules.findAll
 };
 
-ZeresPluginLibrary = {
+ZLibrary = ZeresPluginLibrary = {
   buildPlugin: (config) => {
     const meta = config.info;
     const id = meta.name;

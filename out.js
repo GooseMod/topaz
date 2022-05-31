@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 138; // Auto increments on build
+const topazVersion = 139; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1332,7 +1332,7 @@ BdApi = {
 };
 })();`,
 
-  bd_zeres: `let ZeresPluginLibrary;
+  bd_zeres: `let ZeresPluginLibrary, ZLibrary;
 
 (() => {
 const WebpackModules = {
@@ -1343,7 +1343,7 @@ const WebpackModules = {
   getModules: goosemod.webpackModules.findAll
 };
 
-ZeresPluginLibrary = {
+ZLibrary = ZeresPluginLibrary = {
   buildPlugin: (config) => {
     const meta = config.info;
     const id = meta.name;
