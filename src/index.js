@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 136; // Auto increments on build
+const topazVersion = 137; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -610,7 +610,10 @@ const recommended = { // Automatically generated
     'BD%PreviewMessageLinks%dylan-dang': 'https://github.com/dylan-dang/BetterDiscordPlugins/blob/main/PreviewMessageLinks.plugin.js',
     'BD%NoSpotifyPause%undefined': 'https://github.com/bepvte/bd-addons/blob/main/plugins/NoSpotifyPause.plugin.js',
     'BD%FreeEmojis%An0': 'https://github.com/BetterDiscordPlugins/DiscordFreeEmojis/blob/master/DiscordFreeEmojis64px.plugin.js',
-    'BD%BetterVolume%Zerthox': 'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/BetterVolume.plugin.js'
+    'BD%BetterVolume%Zerthox': 'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/BetterVolume.plugin.js',
+    'BD%BetterFolders%Zerthox': 'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/BetterFolders.plugin.js',
+    'BD%OnlineFriendCount%Zerthox': 'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/OnlineFriendCount.plugin.js',
+    'BD%VoiceEvents%Zerthox': 'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/VoiceEvents.plugin.js'
   },
   themes: {
     'PC%Material You%Leeprky#2063': 'leeprky/MaterialYouTheme',
