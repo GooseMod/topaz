@@ -12,6 +12,40 @@ const i18n = Webpack.findByPropsAll('Messages')[1];
 
 const dataLSId = (id) => 'topaz_bd_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
 
+const showConfirmationModal = async (title, content, { onConfirm, onCancel, confirmText = i18n.Messages.OKAY, cancelText = i18n.Messages.CANCEL, danger, key } = {}) => {
+  const Text = findByDisplayName("Text");
+  const Markdown = find((x) => x.displayName === 'Markdown' && x.rules);
+  const ButtonColors = findByProps('button', 'colorRed');
+
+  const res = await new Promise((res) => Webpack.findByProps('openModal', 'updateModal').openModal(e => {
+    if (e.transitionState === 3) res(false);
+
+    return React.createElement(findByDisplayName("ConfirmModal"), {
+      header: title,
+      confirmText,
+      cancelText,
+      confirmButtonColor: ButtonColors[danger ? 'colorRed' : 'colorBrand'],
+      onClose: () => res(false), // General close (?)
+      onCancel: () => { // Cancel text
+        res(false);
+        e.onClose();
+      },
+      onConfirm: () => { // Confirm button
+        res(true);
+        e.onClose();
+      },
+      transitionState: e.transitionState
+    },
+      ...content.split('\n').map((x) => React.createElement(Markdown, {
+        size: Text.Sizes.SIZE_16
+      }, x))
+    );
+  }, { modalKey: key }));
+
+  if (res) onConfirm?.();
+    else onCancel?.();
+};
+
 BdApi = {
   findModule: Webpack.find,
   findAllModules: Webpack.findAll,
@@ -65,40 +99,8 @@ BdApi = {
   },
 
 
-  showConfirmationModal: async (title, content, { onConfirm, onCancel, confirmText, cancelText, danger, key } = {}) => {
-    const Text = findByDisplayName("Text");
-    const Markdown = find((x) => x.displayName === 'Markdown' && x.rules);
-    const ButtonColors = findByProps('button', 'colorRed');
-
-    const res = await new Promise((res) => Webpack.findByProps('openModal', 'updateModal').openModal(e => {
-      if (e.transitionState === 3) res(false);
-
-      return React.createElement(findByDisplayName("ConfirmModal"), {
-        header: title,
-        confirmText: confirmText ?? i18n.Messages.OKAY,
-        cancelText: cancelText ?? i18n.Messages.CANCEL,
-        confirmButtonColor: ButtonColors[danger ? 'colorRed' : 'colorBrand'],
-        onClose: () => res(false), // General close (?)
-        onCancel: () => { // Cancel text
-          res(false);
-          e.onClose();
-        },
-        onConfirm: () => { // Confirm button
-          res(true);
-          e.onClose();
-        },
-        transitionState: e.transitionState
-      },
-        ...content.split('\n').map((x) => React.createElement(Markdown, {
-          size: Text.Sizes.SIZE_16
-        }, x))
-      );
-    }, { modalKey: key }));
-
-    if (res) onConfirm?.();
-      else onCancel?.();
-  },
-
+  showConfirmationModal,
+  alert: (title, content) => showConfirmationModal(title, content, { cancelText: null }),
 
   Patcher: {
     instead: (id, parent, key, patch) => {
