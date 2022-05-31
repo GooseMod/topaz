@@ -39,7 +39,8 @@ const bd = {
   plugins: [
     'https://github.com/dylan-dang/BetterDiscordPlugins/blob/main/PreviewMessageLinks.plugin.js',
     'https://github.com/bepvte/bd-addons/blob/main/plugins/NoSpotifyPause.plugin.js',
-    'https://github.com/discord-modifications/better-discord-plugins/blob/master/SpotifyCrack/SpotifyCrack.plugin.js',
+    'https://github.com/ordinall/BetterDiscord-Stuff/blob/master/Plugins/SpotifyListenAlong/SpotifyListenAlong.plugin.js',
+    'https://github.com/discord-modifications/better-discord-plugins/blob/master/SpotifyCrack/SpotifyCrack.plugin.js', // alt for above
     'https://github.com/BetterDiscordPlugins/DiscordFreeEmojis/blob/master/DiscordFreeEmojis64px.plugin.js',
     // 'https://github.com/BetterDiscordPlugins/DiscordFreeEmojis/blob/master/DiscordFreeEmojisSplit48px.plugin.js',
     'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/BetterVolume.plugin.js',
