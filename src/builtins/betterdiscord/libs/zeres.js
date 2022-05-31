@@ -1,5 +1,9 @@
 let ZeresPluginLibrary, ZLibrary;
 
+// some plugins require it in global
+global.ZeresPluginLibrary = ZeresPluginLibrary;
+global.ZLibrary = ZLibrary;
+
 (() => {
 const WebpackModules = {
   getByProps: goosemod.webpackModules.findByProps,

@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 141; // Auto increments on build
+const topazVersion = 142; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1333,6 +1333,10 @@ BdApi = {
 })();`,
 
   bd_zeres: `let ZeresPluginLibrary, ZLibrary;
+
+// some plugins require it in global
+global.ZeresPluginLibrary = ZeresPluginLibrary;
+global.ZLibrary = ZLibrary;
 
 (() => {
 const WebpackModules = {
