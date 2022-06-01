@@ -2,32 +2,32 @@
 A "next-gen" mod bundling client-side in web, with compat abilities.
 
 > **Warning** |
-> Topaz is in **early alpha**, you should not rely on it.
+> Topaz is in **alpha**, you should not rely on it.
 
 <br>
 
 ## Usage
 
-- Use GM with development channel
-- Run this JS in your console, choose temporary if you just want it until refresh/restart, or persistent for every GM boot (needs refresh)
-
-### Temporary
+- Have GooseMod installed
+- Run the following JS in your console:
+- Temporary: Only for current Discord session (until next refresh/reload)
 ```js
-eval(await (await fetch('https://goosemod.github.io/topaz/out.js')).text())
+eval(await (await fetch('https://goosemod.github.io/topaz/out.js')).text()) // Just run now
+```
+  - Persistent: Every Discord load until you uninstall Topaz
+```js
+goosemod.storage.set('goosemodTopaz', true); // Persist every boot
+eval(await (await fetch('https://goosemod.github.io/topaz/out.js')).text()) // Run now
 ```
 
-### Persistent
-```js
-goosemod.storage.set('goosemodTopaz', true)
-```
 
 <br>
 
 ### Testing
 
-- Go to Topaz setting at bottom of your settings
-- Try it out with recommended plugins/themes (or try random ones and have even more bugs)
-- Have bugs, have fun :)
+- Go to Topaz setting at top of your settings
+- Try it out with recommended plugins/themes (or try random ones)
+- Report bugs, have fun :)
 
 <br>
 
