@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 145; // Auto increments on build
+const topazVersion = 146; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1771,7 +1771,7 @@ const resolveFileFromTree = (path) => {
 };
 
 let lastStarted = '';
-const install = async (info, settings = {}) => {
+const install = async (info, settings = {}, disabled = false) => {
   lastError = '';
 
   let bd;
@@ -1913,7 +1913,7 @@ const install = async (info, settings = {}) => {
   }
 
   lastStarted = info;
-  plugin._topaz_start();
+  if (!disabled) plugin._topaz_start();
 
   return [ manifest ];
 };
@@ -1956,6 +1956,19 @@ const topazSettings = JSON.parse(localStorage.getItem('topaz_settings') ?? 'null
 
 const savePlugins = () => !topaz.__reloading && localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
 
+const setDisabled = (key, disabled) => {
+  const disabled = JSON.parse(localStorage.getItem('topaz_disabled') ?? '{}');
+
+  if (disabled) {
+    disabled[key] = true;
+  } else {
+    disabled[key] = undefined;
+    delete disabled[key];
+  }
+
+  localStorage.setItem('topaz_disabled', JSON.stringify(disabled));
+};
+
 window.topaz = {
   settings: topazSettings,
 
@@ -1992,6 +2005,8 @@ window.topaz = {
     lastStarted = info;
     plugins[info]._topaz_start();
     plugins[info].__enabled = true;
+
+    setDisabled(info, false);
   },
   disable: (info) => {
     if (!plugins[info]) return log('disable', 'plugin not installed');
@@ -1999,6 +2014,8 @@ window.topaz = {
 
     plugins[info]._topaz_stop();
     plugins[info].__enabled = false;
+
+    setDisabled(info, true);
   },
 
   purge: () => {
@@ -2035,8 +2052,10 @@ console.clear();
 log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)}ms`);
 
 (async () => {
+  const disabled = JSON.parse(localStorage.getItem('topaz_disabled') ?? '{}');
+
   for (const p in pluginsToInstall) {
-    await install(p, pluginsToInstall[p]);
+    await install(p, pluginsToInstall[p], disabled[p] ?? false);
   }
 
   try { updateOpenSettings(); } catch { }
