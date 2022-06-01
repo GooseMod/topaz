@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 144; // Auto increments on build
+const topazVersion = 145; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1929,7 +1929,7 @@ const transform = async (path, code, info) => {
   let global = path.endsWith('.plugin.js') ? globals.betterdiscord : globals.powercord;
 
   // BD: add our own micro-implementations of popular 3rd party plugin libraries
-  if (code.includes('ZeresPluginLibrary')) global = global + '\n\n' + globals.bd_zeres;
+  if (code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) global = global + '\n\n' + globals.bd_zeres;
 
   code = global + '\n\n' + code;
 
