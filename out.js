@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 148; // Auto increments on build
+const topazVersion = 149; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1993,6 +1993,7 @@ window.topaz = {
     }
 
     savePlugins();
+    setDisabled(info, false); // Remove from disabled list
   },
   uninstallAll: () => Object.keys(plugins).forEach((x) => topaz.uninstall(x)),
 
