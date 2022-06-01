@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 146; // Auto increments on build
+const topazVersion = 147; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1770,7 +1770,6 @@ const resolveFileFromTree = (path) => {
   return res ? ('./' + res) : undefined;
 };
 
-let lastStarted = '';
 const install = async (info, settings = {}, disabled = false) => {
   lastError = '';
 
@@ -1912,7 +1911,6 @@ const install = async (info, settings = {}, disabled = false) => {
     plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
   }
 
-  lastStarted = info;
   if (!disabled) plugin._topaz_start();
 
   return [ manifest ];
@@ -2002,7 +2000,6 @@ window.topaz = {
     if (!plugins[info]) return log('enable', 'plugin not installed');
     log('enable', info);
 
-    lastStarted = info;
     plugins[info]._topaz_start();
     plugins[info].__enabled = true;
 
@@ -2034,7 +2031,6 @@ window.topaz = {
 
   internal: {
     registerSettings: (entityID, id, { label, render, category, props }) => {
-      // const entityID = plugins[category] ? category : lastStarted;
       plugins[entityID].__settings = { category, label, render, props };
     },
 
