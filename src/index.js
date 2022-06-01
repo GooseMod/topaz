@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 147; // Auto increments on build
+const topazVersion = 148; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -500,16 +500,16 @@ const topazSettings = JSON.parse(localStorage.getItem('topaz_settings') ?? 'null
 const savePlugins = () => !topaz.__reloading && localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
 
 const setDisabled = (key, disabled) => {
-  const disabled = JSON.parse(localStorage.getItem('topaz_disabled') ?? '{}');
+  const store = JSON.parse(localStorage.getItem('topaz_disabled') ?? '{}');
 
   if (disabled) {
-    disabled[key] = true;
+    store[key] = true;
   } else {
-    disabled[key] = undefined;
-    delete disabled[key];
+    store[key] = undefined;
+    delete store[key];
   }
 
-  localStorage.setItem('topaz_disabled', JSON.stringify(disabled));
+  localStorage.setItem('topaz_disabled', JSON.stringify(store));
 };
 
 window.topaz = {
