@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 150; // Auto increments on build
+const topazVersion = 152; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -71,6 +71,15 @@ const builtins = {
   'powercord/components/settings': await getBuiltin('powercord/components/settings'),
   'powercord/components/modal': await getBuiltin('powercord/components/modal'),
   'powercord/modal': await getBuiltin('powercord/modal'),
+
+  '@goosemod/patcher': await getBuiltin('goosemod/patcher'),                                                                                                                                                                 
+  '@goosemod/webpack': await getBuiltin('goosemod/webpack'),                                                                                                                                                                 
+  '@goosemod/webpack/common': await getBuiltin('goosemod/webpackCommon'),                                                                                                                                                    
+  '@goosemod/logger': await getBuiltin('goosemod/logger'),                                                                                                                                                                   
+  '@goosemod/reactUtils': await getBuiltin('goosemod/reactUtils'),                                                                                                                                                           
+  '@goosemod/toast': await getBuiltin('goosemod/toast'),                                                                                                                                                                     
+  '@goosemod/settings': await getBuiltin('goosemod/settings'),                                                                                                                                                               
+  '@goosemod/plugin': await getBuiltin('goosemod/plugin'),
 
   'electron': await getBuiltin('node/electron'),
   'path': await getBuiltin('node/path'),
@@ -159,7 +168,7 @@ const getCode = async (root, p, ...backups) => {
   return fetchCache.set(origPath, code);
 };
 
-const genId = (p) => `__topaz_${p.replace(transformRoot, '').replaceAll('./', '/').replace(/[\/\-]/g, '_').split('.')[0]}`;
+const genId = (p) => `__topaz_${p.replace(transformRoot, '').replaceAll('./', '/').replace(/[^A-Za-z0-9]/g, '_').split('.')[0]}`;
 
 const makeChunk = async (root, p) => {
   // console.log('makeChunk', p);
@@ -180,7 +189,7 @@ const makeChunk = async (root, p) => {
   const chunk = `// ${resolved}
 let ${id} = {};
 (() => {
-` + code.replace('module.exports =', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`) + `
+` + code.replace('module.exports =', `${id} =`).replace('export default', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`) + `
 })();`;
 
   return [ id, chunk ];
@@ -224,6 +233,14 @@ const includeRequires = async (path, code) => {
     if (!chunks[chunkId]) chunks[chunkId] = code;
 
     return chunkId;
+  });
+
+  code = await replaceAsync(code, /import (.*) from ['"`](.*)['"`]/g, async (_, what, where) => {
+    // console.log('within replace', join(root, p), chunks);
+    const [ chunkId, code ] = await makeChunk(root, where);
+    if (!chunks[chunkId]) chunks[chunkId] = code;
+
+    return `const ${what} = ${chunkId}`;
   });
 
   code = await replaceAsync(code, /this\.loadStylesheet\(['"`](.*?)['"`]\)/g, async (_, p) => {
@@ -315,12 +332,12 @@ const resolveFileFromTree = (path) => {
   return res ? ('./' + res) : undefined;
 };
 
-const install = async (info, settings = {}, disabled = false) => {
+const install = async (info, settings = undefined, disabled = false) => {
   lastError = '';
 
-  let bd;
+  let mod;
   if (info.endsWith('.plugin.js')) {
-    bd = true;
+    mod = 'bd';
     if (info.includes('github.com/')) info = info.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '');
   }
 
@@ -330,7 +347,7 @@ const install = async (info, settings = {}, disabled = false) => {
   if (!branch) branch = 'HEAD'; // default to HEAD
 
   let subdir;
-  if (!bd) {
+  if (!mod !== 'bd') {
     const spl = info.split('/');
     if (spl.length > 2) { // Not just repo
       repo = spl.slice(0, 2).join('/');
@@ -365,6 +382,11 @@ const install = async (info, settings = {}, disabled = false) => {
 
     chunks = {}; // reset chunks
 
+    if (!mod) {
+      if (resolveFileFromTree('manifest.json')) mod = 'pc';
+      if (resolveFileFromTree('goosemodModule.json')) mod = 'gm';
+    }
+
     let indexCode;
     if (isGitHub && !indexFile) { // if (indexCode === '404: Not Found') {
       const themeManifest = await (await fetch(join(root, './powercord_manifest.json'))).json();
@@ -387,10 +409,20 @@ const install = async (info, settings = {}, disabled = false) => {
     } else {
       indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
 
-      if (!bd) {
-        manifest = await (await fetch(join(root, './manifest.json'))).json();
-      } else { // read BD manifest from comment
-        manifest = [...indexCode.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
+      switch (mod) {
+        case 'pc':
+          manifest = await (await fetch(join(root, './manifest.json'))).json();
+          break;
+        
+        case 'gm':
+          manifest = await (await fetch(join(root, './goosemodModule.json'))).json();
+
+          manifest.author = (await Promise.all(manifest.authors.map(x => x.length === 18 ? goosemod.webpackModules.findByProps('getUser', 'fetchCurrentUser').getUser(x) : x))).join(', ');
+          break;
+        
+        case 'bd': // read from comment in code
+          manifest = [...indexCode.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
+          break;
       }
 
       const pend = pending.find(x => x.repo === info);
@@ -428,17 +460,41 @@ const install = async (info, settings = {}, disabled = false) => {
       __theme: true
     };
   } else {
-    const PluginClass = eval(`const __entityID = \`${info}\`;\n` + newCode);
-    PluginClass.prototype.entityID = info; // Setup internal metadata
-    PluginClass.prototype.manifest = manifest;
+    let codePrefix = `const __entityID = \`${info}\`;\n`;
 
-    plugin = new PluginClass();
+    switch (mod) {
+      case 'gm':
+        codePrefix += `const goosemodScope = goosemod;\n`;
+        break;
+    }
 
-    if (bd) {
-      plugin._topaz_start = plugin.start;
-      plugin._topaz_stop = plugin.stop;
+    const PluginClass = eval(codePrefix + '\n' + newCode);
 
-      for (const x of [ 'name', 'description', 'version', 'author' ]) manifest[x] = plugin['get' + x.toUpperCase()[0] + x.slice(1)]?.() ?? manifest[x] ?? '';
+    if (mod !== 'gm') {
+      PluginClass.prototype.entityID = info; // Setup internal metadata
+      PluginClass.prototype.manifest = manifest;
+
+      plugin = new PluginClass();
+    } else {
+      plugin = PluginClass;
+    }
+
+    switch (mod) {
+      case 'bd':
+        plugin._topaz_start = plugin.start;
+        plugin._topaz_stop = plugin.stop;
+
+        for (const x of [ 'name', 'description', 'version', 'author' ]) manifest[x] = plugin['get' + x.toUpperCase()[0] + x.slice(1)]?.() ?? manifest[x] ?? '';
+        break;
+      
+      case 'gm':
+        plugin._topaz_start = () => {
+          plugin.goosemodHandlers.onImport();
+          plugin.goosemodHandlers.onLoadingFinished?.();
+        };
+
+        plugin._topaz_stop = plugin.goosemodHandlers.onRemove;
+        break;
     }
   }
 
@@ -448,12 +504,35 @@ const install = async (info, settings = {}, disabled = false) => {
   plugin.manifest = manifest;
 
   plugin.__enabled = true;
-  plugin.__mod = bd ? 'bd' : 'pc';
+  plugin.__mod = mod;
 
-  if (!bd && plugin.settings) {
-    if (settings) plugin.settings.store = settings;
+  switch (mod) {
+    case 'pc':
+      if (settings) plugin.settings.store = settings;
 
-    plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
+      plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
+      break;
+
+    case 'gm':
+      console.log('WOW', settings);
+      if (settings) plugin.goosemodHandlers.loadSettings(settings);
+
+      plugin.settings = {
+        get store() {
+          return plugin.goosemodHandlers.getSettings();
+        }
+      };
+
+      let lastSettings = plugin.settings.store;
+      setTimeout(() => {
+        const newSettings = plugin.settings.store;
+        if (newSettings !== lastSettings) {
+          lastSettings = newSettings;
+          savePlugins();
+        }
+      }, 5000);
+
+      break;
   }
 
   if (!disabled) plugin._topaz_start();
@@ -476,7 +555,7 @@ const transform = async (path, code, info) => {
 
   code = global + '\n\n' + code;
 
-  code = code.replace('module.exports =', 'return');
+  code = code.replace('module.exports =', 'return').replace('export default', 'return');
 
   console.log({ code });
 
@@ -597,7 +676,10 @@ log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)
   const disabled = JSON.parse(localStorage.getItem('topaz_disabled') ?? '{}');
 
   for (const p in pluginsToInstall) {
-    await install(p, pluginsToInstall[p], disabled[p] ?? false);
+    let settings = pluginsToInstall[p];
+    if (typeof settings === 'object' && Object.keys(settings).length === 0) settings = undefined; // {} -> undefined
+
+    await install(p, settings, disabled[p] ?? false);
   }
 
   try { updateOpenSettings(); } catch { }

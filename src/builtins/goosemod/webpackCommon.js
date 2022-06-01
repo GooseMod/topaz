@@ -1,0 +1,1 @@
+module.exports = goosemod.webpackModules.common;
