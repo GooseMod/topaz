@@ -6,8 +6,26 @@ const WebpackModules = {
   getAllByProps: goosemod.webpackModules.findByPropsAll,
   getByDisplayName: goosemod.webpackModules.findByDisplayName,
   getModule: goosemod.webpackModules.find,
-  getModules: goosemod.webpackModules.findAll
+  getModules: goosemod.webpackModules.findAll,
+
+  find: (filter, first = true) => goosemod.webpackModules[first ? 'find' : 'findAll'](filter),
+  findAll: goosemod.webpackModules.findAll,
+  findByUniqueProperties: (props, first = true) => goosemod.webpackModules[first ? 'findByProps' : 'findByPropsAll'](props),
+  findByDisplayName: goosemod.webpackModules.findByDisplayName,
+
+  addListener: (listener) => { // painful jank way of not doing listener
+    const int = setInterval(() => {
+      for (const m of goosemod.webpackModules.all()) {
+        if (m) listener(m);
+      }
+    }, 5000);
+
+    return () => clearInterval(int);
+  }
 };
+
+const showToast = (content, options = {}) => goosemod.showToast(content, options); // Mostly same options handling
+
 
 ZLibrary = ZeresPluginLibrary = {
   buildPlugin: (config) => {
@@ -33,6 +51,14 @@ ZLibrary = ZeresPluginLibrary = {
       {
         Patcher: Object.keys(BdApi.Patcher).reduce((acc, x) => { acc[x] = BdApi.Patcher[x].bind(this, id); return acc; }, {}),
         WebpackModules,
+
+        Logger: { // barebones
+          err: (mod, ...msg) => console.error(mod, ...msg),
+          warn: (mod, ...msg) => console.warn(mod, ...msg),
+          info: (mod, ...msg) => console.info(mod, ...msg),
+          debug: (mod, ...msg) => console.debug(mod, ...msg),
+          log: (mod, ...msg) => console.log(mod, ...msg)
+        },
 
         DiscordModules: {
           get React() { return WebpackModules.getByProps("createElement", "cloneElement"); },
@@ -182,14 +208,91 @@ ZLibrary = ZeresPluginLibrary = {
           get Textbox() { return WebpackModules.getModule(m => m.defaultProps && m.defaultProps.type == "text"); },
         },
 
-        ReactComponents: {
-          getComponentByName: (displayName, selector) => {
+        ReactComponents: class ReactComponents {
+          static cache = {}
 
+          static getComponentByName = (displayName, selector) => this.getComponent(displayName, selector, m => m.displayName === displayName)
+
+          static getComponent = (displayName, selector, filter) => new Promise((_res) => {
+            if (this.cache[displayName]) return res(this.cache[displayName]);
+
+            const res = (ret) => {
+              clearInterval(int);
+
+              // if (!ret.displayName) ret.displayName = displayName
+
+              _res({
+                id: displayName,
+                component: ret,
+                selector,
+                filter,
+
+                forceUpdateAll: () => {
+                  if (!selector) return;
+
+                  for (const e of document.querySelectorAll(selector)) {
+                    goosemod.reactUtils.findInTree(goosemod.reactUtils.getReactInstance(e), m => m?.forceUpdate, { walkable: ["return", "stateNode"] })?.forceUpdate?.();
+                  }
+                }
+              });
+            };
+
+            const check = () => {
+              if (this.cache[displayName]) return res(this.cache[displayName]);
+
+              for (const el of document.querySelectorAll(selector)) {
+                let inst = goosemod.reactUtils.getOwnerInstance(el);
+                if (!inst) continue;
+
+                inst = inst._reactInternals;
+
+                if (!filter) return res(this.cache[displayName] = inst.type);
+
+                while (inst?.return) {
+                  if (typeof inst.return?.type === 'string') break;
+                  if (filter(inst.return.type)) return res(this.cache[displayName] = inst.return.type);
+
+                  inst = inst.return;
+                }
+              }
+            };
+
+            setTimeout(check, 0);
+            const int = setInterval(check, 5000);
+          })
+        },
+
+        Utilities: class { // class because... https://github.com/Strencher/BetterDiscordStuff/blob/master/UserDetails/UserDetails.plugin.js#L757
+          static suppressErrors = (func, label) => (...args) => {
+            try {
+              func(...args);
+            } catch (e) {
+              console.error('Suppressed error for', label, e);
+            }
+          }
+
+          static findInReactTree = goosemod.reactUtils.findInReactTree
+        },
+
+        PluginUtilities: {
+          loadSettings: (name, defaults) => {
+            return Object.assign({}, defaults, BdApi.loadData('zeres', name) ?? {});
           },
 
-          getComponent: (displayName, selector, filter) => {
-
+          saveSettings: (name, save) => {
+            BdApi.saveData('zeres', name, save);
           }
+        },
+
+        Toasts: {
+          info: (content, options = {}) => showToast(content, { ...options, type: 'info' }),
+          default: (content, options = {}) => showToast(content, { ...options, type: 'default' }),
+
+          success: (content, options = {}) => showToast(content, { ...options, type: 'success' }),
+          warning: (content, options = {}) => showToast(content, { ...options, type: 'warning' }),
+          error: (content, options = {}) => showToast(content, { ...options, type: 'error' }),
+
+          show: showToast
         },
 
         DiscordSelectors: {

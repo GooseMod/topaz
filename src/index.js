@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 160; // Auto increments on build
+const topazVersion = 161; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -493,7 +493,7 @@ const install = async (info, settings = undefined, disabled = false) => {
           plugin.goosemodHandlers.onLoadingFinished?.();
         };
 
-        plugin._topaz_stop = plugin.goosemodHandlers.onRemove;
+        plugin._topaz_stop = () => plugin.goosemodHandlers.onRemove?.();
         break;
     }
   }
