@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 152; // Auto increments on build
+const topazVersion = 153; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -685,46 +685,10 @@ log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)
   try { updateOpenSettings(); } catch { }
 })();
 
-const recommended = { // Automatically generated
-  plugins: {
-    'PC%WPM%rom#5692': 'romdotdog/wpm',
-    'PC%Custom Timestamps%TaiAurori#6781': 'TaiAurori/custom-timestamps',
-    'PC%VCTimer%RazerMoon': 'RazerMoon/vcTimer',
-    'PC%Slowmode Counter%12944qwerty, Harley ツ': '12944qwerty/Slowmode-Counter',
-    'PC%Collapsble UI%Skullbite': 'skullyplugs/collapsible-ui',
-    'PC%Show Connections%ugly-patootie#0611': 'E-boi/ShowConnections',
-    'PC%Better Invites%bakzkndd#2819, 12944qwerty': '12944qwerty/betterInvites',
-    'PC%Copy Server Icon Url%12944qwerty': '12944qwerty/copy-server-icon',
-    'PC%Show All Message Buttons%Kyza, 12944qwerty': '12944qwerty/showAllMessageButtons',
-    'PC%Greentext%yui': 'yuwui/powercord-greentext',
-    'PC%Staff Tags%Puyodead1': 'Puyodead1/powercord-stafftags',
-    'PC%Unindent%Vendicated': 'VenPlugs/Unindent',
-    'PC%Replace Timestamps - Powercord%SpoonMcForky': 'SpoonMcForky/replace-timestamps-pc',
-    'PC%Channel Typing%Bowser65': 'powercord-community/channel-typing',
-    'PC%Click Mentions%12944qwerty': '12944qwerty/click-mentions',
-    'PC%User Details%Juby210#0577': 'Juby210/user-details',
-    'PC%Tone Indicators%asportnoy#6969': 'asportnoy/powercord-tone-indicators',
-    'PC%Better Codeblocks%Powercord Team': 'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-codeblocks',
-    'PC%Clickable Message Edits%Harley': 'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-clickableEdits',
-    'BD%PreviewMessageLinks%dylan-dang': 'https://github.com/dylan-dang/BetterDiscordPlugins/blob/main/PreviewMessageLinks.plugin.js',
-    'BD%NoSpotifyPause%undefined': 'https://github.com/bepvte/bd-addons/blob/main/plugins/NoSpotifyPause.plugin.js',
-    'BD%SpotifyListenAlong%ordinall': 'https://github.com/ordinall/BetterDiscord-Stuff/blob/master/Plugins/SpotifyListenAlong/SpotifyListenAlong.plugin.js',
-    'BD%SpotifyCrack%undefined': 'https://github.com/discord-modifications/better-discord-plugins/blob/master/SpotifyCrack/SpotifyCrack.plugin.js',
-    'BD%FreeEmojis%An0': 'https://github.com/BetterDiscordPlugins/DiscordFreeEmojis/blob/master/DiscordFreeEmojis64px.plugin.js',
-    'BD%BetterVolume%Zerthox': 'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/BetterVolume.plugin.js',
-    'BD%BetterFolders%Zerthox': 'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/BetterFolders.plugin.js',
-    'BD%OnlineFriendCount%Zerthox': 'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/OnlineFriendCount.plugin.js',
-    'BD%VoiceEvents%Zerthox': 'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/VoiceEvents.plugin.js'
-  },
-  themes: {
-    'PC%Material You%Leeprky#2063': 'leeprky/MaterialYouTheme',
-    'PC%Dark Discord%eternal': 'eternal404/dark-discord',
-    'PC%Comfy%Nyria#3863': 'NYRI4/Comfy',
-    'PC%Slate%Gibbu#1211 & Tropical#8908': 'DiscordStyles/Slate',
-    'PC%Horizontal Server List%Gibbu#1211': 'DiscordStyles/HorizontalServerList',
-    'PC%RadialStatus%Gibbu#1211': 'DiscordStyles/RadialStatus'
-  }
-};
+let recommended;
+(async () => { // Load async as not important / needed right away
+  recommended = await (await fetch(`http://localhost:1337/recommended.json`)).json();
+})();
 
 const updateOpenSettings = async () => {
   if (!document.querySelector('.selected-g-kMVV[aria-controls="topaz-tab"]')) return;

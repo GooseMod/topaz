@@ -50,6 +50,51 @@ const bd = {
   ]
 };
 
+const gm = {
+  plugins: [
+    'GooseMod-Modules/IDInAuthor',
+    'GooseMod-Modules/CopyAvatarURL',
+    'GooseMod-Modules/StatusInAuthor',
+    'GooseMod-Modules/UsernameInAuthor',
+    'GooseMod-Modules/User-Backgrounds',
+  ]
+};
+
+let lastRequest = 0;
+const userCache = {};
+
+const getDiscordUser = async (id) => {
+  if (userCache[id]) return userCache[id];
+
+  while (performance.now() - 500 < lastRequest) { // Has been less than 500ms since last request
+    await new Promise((res) => setTimeout(res, 100));
+  }
+
+  lastRequest = performance.now();
+
+  return userCache[id] = await (await fetch(`https://discord.com/api/v9/users/${id}`, {
+    headers: {
+      'Authorization': `Bot ${process.env.TOPAZ_DISCORD}`
+    }
+  })).json();
+};
+
+const githubCache = {};
+
+const getGithubInfo = async (repo) => {
+  if (githubCache[repo]) return githubCache[repo];
+
+  const info = await (await fetch(`https://api.github.com/repos/${repo}`, {
+    headers: {
+      'Authorization': `token ${process.env.TOPAZ_GITHUB}`
+    }
+  })).json();
+  
+  if (info.stargazers_count === undefined) console.log('GH', info);
+
+  return githubCache[repo] = info;
+};
+
 const getManifest_pc = async (place, theme) => { // just repo or url
   const manifestName = theme ? 'powercord_manifest.json' : 'manifest.json';
 
@@ -59,6 +104,21 @@ const getManifest_pc = async (place, theme) => { // just repo or url
   if (!place.startsWith('http')) manifestUrl = `https://raw.githubusercontent.com/${place}/HEAD/${manifestName}`;
 
   return await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
+};
+
+const getManifest_gm = async (place, theme) => { // just repo or url
+  const manifestName = 'goosemodModule.json';
+
+  console.log(place);
+
+  let manifestUrl = place + '/' + manifestName;
+  if (!place.startsWith('http')) manifestUrl = `https://raw.githubusercontent.com/${place}/HEAD/${manifestName}`;
+
+  const manifest = await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
+
+  manifest.author = (await Promise.all(manifest.authors.map(async x => x.length === 18 ? (await getDiscordUser(x)).username : x))).join(', ');
+
+  return manifest;
 };
 
 const getManifest_bd = async (place, theme) => { // .plugin.js url
@@ -71,25 +131,51 @@ const getManifest_bd = async (place, theme) => { // .plugin.js url
 
 
 (async () => {
-  let out = {
-    plugins: {},
-    themes: {}
-  };
+  let plugins = [];
+  let themes = [];
+
+  const makeId = (mod, manifest) => `${mod}%${manifest.name}%${manifest.author}%${manifest.description}`;
 
   for (const place of pc.plugins) {
-    const manifest = await getManifest_pc(place, false);
-    out.plugins[`PC%${manifest.name}%${manifest.author}`] = place;
+    plugins.push(getManifest_pc(place, false).then(manifest => {
+      return [makeId('PC', manifest), place];
+    }));
   }
 
   for (const place of pc.themes) {
-    const manifest = await getManifest_pc(place, true);
-    out.themes[`PC%${manifest.name}%${manifest.author}`] = place;
+    themes.push(getManifest_pc(place, true).then(manifest => {
+      return [makeId('PC', manifest), place];
+    }));
   }
 
   for (const place of bd.plugins) {
-    const manifest = await getManifest_bd(place, false);
-    out.plugins[`BD%${manifest.name}%${manifest.author}`] = place;
+    plugins.push(getManifest_bd(place, false).then(manifest => {
+      return [makeId('BD', manifest), place];
+    }));
   }
+
+  for (const place of gm.plugins) {
+    plugins.push(getManifest_gm(place, false).then(manifest => {
+      return [makeId('GM', manifest), place];
+    }));
+  }
+
+  plugins = await Promise.all(plugins);
+  themes = await Promise.all(themes);
+
+  const sortThings = async (things) => (await Promise.all(things.map(async x => [ x[0], x[1], await getGithubInfo(x[1].includes('http') ? x[1].split('/').slice(3, 5).join('/') : x[1])]))).sort((a, b) =>
+    b[2].stargazers_count - a[2].stargazers_count
+  ).map(x => [ x[0], x[1] ]);
+
+  plugins = await sortThings(plugins);
+  themes = await sortThings(themes);
+
+  let out = {
+    plugins: (await Promise.all(plugins)).reduce((acc, [ k, v ]) => { acc[k] = v; return acc; }, {}),
+    themes: (await Promise.all(themes)).reduce((acc, [ k, v ]) => { acc[k] = v; return acc; }, {})
+  };
   
   console.log(out);
+
+  writeFileSync('recommended.json', JSON.stringify(out));
 })();

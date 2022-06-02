@@ -11,6 +11,7 @@ const read = (path) => ('`' + fs.readFileSync('src/' + path + (!path.includes('.
 code = code.replace(/await getBuiltin\(['"`](.*?)['"`]\)/g, (_, path) => read('builtins/' + path));
 code = code.replace(/await \(await fetch\(\'http:\/\/localhost\:1337\/src\/([A-Za-z0-9\/\.]*?)\'\)\)\.text\(\)/g, (_, path) => read(path));
 code = code.replace('`http://localhost:1337/src/index.js`', '`https://goosemod.github.io/topaz/out.js`');
+code = code.replace('`http://localhost:1337/recommended.json`', '`https://goosemod.github.io/topaz/recommended.json`');
 code = code.replaceAll('http://localhost:1337/src/', 'https://goosemod.github.io/topaz/src/');
 
 // console.log(code);
