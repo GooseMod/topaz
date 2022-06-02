@@ -1,9 +1,5 @@
 let ZeresPluginLibrary, ZLibrary;
 
-// some plugins require it in global
-global.ZeresPluginLibrary = ZeresPluginLibrary;
-global.ZLibrary = ZLibrary;
-
 (() => {
 const WebpackModules = {
   getByProps: goosemod.webpackModules.findByProps,
@@ -35,7 +31,7 @@ ZLibrary = ZeresPluginLibrary = {
       },
 
       {
-        Patcher: Object.keys(BdApi.Patcher).reduce((acc, x) => { acc[x] = BdApi.Patcher[x].bind(this, id); return acc; }),
+        Patcher: Object.keys(BdApi.Patcher).reduce((acc, x) => { acc[x] = BdApi.Patcher[x].bind(this, id); return acc; }, {}),
         WebpackModules,
 
         DiscordModules: {
@@ -203,4 +199,8 @@ ZLibrary = ZeresPluginLibrary = {
     ];
   }
 };
+
+// some plugins require it in global
+global.ZeresPluginLibrary = window.ZeresPluginLibrary = ZeresPluginLibrary;
+global.ZLibrary = window.ZLibrary = ZLibrary;
 })();
