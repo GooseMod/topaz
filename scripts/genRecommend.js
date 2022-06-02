@@ -47,6 +47,8 @@ const bd = {
     'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/BetterFolders.plugin.js',
     'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/OnlineFriendCount.plugin.js',
     'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/VoiceEvents.plugin.js',
+    'https://github.com/Strencher/BetterDiscordStuff/blob/master/UserDetails/UserDetails.plugin.js',
+    'https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.js',
   ]
 };
 
