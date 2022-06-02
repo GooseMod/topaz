@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 161; // Auto increments on build
+const topazVersion = 162; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1652,7 +1652,7 @@ ZLibrary = ZeresPluginLibrary = {
           })
         },
 
-        Utilities: class { // class because... https://github.com/Strencher/BetterDiscordStuff/blob/master/UserDetails/UserDetails.plugin.js#L757
+        Utilities: class Utilities { // class because... https://github.com/Strencher/BetterDiscordStuff/blob/master/UserDetails/UserDetails.plugin.js#L757
           static suppressErrors = (func, label) => (...args) => {
             try {
               func(...args);

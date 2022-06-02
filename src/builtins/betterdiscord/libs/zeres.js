@@ -262,7 +262,7 @@ ZLibrary = ZeresPluginLibrary = {
           })
         },
 
-        Utilities: class { // class because... https://github.com/Strencher/BetterDiscordStuff/blob/master/UserDetails/UserDetails.plugin.js#L757
+        Utilities: class Utilities { // class because... https://github.com/Strencher/BetterDiscordStuff/blob/master/UserDetails/UserDetails.plugin.js#L757
           static suppressErrors = (func, label) => (...args) => {
             try {
               func(...args);
