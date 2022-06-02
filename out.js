@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 157; // Auto increments on build
+const topazVersion = 158; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -2042,6 +2042,8 @@ const install = async (info, settings = undefined, disabled = false) => {
   return [ manifest ];
 };
 
+const replaceLast = (str, from, to) => str.substring(0, str.lastIndexOf(from)) + to + str.substring(str.lastIndexOf(from) + from.length); // replace only last instance of string in string
+
 let transformRoot;
 const transform = async (path, code, info) => {
   downloadingProgress = 0;
@@ -2057,7 +2059,9 @@ const transform = async (path, code, info) => {
 
   code = global + '\n\n' + code;
 
-  code = code.replace('module.exports =', 'return').replace('export default', 'return');
+  // replace last as some builders use module.exports internally, last one = actual export (probably)
+  code = replaceLast(code, 'module.exports =', 'return');
+  code = replaceLast(code, 'export default', 'return');
 
   console.log({ code });
 
