@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 158; // Auto increments on build
+const topazVersion = 159; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -2042,7 +2042,12 @@ const install = async (info, settings = undefined, disabled = false) => {
   return [ manifest ];
 };
 
-const replaceLast = (str, from, to) => str.substring(0, str.lastIndexOf(from)) + to + str.substring(str.lastIndexOf(from) + from.length); // replace only last instance of string in string
+const replaceLast = (str, from, to) => { // replace only last instance of string in string
+  const ind = str.lastIndexOf(from);
+  if (ind === -1) return str;
+
+  return str.substring(0, ind) + to + str.substring(ind + from.length);
+};
 
 let transformRoot;
 const transform = async (path, code, info) => {
