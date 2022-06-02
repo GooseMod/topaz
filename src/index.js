@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 154; // Auto increments on build
+const topazVersion = 155; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -591,6 +591,12 @@ const setDisabled = (key, disabled) => {
   localStorage.setItem('topaz_disabled', JSON.stringify(store));
 };
 
+const purgeCacheForPlugin = (info) => {
+  finalCache.remove(info); // remove final cache
+  fetchCache.keys().filter(x => x.includes(info)).forEach(y => fetchCache.remove(y)); // remove fetch caches
+};
+
+
 window.topaz = {
   settings: topazSettings,
 
@@ -611,10 +617,7 @@ window.topaz = {
     plugins[info]._topaz_stop();
     delete plugins[info];
 
-    if (!topaz.__reloading) {
-      finalCache.remove(info); // remove final cache
-      fetchCache.keys().filter(x => x.includes(info)).forEach(y => fetchCache.remove(y)); // remove fetch caches
-    }
+    if (!topaz.__reloading) purgeCacheForPlugin(info);
 
     savePlugins();
     setDisabled(info, false); // Remove from disabled list
@@ -952,6 +955,8 @@ class Settings extends React.PureComponent {
           await topaz.install(info);
         } catch (e) {
           console.error('INSTALL', e);
+
+          purgeCacheForPlugin(info); // try to purge cache if failed
 
           const currentPend = pending.find(x => x.repo === info);
           const rmError = addPending({ repo: info, state: 'Error', substate: lastError ?? e.toString().substring(0, 30), manifest: currentPend.manifest });
