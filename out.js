@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 153; // Auto increments on build
+const topazVersion = 154; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1742,7 +1742,7 @@ const includeRequires = async (path, code) => {
     const [ chunkId, code ] = await makeChunk(root, where);
     if (!chunks[chunkId]) chunks[chunkId] = code;
 
-    return `const ${what} = ${chunkId}`;
+    return `const ${what.replace('* as ', '')} = ${chunkId}`;
   });
 
   code = await replaceAsync(code, /this\.loadStylesheet\(['"`](.*?)['"`]\)/g, async (_, p) => {
