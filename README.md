@@ -8,7 +8,7 @@ A "next-gen" mod bundling client-side in web, with compat abilities.
 
 ## Usage
 
-- Have GooseMod installed
+- Have GooseMod installed, with experimental branch enabled (GooseMod Settings > Experimental (expand at bottom))
 - Run the following JS in your console:
 - Temporary: Only for current Discord session (until next refresh/reload)
 ```js
