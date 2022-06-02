@@ -179,3 +179,24 @@
   max-width: initial !important;
   min-height: initial !important;
 }
+
+/* Hide some elements for Simple UI */
+.topaz-simple .topaz-tag { /* Mod tag */
+  display: none;
+}
+
+.topaz-simple .topaz-tag + span { /* Plugin version */
+  display: none;
+}
+
+.topaz-simple [aria-label="Reinstall"] { /* Reinstall button */
+  display: none;
+}
+
+.topaz-simple [aria-label="Open Link"] { /* Open Link button */
+  display: none;
+}
+
+#topaz-repo-autocomplete.topaz-simple .code-style { /* Hide repos in autocomplete */
+  display: none;
+}

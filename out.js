@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 155; // Auto increments on build
+const topazVersion = 156; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -2260,13 +2260,13 @@ class Plugin extends React.PureComponent {
 
     return React.createElement(TextAndChild, {
       text: !manifest ? repo : [
-        (!mod || topazSettings.simpleUI) ? null : React.createElement('span', {
+        !mod ? null : React.createElement('span', {
           className: 'topaz-tag'
         }, mod.toUpperCase()),
 
         manifest.name,
 
-        topazSettings.simpleUI ? null : React.createElement('span', {
+        React.createElement('span', {
           class: 'description-30xx7u',
           style: {
             marginLeft: '4px'
@@ -2371,7 +2371,7 @@ class Plugin extends React.PureComponent {
           }
         }) : null,
 
-        topazSettings.simpleUI ? null : React.createElement(PanelButton, {
+        React.createElement(PanelButton, {
           icon: goosemod.webpackModules.findByDisplayName('Link'),
           tooltipText: 'Open Link',
           onClick: async () => {
@@ -2379,7 +2379,7 @@ class Plugin extends React.PureComponent {
           }
         }),
 
-        topazSettings.simpleUI ? null : React.createElement(PanelButton, {
+        React.createElement(PanelButton, {
           icon: goosemod.webpackModules.findByDisplayName('Retry'),
           tooltipText: 'Reinstall',
           onClick: async () => {
@@ -2498,7 +2498,7 @@ class Settings extends React.PureComponent {
       if (!autocomplete) {
         autocomplete = document.createElement('div');
         autocomplete.id = 'topaz-repo-autocomplete';
-        autocomplete.className = ScrollerClasses.thin;
+        autocomplete.className = ScrollerClasses.thin + (topazSettings.simpleUI ? ' topaz-simple' : '');
 
         document.body.appendChild(autocomplete);
       }
@@ -2555,7 +2555,7 @@ class Settings extends React.PureComponent {
 
 
     return React.createElement('div', {
-      className: 'topaz-settings'
+      className: 'topaz-settings' + (topazSettings.simpleUI ? ' topaz-simple' : '')
     },
       React.createElement(FormTitle, {
         tag: 'h1'
@@ -2853,6 +2853,27 @@ cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
   width: auto !important;
   max-width: initial !important;
   min-height: initial !important;
+}
+
+/* Hide some elements for Simple UI */
+.topaz-simple .topaz-tag { /* Mod tag */
+  display: none;
+}
+
+.topaz-simple .topaz-tag + span { /* Plugin version */
+  display: none;
+}
+
+.topaz-simple [aria-label="Reinstall"] { /* Reinstall button */
+  display: none;
+}
+
+.topaz-simple [aria-label="Open Link"] { /* Open Link button */
+  display: none;
+}
+
+#topaz-repo-autocomplete.topaz-simple .code-style { /* Hide repos in autocomplete */
+  display: none;
 }`));
 document.head.appendChild(cssEl);
 
