@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 156; // Auto increments on build
+const topazVersion = 157; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -2485,7 +2485,7 @@ class Settings extends React.PureComponent {
           install(info);
         };
 
-        el.onfocus = () => textInputHandler('');
+        el.onfocus = () => textInputHandler(el.value ?? '');
 
         el.onblur = () => {
           setTimeout(() => {
