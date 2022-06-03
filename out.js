@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 162; // Auto increments on build
+const topazVersion = 163; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1177,7 +1177,7 @@ powercord = {
 
         if (!SettingsView) return;
 
-        topaz.internal.registerSettings(__entityID, id, { label, render, category, props: { ...settingStore } });
+        topaz.internal.registerSettings(__entityID, { render, props: { ...settingStore } });
 
 
         settingsUnpatch[id] = goosemod.patcher.patch(SettingsView.prototype, 'getPredicateSections', (_, sections) => {
@@ -2090,6 +2090,38 @@ const install = async (info, settings = undefined, disabled = false) => {
         plugin._topaz_stop = plugin.stop;
 
         for (const x of [ 'name', 'description', 'version', 'author' ]) manifest[x] = plugin['get' + x.toUpperCase()[0] + x.slice(1)]?.() ?? manifest[x] ?? '';
+
+        if (plugin.getSettingsPanel) plugin.__settings = {
+          render: class BDSettingsWrapper extends React.PureComponent {
+            constructor(props) {
+              super(props);
+
+              this.ref = React.createRef();
+              this.ret = plugin.getSettingsPanel();
+            }
+
+            componentDidMount() {
+              if (this.ret instanceof Node) this.ref.current.appendChild(ret);
+            }
+
+            render() {
+              if (typeof this.ret === 'string') return React.createElement('div', {
+                dangerouslySetInnerHTML: {
+                  __html: this.ret
+                }
+              });
+
+              if (this.ret instanceof Node) return React.createElement('div', {
+                ref: this.ref
+              });
+
+              if (typeof this.ret === 'function') return React.createElement(this.ret);
+
+              return this.ret;
+            }
+          }
+        };
+
         break;
       
       case 'gm':
@@ -2272,8 +2304,8 @@ window.topaz = {
   getInstalled: () => Object.keys(plugins),
 
   internal: {
-    registerSettings: (entityID, id, { label, render, category, props }) => {
-      plugins[entityID].__settings = { category, label, render, props };
+    registerSettings: (entityID, { label, render, category, props }) => {
+      plugins[entityID].__settings = { render, props };
     },
 
     plugins
@@ -2476,7 +2508,7 @@ class Plugin extends React.PureComponent {
                 React.createElement(ModalStuff.ModalContent, {
                   className: 'topaz-settings-modal-content'
                 },
-                  React.createElement(settings.render, settings.props)
+                  React.createElement(settings.render, settings.props ?? {})
                 )
               )
             })
