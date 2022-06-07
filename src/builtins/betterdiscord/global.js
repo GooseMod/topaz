@@ -13,6 +13,18 @@ const i18n = Webpack.findByPropsAll('Messages')[1];
 const dataLSId = (id) => 'topaz_bd_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
 const bindPatch = (func, unpatch) => func.bind({ unpatch }); // Overriding props in original this, better way?
 
+const makeAddonAPI = (id) => ({
+  folder: `/topaz/${id}`, // fake/mock folder
+
+  isEnabled: (x) => true,
+  enable: (x) => {},
+  disable: (x) => {},
+  toggle: (x) => {},
+  reload: (x) => {},
+  get: (x) => {},
+  getAll: () => {}
+});
+
 
 const showConfirmationModal = async (title, content, { onConfirm, onCancel, confirmText = i18n.Messages.OKAY, cancelText = i18n.Messages.CANCEL, danger, key } = {}) => {
   const Text = findByDisplayName("Text");
@@ -142,6 +154,8 @@ BdApi = {
     }
   },
 
+  Plugins: makeAddonAPI('plugins'),
+  Themes: makeAdd('themes'),
 
   React: Webpack.common.React,
   ReactDOM: Webpack.common.ReactDOM
