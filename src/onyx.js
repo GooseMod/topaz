@@ -6,11 +6,12 @@ class Onyx {
       context[k] = null;
     }
 
-    for (const k of [ 'console' ]) {
+    for (const k of [ 'console', 'goosemod' ]) { // allowed globals
       context[k] = window[k];
     }
 
     context.window = context;
+    context.global = context;
 
     this.context = context;
   }
