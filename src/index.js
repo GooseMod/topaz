@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 169; // Auto increments on build
+const topazVersion = 170; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -13,6 +13,7 @@ const initStartTime = performance.now();
 
 const sucrase = eval(await (await fetch('http://localhost:1337/src/sucrase.js')).text());
 const grass = await eval(await (await fetch('http://localhost:1337/src/grass.js')).text());
+const Onyx = eval(await (await fetch('http://localhost:1337/src/onyx.js')).text());
 
 const includeImports = async (root, code, updateProgress) => {
   if (updateProgress) {
@@ -468,7 +469,8 @@ const install = async (info, settings = undefined, disabled = false) => {
         break;
     }
 
-    const PluginClass = eval(codePrefix + '\n' + newCode);
+    const execContainer = new Onyx();
+    const PluginClass = execContainer.eval(codePrefix + '\n' + newCode);
 
     if (mod !== 'gm') {
       PluginClass.prototype.entityID = info; // Setup internal metadata
@@ -546,23 +548,24 @@ const install = async (info, settings = undefined, disabled = false) => {
       break;
 
     case 'gm':
-      console.log('WOW', settings);
-      if (settings) plugin.goosemodHandlers.loadSettings(settings);
+      if (settings) plugin.goosemodHandlers.loadSettings?.(settings);
 
-      if (plugin.goosemodHandlers.getSettings) plugin.settings = {
-        get store() {
-          return plugin.goosemodHandlers.getSettings() ?? {};
-        }
-      };
+      if (plugin.goosemodHandlers.getSettings) {
+        plugin.settings = {
+          get store() {
+            return plugin.goosemodHandlers.getSettings() ?? {};
+          }
+        };
 
-      let lastSettings = plugin.settings.store;
-      setTimeout(() => {
-        const newSettings = plugin.settings.store;
-        if (newSettings !== lastSettings) {
-          lastSettings = newSettings;
-          savePlugins();
-        }
-      }, 5000);
+        let lastSettings = plugin.settings.store;
+        setTimeout(() => {
+          const newSettings = plugin.settings.store;
+          if (newSettings !== lastSettings) {
+            lastSettings = newSettings;
+            savePlugins();
+          }
+        }, 5000);
+      }
 
       break;
   }
@@ -595,8 +598,10 @@ const transform = async (path, code, info) => {
   code = global + '\n\n' + code;
 
   // replace last as some builders use module.exports internally, last one = actual export (probably)
-  code = replaceLast(code, 'module.exports =', 'return');
-  code = replaceLast(code, 'export default', 'return');
+  /* code = replaceLast(code, 'module.exports =', 'return');
+  code = replaceLast(code, 'export default', 'return'); */
+
+  code = replaceLast(code, 'export default', 'module.exports =');
 
   console.log({ code });
 
@@ -775,6 +780,7 @@ const Margins = goosemod.webpackModules.findByProps('marginTop20', 'marginBottom
 const _Switch = goosemod.webpackModules.findByDisplayName('Switch');
 
 const Header = goosemod.settings.Items['header'];
+const Subtext = goosemod.settings.Items['subtext'];
 const TextAndChild = goosemod.settings.Items['text-and-child'];
 const TextAndToggle = goosemod.settings.Items['toggle'];
 const Divider = goosemod.settings.Items['divider'];
@@ -976,7 +982,7 @@ class TopazSettings extends React.PureComponent {
           topazSettings.simpleUI = x;
           saveTopazSettings();
         }
-      }),
+      })
     )
   }
 }
