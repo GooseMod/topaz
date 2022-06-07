@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 165; // Auto increments on build
+const topazVersion = 166; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1254,7 +1254,7 @@ const { React } = Webpack.common;
 const i18n = Webpack.findByPropsAll('Messages')[1];
 
 const dataLSId = (id) => 'topaz_bd_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
-const makeInjectContext = (th, unpatch) => Object.assign(th, { unpatch }); // Overriding props in original this, better way?
+const bindPatch = (func, unpatch) => func.bind({ unpatch }); // Overriding props in original this, better way?
 
 
 const showConfirmationModal = async (title, content, { onConfirm, onCancel, confirmText = i18n.Messages.OKAY, cancelText = i18n.Messages.CANCEL, danger, key } = {}) => {
@@ -1353,7 +1353,7 @@ BdApi = {
 
       const original = Object.assign({}, parent)[key];
 
-      const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(makeInjectContext(this, unpatch), args, original.bind(this)); }, true);
+      const unpatch = goosemod.patcher.patch(parent, key, function (args) { return bindPatch(patch, unpatch)(this, args, original.bind(this)); }, true);
 
       unpatches[id].push(unpatch);
       return unpatch;
@@ -1362,7 +1362,7 @@ BdApi = {
     before: (id, parent, key, patch) => {
       if (!unpatches[id]) unpatches[id] = [];
 
-      const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(makeInjectContext(this, unpatch), args); }, true);
+      const unpatch = goosemod.patcher.patch(parent, key, function (args) { return bindPatch(patch, unpatch)(this, args); }, true);
 
       unpatches[id].push(unpatch);
       return unpatch;
@@ -1371,7 +1371,7 @@ BdApi = {
     after: (id, parent, key, patch) => {
       if (!unpatches[id]) unpatches[id] = [];
 
-      const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return patch(makeInjectContext(this, unpatch), args, ret); }, false);
+      const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return bindPatch(patch, unpatch)(this, args, ret); }, false);
 
       unpatches[id].push(unpatch);
       return unpatch;
