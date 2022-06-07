@@ -1,14 +1,14 @@
+const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) => { acc[x] = obj[x].__sentry_original__ ?? obj[x]; return acc; }, {});
+
 class Onyx {
   constructor() {
     const context = {};
 
-    for (const k of Reflect.ownKeys(window)) {
-      context[k] = null;
-    }
-
-    for (const k of [ 'console', 'goosemod' ]) { // allowed globals
+    for (const k of [ 'goosemod' ]) { // allowed globals
       context[k] = window[k];
     }
+
+    context.console = unsentrify(window.console); // unsentrify console funcs
 
     context.window = context;
     context.global = context;
@@ -17,9 +17,17 @@ class Onyx {
   }
 
   eval(code) {
-    with (this.context) {
-      return eval(code);
-    }
+    const globals = [ 'console', 'goosemod' ]
+    const preCode = `const window=this;
+const global=this;
+const globalThis=this;
+const module={};\n\n`;
+
+    const postCode = `\n\nreturn module.exports;`;
+
+    const func = (new Function(preCode + code + postCode)).bind(this.context);
+
+    return func();
   }
 };
 
