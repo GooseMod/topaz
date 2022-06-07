@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 163; // Auto increments on build
+const topazVersion = 164; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -995,7 +995,8 @@ module.exports = {
 };`,
   'path': `const resolve = (x) => {
   let ind;
-  x = x.replaceAll('./', '/').replaceAll('//', ''); // example/./test -> example/test
+  if (x.startsWith('./')) x = x.substring(2);
+  x = x.replaceAll('./', '/').replaceAll('//', '/'); // example/./test -> example/test
 
   while (ind = x.indexOf('../') !== -1) x = x.slice(0, ind) + x.slice(ind + 3); // example/test/../sub -> example/sub
 
@@ -2154,9 +2155,9 @@ const install = async (info, settings = undefined, disabled = false) => {
       console.log('WOW', settings);
       if (settings) plugin.goosemodHandlers.loadSettings(settings);
 
-      plugin.settings = {
+      if (plugin.goosemodHandlers.getSettings) plugin.settings = {
         get store() {
-          return plugin.goosemodHandlers.getSettings();
+          return plugin.goosemodHandlers.getSettings() ?? {};
         }
       };
 

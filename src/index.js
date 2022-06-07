@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 163; // Auto increments on build
+const topazVersion = 164; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -549,9 +549,9 @@ const install = async (info, settings = undefined, disabled = false) => {
       console.log('WOW', settings);
       if (settings) plugin.goosemodHandlers.loadSettings(settings);
 
-      plugin.settings = {
+      if (plugin.goosemodHandlers.getSettings) plugin.settings = {
         get store() {
-          return plugin.goosemodHandlers.getSettings();
+          return plugin.goosemodHandlers.getSettings() ?? {};
         }
       };
 
