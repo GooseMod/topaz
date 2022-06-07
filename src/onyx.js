@@ -17,7 +17,6 @@ class Onyx {
   }
 
   eval(code) {
-    const globals = [ 'console', 'goosemod' ]
     const preCode = `const window=this;
 const global=this;
 const globalThis=this;
