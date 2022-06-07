@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 168; // Auto increments on build
+const topazVersion = 169; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1270,14 +1270,14 @@ const makeAddonAPI = (id) => ({
 
 
 const showConfirmationModal = async (title, content, { onConfirm, onCancel, confirmText = i18n.Messages.OKAY, cancelText = i18n.Messages.CANCEL, danger, key } = {}) => {
-  const Text = findByDisplayName("Text");
-  const Markdown = find((x) => x.displayName === 'Markdown' && x.rules);
-  const ButtonColors = findByProps('button', 'colorRed');
+  const Text = Webpack.findByDisplayName("Text");
+  const Markdown = Webpack.find((x) => x.displayName === 'Markdown' && x.rules);
+  const ButtonColors = Webpack.findByProps('button', 'colorRed');
 
   const res = await new Promise((res) => Webpack.findByProps('openModal', 'updateModal').openModal(e => {
     if (e.transitionState === 3) res(false);
 
-    return React.createElement(findByDisplayName("ConfirmModal"), {
+    return React.createElement(Webpack.findByDisplayName("ConfirmModal"), {
       header: title,
       confirmText,
       cancelText,
@@ -1398,7 +1398,7 @@ BdApi = {
   },
 
   Plugins: makeAddonAPI('plugins'),
-  Themes: makeAdd('themes'),
+  Themes: makeAddonAPI('themes'),
 
   React: Webpack.common.React,
   ReactDOM: Webpack.common.ReactDOM
