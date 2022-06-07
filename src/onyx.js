@@ -10,7 +10,7 @@ class Onyx {
 
     context.console = unsentrify(window.console); // unsentrify console funcs
 
-    context.window = context;
+    context.window = context; // recursive globals
     context.global = context;
 
     this.context = context;
