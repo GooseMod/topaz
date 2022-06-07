@@ -137,7 +137,7 @@ BdApi = {
     unpatchAll: (id) => {
       let arr = id;
       if (typeof id === 'string') arr = unpatches[id] ?? [];
-      
+
       arr.forEach(x => x());
     }
   },
