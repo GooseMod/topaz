@@ -133,8 +133,26 @@
   border-bottom: thin solid var(--background-modifier-accent);
 }
 
-.topaz-settings-modal-content {
+.topaz-settings-modal-content, .topaz-permissions-modal-content {
   padding-top: 20px;
+}
+
+.topaz-permissions-page .breadcrumbs-2uP7wU, .topaz-settings-page .breadcrumbs-2uP7wU {
+  margin-bottom: 20px;
+}
+
+.topaz-permissions-page > div > div:last-child .divider-_0um2u, .topaz-permissions-modal-content > div > div:last-child .divider-_0um2u {
+  display: none;
+}
+
+.topaz-permission-label {
+  color: var(--text-normal);
+  font-weight: 400;
+}
+
+.topaz-permissions-page .divider-_0um2u, .topaz-permissions-modal-content .divider-_0um2u {
+  margin-top: 20px;
+  margin-bottom: 16px;
 }
 
 .topaz-settings .divider-q3P9HC {

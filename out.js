@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 172; // Auto increments on build
+const topazVersion = 173; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -2335,9 +2335,9 @@ ${code}
 };
 
 const topazSettings = JSON.parse(localStorage.getItem('topaz_settings') ?? 'null') ?? {
-  pluginSettingsSidebar: true,
-  sandboxEnabled: false,
-  simpleUI: false
+  pluginSettingsSidebar: false,
+  simpleUI: false,
+  modalPages: false
 };
 
 const savePlugins = () => !topaz.__reloading && localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
@@ -2472,7 +2472,7 @@ const updateOpenSettings = async () => {
   } catch { }
 };
 
-const { React } = goosemod.webpackModules.common;
+const { React, ReactDOM } = goosemod.webpackModules.common;
 
 const TabBar = goosemod.webpackModules.findByDisplayName('TabBar');
 const TabBarClasses1 = goosemod.webpackModules.findByProps('topPill');
@@ -2486,7 +2486,12 @@ let textInputs = {
   THEMES: ''
 };
 
-const Text = goosemod.webpackModules.findByDisplayName('LegacyText');
+const Text = goosemod.webpackModules.find(x => x.Text?.displayName === 'Text').Text;
+const Heading = goosemod.webpackModules.findByProps('Heading').Heading;
+const Breadcrumbs = goosemod.webpackModules.findByDisplayName('Breadcrumbs');
+const BreadcrumbClasses = goosemod.webpackModules.findByProps('breadcrumbActive');
+
+const LegacyText = goosemod.webpackModules.findByDisplayName('LegacyText');
 const Spinner = goosemod.webpackModules.findByDisplayName('Spinner');
 const PanelButton = goosemod.webpackModules.findByDisplayName('PanelButton');
 const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
@@ -2517,9 +2522,107 @@ class Switch extends React.PureComponent {
   }
 }
 
+const openSub = (plugin, type, content) => {
+  const useModal = topazSettings.modalPages;
+
+  const breadcrumbBase = {
+    activeId: '0',
+    breadcrumbs: useModal ? [
+      { id: '1', label: plugin },
+      { id: '0', label: type[0].toUpperCase() + type.slice(1) },
+    ] : [
+      { id: '1', label: 'Topaz' },
+      { id: '0', label: plugin + ' ' + type[0].toUpperCase() + type.slice(1) }
+      /* { id: '1', label: plugin },
+      { id: '0', label: type[0].toUpperCase() + type.slice(1) }, */
+    ],
+
+    onBreadcrumbClick: (x) => {},
+  };
+
+  if (useModal) {
+    const LegacyHeader = goosemod.webpackModules.findByDisplayName('LegacyHeader');
+
+    openSub_modal(React.createElement(Breadcrumbs, {
+      ...breadcrumbBase,
+      renderCustomBreadcrumb: ({ label }, active) => React.createElement(LegacyHeader, {
+        tag: 'h2',
+        size: LegacyHeader.Sizes.SIZE_20,
+        className: active ? BreadcrumbClasses.breadcrumbActive : BreadcrumbClasses.breadcrumbInactive
+      }, label)
+    }), content, type);
+  } else {
+    const titleClasses = goosemod.webpackModules.findByProps('h1');
+
+    openSub_page(React.createElement(FormTitle, {
+      tag: 'h1',
+    },
+      React.createElement(Breadcrumbs, {
+        ...breadcrumbBase,
+        onBreadcrumbClick: ({ id, label }) => {
+          if (id === '1') updateOpenSettings();
+        },
+        renderCustomBreadcrumb: ({ label }, active) => React.createElement('span', {
+          className: titleClasses.h1 + ' ' + (active ? BreadcrumbClasses.breadcrumbActive : BreadcrumbClasses.breadcrumbInactive)
+        }, label)
+      })
+    ), content, type);
+  }
+};
+
+const openSub_page = (header, content, type) => {
+  ReactDOM.render(React.createElement('div', {
+    className: `topaz-${type}-page`
+  },
+    header,
+
+    content
+  ), document.querySelector('.topaz-settings'));
+};
+
+const openSub_modal = (header, content, type) => {
+  const ModalStuff = goosemod.webpackModules.findByProps('ModalRoot');
+  const { openModal } = goosemod.webpackModules.findByProps('openModal', 'updateModal');
+  const Flex = goosemod.webpackModules.findByDisplayName('Flex');
+
+  openModal((e) => {
+    return React.createElement(ModalStuff.ModalRoot, {
+      transitionState: e.transitionState,
+      size: 'large'
+    },
+      React.createElement(ModalStuff.ModalHeader, {},
+        React.createElement(Flex.Child, {
+          basis: 'auto',
+          grow: 1,
+          shrink: 1,
+          wrap: false,
+        },
+          header
+        ),
+        React.createElement('FlexChild', {
+          basis: 'auto',
+          grow: 0,
+          shrink: 1,
+          wrap: false
+        },
+          React.createElement(ModalStuff.ModalCloseButton, {
+            onClick: e.onClose
+          })
+        )
+      ),
+
+      React.createElement(ModalStuff.ModalContent, {
+        className: `topaz-${type}-modal-content`
+      },
+        content
+      )
+    )
+  });
+};
+
 class Plugin extends React.PureComponent {
   render() {
-    const { manifest, repo, state, substate, settings, entityID, mod } = this.props;
+    const { manifest, repo, state, substate, settings, entityID, mod, isTheme } = this.props;
 
     return React.createElement(TextAndChild, {
       text: !manifest ? repo : [
@@ -2561,7 +2664,7 @@ class Plugin extends React.PureComponent {
         onChange: x => {
           topaz[x ? 'enable' : 'disable'](entityID);
         }
-      }) : React.createElement(Text, {
+      }) : React.createElement(LegacyText, {
         size: goosemod.webpackModules.findByProps('size16', 'size32').size16,
         className: goosemod.webpackModules.findByProps('title', 'dividerDefault').title + ' topaz-loading-text'
       },
@@ -2590,47 +2693,58 @@ class Plugin extends React.PureComponent {
           icon: goosemod.webpackModules.findByDisplayName('Gear'),
           tooltipText: 'Open Settings',
           onClick: () => {
-            const ModalStuff = goosemod.webpackModules.findByProps('ModalRoot');
-            const Header = goosemod.webpackModules.findByDisplayName('LegacyHeader');
-            const { openModal } = goosemod.webpackModules.findByProps('openModal', 'updateModal');
-            const Flex = goosemod.webpackModules.findByDisplayName('Flex');
+            openSub(manifest.name, 'settings', React.createElement(settings.render, settings.props ?? {}));
+          }
+        }) : null,
 
-            openModal((e) => {
-              return React.createElement(ModalStuff.ModalRoot, {
-                transitionState: e.transitionState,
-                size: 'large'
-              },
-                React.createElement(ModalStuff.ModalHeader, {},
-                  React.createElement(Flex.Child, {
-                    basis: 'auto',
-                    grow: 1,
-                    shrink: 1,
-                    wrap: false,
-                  },
-                    React.createElement(Header, {
-                      tag: 'h2',
-                      size: Header.Sizes.SIZE_20
-                    }, manifest.name + ' Settings')
-                  ),
-                  React.createElement('FlexChild', {
-                    basis: 'auto',
-                    grow: 0,
-                    shrink: 1,
-                    wrap: false
-                  },
-                    React.createElement(ModalStuff.ModalCloseButton, {
-                      onClick: e.onClose
-                    })
-                  )
+        !isTheme && false ? React.createElement(PanelButton, {
+          icon: goosemod.webpackModules.findByDisplayName('PersonShield'),
+          tooltipText: 'Permissions',
+          onClick: async () => {
+            const perms = {
+              token: [ 'Read', 'Write' ],
+              account: [ 'Email', 'Phone Number', 'Username', 'Discriminator' ]
+            };
+
+            const entryClasses = goosemod.webpackModules.findByProps('entryItem');
+
+            openSub(manifest.name, 'permissions', React.createElement('div', {},
+              ...Object.keys(perms).map(category => React.createElement('div', {},
+                React.createElement(Heading, {
+                  level: 3,
+                  variant: 'heading-md/medium'
+                }, category[0].toUpperCase() + category.slice(1).replaceAll('_', ' ')),
+
+                React.createElement('div', {
+                  className: goosemod.webpackModules.findByProps('listContainer', 'addButton').listContainer
+                },
+                  ...perms[category].map(perm => React.createElement('div', { className: entryClasses.entryItem },
+                    React.createElement('div', { className: entryClasses.entryName },
+                      React.createElement(Text, {
+                        color: 'header-primary',
+                        variant: 'text-md/normal',
+                        className: 'topaz-permission-label'
+                      }, perm)
+                    ),
+                    React.createElement('div', { className: entryClasses.entryActions },
+                      /* React.createElement(CommandPermissionToggle, {
+                        enabled: true,
+                        isSelected: Math.random() > 0.5,
+                        onChange: (x) => {
+                          console.log('TOGGLE', x);
+                        }
+                      }) */
+                      React.createElement(Switch, {
+                        checked: false,
+                        onChange: (x) => {}
+                      })
+                    )
+                  ))
                 ),
 
-                React.createElement(ModalStuff.ModalContent, {
-                  className: 'topaz-settings-modal-content'
-                },
-                  React.createElement(settings.render, settings.props ?? {})
-                )
-              )
-            })
+                React.createElement(Divider),
+              ))
+            ));
           }
         }) : null,
 
@@ -2675,20 +2789,6 @@ class TopazSettings extends React.PureComponent {
 
     },
       React.createElement(Header, {
-        text: 'Settings'
-      }),
-  
-      React.createElement(TextAndToggle, {
-        text: 'Add Plugin Settings To Sidebar',
-        subtext: 'Adds plugin\'s settings to sidebar',
-        isToggled: () => topazSettings.pluginSettingsSidebar,
-        onToggle: x => {
-          topazSettings.pluginSettingsSidebar = x;
-          saveTopazSettings();
-        }
-      }),
-
-      React.createElement(Header, {
         text: 'Appearance',
       }),
 
@@ -2700,7 +2800,27 @@ class TopazSettings extends React.PureComponent {
           topazSettings.simpleUI = x;
           saveTopazSettings();
         }
-      })
+      }),
+
+      React.createElement(TextAndToggle, {
+        text: 'Use Modals',
+        subtext: 'Use modals instead of pages for plugin menus',
+        isToggled: () => topazSettings.modalPages,
+        onToggle: x => {
+          topazSettings.modalPages = x;
+          saveTopazSettings();
+        }
+      }),
+
+      React.createElement(TextAndToggle, {
+        text: 'Add Plugin Settings To Sidebar',
+        subtext: 'Adds plugin\'s settings to sidebar',
+        isToggled: () => topazSettings.pluginSettingsSidebar,
+        onToggle: x => {
+          topazSettings.pluginSettingsSidebar = x;
+          saveTopazSettings();
+        }
+      }),
     )
   }
 }
@@ -2893,12 +3013,13 @@ class Settings extends React.PureComponent {
 
         React.createElement(Divider),
 
-        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ __enabled, manifest, entityID, __settings, __mod }) => React.createElement(Plugin, {
+        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ __enabled, manifest, entityID, __settings, __mod, __theme }) => React.createElement(Plugin, {
           manifest,
           entityID,
           enabled: __enabled,
           settings: __settings,
           mod: __mod,
+          isTheme: !!__theme,
           onUninstall: async () => {
             const rmPending = addPending({ repo: entityID, state: 'Uninstalling...' });
             this.forceUpdate();
@@ -3071,8 +3192,26 @@ cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
   border-bottom: thin solid var(--background-modifier-accent);
 }
 
-.topaz-settings-modal-content {
+.topaz-settings-modal-content, .topaz-permissions-modal-content {
   padding-top: 20px;
+}
+
+.topaz-permissions-page .breadcrumbs-2uP7wU, .topaz-settings-page .breadcrumbs-2uP7wU {
+  margin-bottom: 20px;
+}
+
+.topaz-permissions-page > div > div:last-child .divider-_0um2u, .topaz-permissions-modal-content > div > div:last-child .divider-_0um2u {
+  display: none;
+}
+
+.topaz-permission-label {
+  color: var(--text-normal);
+  font-weight: 400;
+}
+
+.topaz-permissions-page .divider-_0um2u, .topaz-permissions-modal-content .divider-_0um2u {
+  margin-top: 20px;
+  margin-bottom: 16px;
 }
 
 .topaz-settings .divider-q3P9HC {
