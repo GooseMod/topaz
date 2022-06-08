@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 171; // Auto increments on build
+const topazVersion = 172; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -609,7 +609,6 @@ const Onyx = function(name, customContext) {
 
   // nullify (delete) all keys in window to start except allowlist
   for (const k of Object.keys(window)) { // for (const k of Reflect.ownKeys(window)) {
-    // if (k === 'clearInterval') console.log('AAAA', k, allowGlobals.includes(k));
     if (allowGlobals.includes(k)) continue;
     context[k] = null;
   }
@@ -653,7 +652,7 @@ const Onyx = function(name, customContext) {
   this.context = Object.assign(context, customContext);
 
   this.eval = function (_code) {
-    const code = _code + '\\n\\n;module.exports';
+    const code = _code + '\\n\\n;module.exports'; // return module.exports
 
     with (this.context) {
       return eval(code);
