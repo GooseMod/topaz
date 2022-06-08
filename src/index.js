@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 170; // Auto increments on build
+const topazVersion = 171; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -461,16 +461,8 @@ const install = async (info, settings = undefined, disabled = false) => {
       __theme: true
     };
   } else {
-    let codePrefix = `const __entityID = \`${info}\`;\n`;
-
-    switch (mod) {
-      case 'gm':
-        codePrefix += `const goosemodScope = goosemod;\n`;
-        break;
-    }
-
-    const execContainer = new Onyx();
-    const PluginClass = execContainer.eval(codePrefix + '\n' + newCode);
+    const execContainer = new Onyx(info);
+    const PluginClass = execContainer.eval(newCode);
 
     if (mod !== 'gm') {
       PluginClass.prototype.entityID = info; // Setup internal metadata

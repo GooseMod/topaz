@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 170; // Auto increments on build
+const topazVersion = 171; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -600,10 +600,11 @@ const safeWebpack = (mod) => {
 
 
 // we have to use function instead of class because classes force strict mode which disables with
-const Onyx = function() {
+const Onyx = function(name, customContext) {
   const context = {};
 
   // todo: don't allow localStorage, use custom storage api internally
+  // todo: filter elements for personal info?
   const allowGlobals = [ 'topaz', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval' ];
 
   // nullify (delete) all keys in window to start except allowlist
@@ -633,6 +634,8 @@ const Onyx = function() {
     return acc;
   }, {});
 
+  context.goosemodScope = context.goosemod; // goosemod alias
+
   context.console = unsentrify(window.console); // unsentrify console funcs
 
   context.window = context; // recursive global
@@ -642,7 +645,12 @@ const Onyx = function() {
 
   context.module = {};
 
-  this.context = context;
+  // custom globals
+  context.__entityID = name;
+
+
+  this.name = name;
+  this.context = Object.assign(context, customContext);
 
   this.eval = function (_code) {
     const code = _code + '\\n\\n;module.exports';
@@ -2180,16 +2188,8 @@ const install = async (info, settings = undefined, disabled = false) => {
       __theme: true
     };
   } else {
-    let codePrefix = `const __entityID = \`${info}\`;\n`;
-
-    switch (mod) {
-      case 'gm':
-        codePrefix += `const goosemodScope = goosemod;\n`;
-        break;
-    }
-
-    const execContainer = new Onyx();
-    const PluginClass = execContainer.eval(codePrefix + '\n' + newCode);
+    const execContainer = new Onyx(info);
+    const PluginClass = execContainer.eval(newCode);
 
     if (mod !== 'gm') {
       PluginClass.prototype.entityID = info; // Setup internal metadata
