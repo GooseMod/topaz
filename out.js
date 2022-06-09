@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 173; // Auto increments on build
+const topazVersion = 174; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -2752,7 +2752,10 @@ class Plugin extends React.PureComponent {
           icon: goosemod.webpackModules.findByDisplayName('Link'),
           tooltipText: 'Open Link',
           onClick: async () => {
-            window.open(entityID.includes('http') ? entityID : `https://github.com/${entityID}`);
+            let link = entityID.includes('http') ? entityID : `https://github.com/${entityID}`;
+            if (link.includes('raw.githubusercontent.com')) link = 'https://github.com/' + [...link.split('/').slice(3, 5), 'blob', ...link.split('/').slice(5)].join('/'); // raw github links -> normal
+
+            window.open(link);
           }
         }),
 
