@@ -180,5 +180,5 @@ const getManifest_bd = async (place, theme) => { // .plugin.js url
   
   console.log(out);
 
-  writeFileSync('recommended.json', JSON.stringify(out));
+  writeFileSync('popular.json', JSON.stringify(out));
 })();

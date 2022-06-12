@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 181; // Auto increments on build
+const topazVersion = 184; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -2761,9 +2761,9 @@ log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)
   try { updateOpenSettings(); } catch { }
 })();
 
-let recommended;
+let popular;
 (async () => { // Load async as not important / needed right away
-  recommended = await (await fetch(`https://goosemod.github.io/topaz/recommended.json`)).json();
+  popular = await (await fetch(`http://localhost:1337/popular.json`)).json();
 })();
 
 const updateOpenSettings = async () => {
@@ -3255,7 +3255,7 @@ class Settings extends React.PureComponent {
 
       const fuzzySearch = new RegExp(`.*${inp.replace(' ', '[-_ ]')}.*`, 'i');
 
-      const recom = recommended[selectedTab.toLowerCase()];
+      const recom = popular[selectedTab.toLowerCase()];
       const infoFromRecom = (x) => x.endsWith('.plugin.js') ? x.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '') : x.replace('https://github.com/', '');
       const matching = Object.keys(recom).filter((x) => !plugins[infoFromRecom(recom[x])] && fuzzySearch.test(x));
 
@@ -3264,7 +3264,7 @@ class Settings extends React.PureComponent {
         autocomplete.innerHTML = '';
 
         const hel = document.createElement('h5');
-        hel.textContent = 'Recommended ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes');
+        hel.textContent = 'Popular ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes');
         autocomplete.appendChild(hel);
 
         for (const x of matching) {
