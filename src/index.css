@@ -150,6 +150,31 @@
   font-weight: 400;
 }
 
+div + .topaz-permission-choice {
+  margin-top: 20px;
+}
+
+.topaz-permission-choice .size14-k_3Hy4 {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.topaz-permission-reset {
+  float: right;
+}
+
+.topaz-permission-summary {
+  display: inline-block;
+  line-height: 32px;
+  font-size: 24px;
+  font-weight: 500;
+  margin-bottom: 30px;
+}
+
+body .footer-31IekZ { /* Fix modal footers using special var */
+  background: var(--background-secondary);
+}
+
 .topaz-permissions-page .divider-_0um2u, .topaz-permissions-modal-content .divider-_0um2u {
   margin-top: 20px;
   margin-bottom: 16px;
@@ -212,6 +237,10 @@
 }
 
 .topaz-simple [aria-label="Open Link"] { /* Open Link button */
+  display: none;
+}
+
+.topaz-simple [aria-label="Permissions"] { /* Permissions button */
   display: none;
 }
 

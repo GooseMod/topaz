@@ -1,46 +1,143 @@
 const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) => { acc[x] = obj[x].__sentry_original__ ?? obj[x]; return acc; }, {});
 
+const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
+
 // discord's toast for simplicity
 const toast = (content, type) => goosemod.webpackModules.findByProps('showToast').showToast(goosemod.webpackModules.findByProps('createToast').createToast(content, type, { duration: 5000, position: 1 }));
 
-const safeWebpack = (mod) => {
-  const blocklist = {
-    token: [ // Getting token
-      '_dispatchToken', '_orderedCallbackTokens', '_computeOrderedCallbackTokens', // Flux
-      'IS_SEARCH_FILTER_TOKEN', 'IS_SEARCH_ANSWER_TOKEN', 'SearchTokenTypes', 'TOKEN_REGEX', 'TOKEN_KEY', // Constants
-    ],
+const permissions = {
+  token_read: [ 'getToken', 'showToken' ], // get + show
+  token_write: [ 'setToken', 'removeToken', 'hideToken', 'showToken' ], // set + more general
+  actions_typing: [ 'startTyping', 'stopTyping' ],
+  actions_send: [ 'sendMessage' ],
+  readacc_username: [ 'getCurrentUser@username' ],
+  readacc_discrim: [ 'getCurrentUser@discriminator' ],
+  readacc_email: [ 'getCurrentUser@email' ],
+  readacc_phone: [ 'getCurrentUser@phone' ]
+};
 
-    login: [ // Login
+const complexMap = Object.keys(permissions).reduce((acc, x) => acc.concat(permissions[x].filter(y => y.includes('@')).map(y => [ x, ...y.split('@') ])), []);
 
-    ],
+const mimic = (orig) => {
+  const origType = typeof orig; // mimic original value with empty of same type to try and not cause any errors directly
+  return window[origType[0].toUpperCase() + origType.slice(1)]();
+};
 
-    email: [ // Email
+const perms = {
+  'Token': {
+    'Read': 'token_read',
+    'Write': 'token_write'
+  },
+  'Actions': {
+    'Set typing state': 'actions_typing',
+    'Send messages': 'actions_send'
+  },
+  'Account': {
+    'See your username': 'readacc_username',
+    'See your discriminator': 'readacc_discrim',
+    'See your email': 'readacc_email',
+    'See your phone number': 'readacc_phone'
+  },
+  // messages: [ 'Content', 'Author' ],
+};
 
-    ],
 
-    // todo: user info, message info, etc - prompt the user
-  };
+const permissionsModal = async (manifest, neededPerms) => {
+  const ButtonColors = goosemod.webpackModules.findByProps('button', 'colorRed');
+
+  const Text = goosemod.webpackModules.findByDisplayName("Text");
+  const Markdown = goosemod.webpackModules.find((x) => x.displayName === 'Markdown' && x.rules);
+
+  const Checkbox = goosemod.webpackModules.findByDisplayName('Checkbox');
+
+  const { React } = goosemod.webpackModules.common;
 
 
-  const keys = typeof mod === 'object' ? Reflect.ownKeys(mod) : [];
-  // if (keys.includes('Blob')) throw new Error('Onyx blocked access to window in Webpack', mod); // block window
+  class Permission extends React.PureComponent {
+    render() {
+      const subPerm = Object.values(perms).find(x => Object.values(x).find(y => y === this.props.perm));
+      const name = `${Object.keys(perms)[Object.values(perms).indexOf(subPerm)]} > ${prettifyString(Object.keys(subPerm).find(x => subPerm[x] === this.props.perm))}`;
 
-  const hasFlags = keys.some(x => typeof x === 'string' && Object.keys(blocklist).some(y => x.toLowerCase().includes(y))); // has any potential bad key keywords
-  return hasFlags ? new Proxy(mod, { // make proxy only if potential
-    get: (target, prop, reciever) => {
-      if (Object.keys(blocklist).some(x => prop.toLowerCase().includes(x) && !blocklist[x].includes(prop))) {
-        toast(`Topaz: Blocked Webpack (${prop})`, 2);
-        throw new Error('Onyx blocked access to dangerous property in Webpack: ' + prop);
-      }
+      return React.createElement(Checkbox, {
+        type: 'inverted',
+        value: this.props.checked,
+        onChange: () => {
+          this.props.checked = !this.props.checked;
+          this.forceUpdate();
 
-      return Reflect.get(target, prop, reciever);
+          this.props.onChange(this.props.checked);
+        },
+
+        className: 'topaz-permission-choice'
+      },
+        React.createElement(Text, {
+          variant: 'text-sm/normal'
+        }, name)
+      );
     }
-  }) : mod;
+  }
+
+  const finalPerms = neededPerms.reduce((acc, x) => { acc[x] = true; return acc; }, {});
+
+  const permsIncludesReads = neededPerms.some(x => x.includes('read'));
+  const permsIncludesWrites = neededPerms.some(x => x.includes('write'));
+  const permsIncludesActions = neededPerms.some(x => x.includes('action'));
+
+  let permsTypes = [
+    permsIncludesReads ? 'read sensitive data' : null,
+    permsIncludesWrites ? 'write sensitive data' : null,
+    permsIncludesActions ? 'perform senstive actions' : null,
+  ].filter(x => x);
+
+  if (permsTypes.length === 1) permsTypes = permsTypes[0];
+    else if (permsTypes.length === 2) permsTypes = permsTypes.join(' and ');
+    else permsTypes = permsTypes.slice(0, permsTypes.length - 1).join(', ') + ', and ' + permsTypes[permsTypes.length - 1];
+
+  permsTypes = permsTypes.replace('read sensitive data, write sensitive data', 'read and write sensitive data').replace('read sensitive data and write sensitive data', 'read and write sensitive data');
+
+  const res = await new Promise((res) => goosemod.webpackModules.findByProps('openModal', 'updateModal').openModal(e => {
+    if (e.transitionState === 3) res(false);
+
+    return React.createElement(goosemod.webpackModules.findByDisplayName("ConfirmModal"), {
+      header: `${manifest.name} requires permissions`,
+      confirmText: `Allow Chosen`,
+      cancelText: `Deny All`,
+      confirmButtonColor: ButtonColors.colorBrand,
+      onClose: () => res(false), // General close (?)
+      onCancel: () => { // Cancel text
+        res(false);
+        e.onClose();
+      },
+      onConfirm: () => { // Confirm button
+        res(true);
+        e.onClose();
+      },
+      transitionState: e.transitionState
+    },
+      ...(`Topaz requires your permission before allowing **${manifest.name}** to **${permsTypes}**:`).split('\n').map((x) => React.createElement(Markdown, {
+        size: Text.Sizes.SIZE_16
+      }, x)),
+
+      ...Object.keys(finalPerms).map(x => React.createElement(Permission, {
+        perm: x,
+        onChange: y => finalPerms[x] = y,
+        checked: finalPerms[x]
+      }))
+    );
+  }));
+
+  if (res === false) { // Deny all
+    for (const x in finalPerms) {
+      finalPerms[x] = false;
+    }
+  }
+
+  return finalPerms;
 };
 
 
 // we have to use function instead of class because classes force strict mode which disables with
-const Onyx = function(name, customContext) {
+const Onyx = function (entityID, manifest) {
   const context = {};
 
   // todo: don't allow localStorage, use custom storage api internally
@@ -67,7 +164,7 @@ const Onyx = function(name, customContext) {
       orig = orig.bind({}); // clone function
 
       const all = x.toLowerCase().includes('all');
-      acc[x] = all ? (...args) => orig(...args).map(safeWebpack) : (...args) => safeWebpack(orig(...args));
+      acc[x] = all ? (...args) => orig(...args).map(x => this.safeWebpack(x)) : (...args) => this.safeWebpack(orig(...args));
     }
 
     return acc;
@@ -85,11 +182,12 @@ const Onyx = function(name, customContext) {
   context.module = {};
 
   // custom globals
-  context.__entityID = name;
+  context.__entityID = entityID;
 
 
-  this.name = name;
-  this.context = Object.assign(context, customContext);
+  this.entityID = entityID;
+  this.manifest = manifest;
+  this.context = Object.assign(context);
 
   this.eval = function (_code) {
     const code = _code + '\n\n;module.exports'; // return module.exports
@@ -97,6 +195,79 @@ const Onyx = function(name, customContext) {
     with (this.context) {
       return eval(code);
     }
+  };
+
+  this.safeWebpack = function (mod) {
+    let accessedPermissions = {};
+    let firstAccess;
+    const checkPerms = (target, prop, reciever, missingPerm, givenPermissions) => {
+      if (!missingPerm) return Reflect.get(target, prop, reciever);
+
+      // toast(`[Topaz] ${name}: Blocked accessing (${prop})`, 2);
+
+      if (!accessedPermissions[missingPerm] && givenPermissions[missingPerm] === undefined) { // First time asking
+        accessedPermissions[missingPerm] = true;
+        if (!firstAccess) {
+          firstAccess = performance.now();
+
+          setTimeout(async () => {
+            const resultPerms = await permissionsModal(this.manifest, Object.keys(accessedPermissions));
+
+            // save permission allowed/denied
+            const store = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}');
+            if (!store[this.entityID]) store[this.entityID] = {};
+
+            store[this.entityID] = {
+              ...store[this.entityID],
+              ...resultPerms
+            };
+
+            localStorage.setItem('topaz_permissions', JSON.stringify(store));
+
+            /* if (!given && missingPerm === 'token_read') {
+              goosemod.showToast(`Halting ${this.manifest.name} as it is potentially dangerous and denied token`, { timeout: 10000, subtext: 'Topaz', type: 'error' });
+              throw new Error('Onyx halting potentially dangerous execution');
+            } */
+
+            topaz.reload(this.entityID); // reload plugin
+          }, 500);
+        }
+      } else if (givenPermissions[missingPerm] === false) {
+        goosemod.showToast(`Blocked ${this.manifest.name} from accessing ${prop} as it lacks ${prettifyString(missingPerm.replace('_', ' - '))} permission`, { subtext: 'Topaz', type: 'warning' });
+      }
+
+      // throw new Error('Onyx blocked access to dangerous property in Webpack: ' + prop);
+
+      return mimic(Reflect.get(target, prop, reciever));
+    };
+
+    const keys = typeof mod === 'object' ? Reflect.ownKeys(mod) : [];
+    // if (keys.includes('Blob')) throw new Error('Onyx blocked access to window in Webpack', mod); // block window
+
+    const hasFlags = keys.some(x => typeof x === 'string' && Object.values(permissions).flat().some(y => x === y.split('@')[0])); // has any keys in it
+    return hasFlags ? new Proxy(mod, { // make proxy only if potential
+      get: (target, prop, reciever) => {
+        const givenPermissions = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}')[this.entityID] ?? {};
+        const complexPerms = complexMap.filter(x => x[1] === prop);
+
+        if (complexPerms.length !== 0) {
+          const prox = (toProx) => new Proxy(toProx, {
+            get: (sTarget, sProp, sReciever) => {
+              return checkPerms(sTarget, sProp, sReciever, complexPerms.find(x => x[2] === sProp)?.[0], JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}')[this.entityID] ?? {});
+            }
+          });
+
+          const orig = Reflect.get(target, prop, reciever);
+          if (typeof orig === 'function') return function() {
+            return prox(orig.apply(this, arguments));
+          };
+
+          if (typeof orig === 'object') return prox(orig);
+        }
+
+        return checkPerms(target, prop, reciever, Object.keys(permissions).find(x => permissions[x].includes(prop) && givenPermissions[x] !== true), givenPermissions);
+      }
+    }) : mod;
   };
 
   topaz.log('onyx', 'created execution container successfully');

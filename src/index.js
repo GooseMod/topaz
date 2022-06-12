@@ -461,7 +461,7 @@ const install = async (info, settings = undefined, disabled = false) => {
       __theme: true
     };
   } else {
-    const execContainer = new Onyx(info);
+    const execContainer = new Onyx(info, manifest);
     const PluginClass = execContainer.eval(newCode);
 
     if (mod !== 'gm') {
@@ -634,6 +634,15 @@ const purgeCacheForPlugin = (info) => {
   fetchCache.keys().filter(x => x.includes(info)).forEach(y => fetchCache.remove(y)); // remove fetch caches
 };
 
+const purgePermsForPlugin = (info) => {
+  const store = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}');
+
+  store[info] = undefined;
+  delete store[info];
+
+  localStorage.setItem('topaz_permissions', JSON.stringify(store));
+};
+
 
 window.topaz = {
   settings: topazSettings,
@@ -655,7 +664,10 @@ window.topaz = {
     plugins[info]._topaz_stop();
     delete plugins[info];
 
-    if (!topaz.__reloading) purgeCacheForPlugin(info);
+    if (!topaz.__reloading) {
+      purgeCacheForPlugin(info);
+      purgePermsForPlugin(info);
+    }
 
     savePlugins();
     setDisabled(info, false); // Remove from disabled list
@@ -680,6 +692,10 @@ window.topaz = {
 
     setDisabled(info, true);
   },
+  reload: (info) => {
+    topaz.disable(info);
+    setTimeout(() => topaz.enable(info), 200);
+  },
 
   purge: () => {
     topaz.uninstallAll();
@@ -703,7 +719,7 @@ window.topaz = {
     plugins
   },
 
-  reload: async () => {
+  reloadTopaz: async () => {
     eval(await (await fetch(`http://localhost:1337/src/index.js`, { cache: 'no-store' })).text());
   },
 
@@ -764,7 +780,7 @@ const Text = goosemod.webpackModules.find(x => x.Text?.displayName === 'Text').T
 const Heading = goosemod.webpackModules.findByProps('Heading').Heading;
 const Breadcrumbs = goosemod.webpackModules.findByDisplayName('Breadcrumbs');
 const BreadcrumbClasses = goosemod.webpackModules.findByProps('breadcrumbActive');
-
+const Button = goosemod.webpackModules.findByProps('Sizes', 'Colors', 'Looks', 'DropdownSizes');
 const LegacyText = goosemod.webpackModules.findByDisplayName('LegacyText');
 const Spinner = goosemod.webpackModules.findByDisplayName('Spinner');
 const PanelButton = goosemod.webpackModules.findByDisplayName('PanelButton');
@@ -971,18 +987,61 @@ class Plugin extends React.PureComponent {
           }
         }) : null,
 
-        !isTheme && false ? React.createElement(PanelButton, {
+        !isTheme ? React.createElement(PanelButton, {
           icon: goosemod.webpackModules.findByDisplayName('PersonShield'),
           tooltipText: 'Permissions',
           onClick: async () => {
             const perms = {
-              token: [ 'Read', 'Write' ],
-              account: [ 'Email', 'Phone Number', 'Username', 'Discriminator' ]
+              'Token': {
+                'Read': 'token_read',
+                'Write': 'token_write'
+              },
+              'Actions': {
+                'Set typing state': 'actions_typing',
+                'Send messages': 'actions_send'
+              },
+              'Account': {
+                'See your username': 'readacc_username',
+                'See your discriminator': 'readacc_discrim',
+                'See your email': 'readacc_email',
+                'See your phone number': 'readacc_phone'
+              },
+              // messages: [ 'Content', 'Author' ],
             };
+
+            const givenPermissions = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}')[entityID] ?? {};
 
             const entryClasses = goosemod.webpackModules.findByProps('entryItem');
 
+            const grantedPermCount = Object.values(givenPermissions).filter(x => x === true).length;
+
             openSub(manifest.name, 'permissions', React.createElement('div', {},
+              React.createElement(Heading, {
+                level: 3,
+                variant: 'heading-md/medium',
+                className: 'topaz-permission-summary'
+              }, `${grantedPermCount} Granted Permission${grantedPermCount === 1 ? '' : 's'}`),
+
+              React.createElement(Button, {
+                color: Button.Colors.RED,
+                size: Button.Sizes.SMALL,
+                className: 'topaz-permission-reset',
+
+                onClick: () => {
+                  // save permission allowed/denied
+                  const store = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}');
+
+                  store[entityID] = {};
+
+                  localStorage.setItem('topaz_permissions', JSON.stringify(store));
+
+                  setTimeout(() => { // reload plugin
+                    topaz.reload(entityID);
+                    goosemod.webpackModules.findByProps('showToast').showToast(goosemod.webpackModules.findByProps('createToast').createToast('Reloaded ' + manifest.name, 0, { duration: 5000, position: 1 }));
+                  }, 100);
+                }
+              }, 'Reset'),
+
               ...Object.keys(perms).map(category => React.createElement('div', {},
                 React.createElement(Heading, {
                   level: 3,
@@ -992,7 +1051,7 @@ class Plugin extends React.PureComponent {
                 React.createElement('div', {
                   className: goosemod.webpackModules.findByProps('listContainer', 'addButton').listContainer
                 },
-                  ...perms[category].map(perm => React.createElement('div', { className: entryClasses.entryItem },
+                  ...Object.keys(perms[category]).map(perm => React.createElement('div', { className: entryClasses.entryItem },
                     React.createElement('div', { className: entryClasses.entryName },
                       React.createElement(Text, {
                         color: 'header-primary',
@@ -1001,16 +1060,22 @@ class Plugin extends React.PureComponent {
                       }, perm)
                     ),
                     React.createElement('div', { className: entryClasses.entryActions },
-                      /* React.createElement(CommandPermissionToggle, {
-                        enabled: true,
-                        isSelected: Math.random() > 0.5,
-                        onChange: (x) => {
-                          console.log('TOGGLE', x);
-                        }
-                      }) */
                       React.createElement(Switch, {
-                        checked: false,
-                        onChange: (x) => {}
+                        checked: givenPermissions[perms[category][perm]],
+                        onChange: (x) => {
+                          // save permission allowed/denied
+                          const store = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}');
+                          if (!store[entityID]) store[entityID] = {};
+
+                          store[entityID][perms[category][perm]] = x;
+
+                          localStorage.setItem('topaz_permissions', JSON.stringify(store));
+
+                          setTimeout(() => { // reload plugin
+                            topaz.reload(entityID);
+                            goosemod.webpackModules.findByProps('showToast').showToast(goosemod.webpackModules.findByProps('createToast').createToast('Reloaded ' + manifest.name, 0, { duration: 5000, position: 1 }));
+                          }, 100);
+                        }
                       })
                     )
                   ))
@@ -1268,7 +1333,7 @@ class Settings extends React.PureComponent {
             icon: goosemod.webpackModules.findByDisplayName('Retry'),
             tooltipText: 'Reload Topaz',
             onClick: async () => {
-              topaz.reload();
+              topaz.reloadTopaz();
             }
           }))
         ),
@@ -1357,7 +1422,7 @@ const msgUnpatch = goosemod.patcher.patch(msgModule, 'sendMessage', ([ _channelI
   }
 
   if (content.startsWith(':t')) {
-    topaz.reload();
+    topaz.reloadTopaz();
     return false;
   }
 }, true);
