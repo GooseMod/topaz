@@ -26,6 +26,7 @@ const WebpackModules = {
 
 const showToast = (content, options = {}) => goosemod.showToast(content, options); // Mostly same options handling
 
+const injectedCSS = {};
 
 ZLibrary = ZeresPluginLibrary = {
   buildPlugin: (config) => {
@@ -283,6 +284,18 @@ ZLibrary = ZeresPluginLibrary = {
 
           saveSettings: (name, save) => {
             BdApi.saveData('zeres', name, save);
+          },
+
+          addStyle: (id, css) => {
+            const el = document.createElement('style');
+            el.appendChild(document.createTextNode(css));
+            document.body.appendChild(el);
+
+            injectedCSS[id] = el;
+          },
+
+          removeStyle: (id) => {
+            injectedCSS[id]?.remove();
           }
         },
 
