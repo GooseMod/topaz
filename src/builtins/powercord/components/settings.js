@@ -14,6 +14,7 @@ const FormDivider = goosemod.webpackModules.findByDisplayName('FormDivider');
 const SettingsFormClasses = goosemod.webpackModules.findByProps('dividerDefault', 'titleDefault');
 
 const OriginalTextInput = goosemod.webpackModules.findByDisplayName('TextInput');
+const OriginalSlider = goosemod.webpackModules.findByDisplayName('Slider');
 
 class Divider extends React.PureComponent {
   render() {
@@ -75,6 +76,25 @@ module.exports = {
   
         React.createElement(OriginalTextInput, {
           ...this.props
+        })
+      );
+    }
+  },
+
+  SliderInput: class SliderInput extends React.PureComponent {
+    render() {
+      const title = this.props.children;
+      delete this.props.children;
+
+      return React.createElement(FormItem, {
+          title,
+          note: this.props.note,
+          required: this.props.required
+        },
+
+        React.createElement(OriginalSlider, {
+          ...this.props,
+          className: `${this.props.className ?? ''} ${Margins.marginTop20}`
         })
       );
     }
