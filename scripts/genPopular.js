@@ -23,6 +23,7 @@ const pc = {
     'asportnoy/powercord-tone-indicators',
     'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-codeblocks',
     'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-clickableEdits',
+    'discord-modifications/show-hidden-channels'
   ],
 
   themes: [
