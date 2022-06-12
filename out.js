@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 180; // Auto increments on build
+const topazVersion = 181; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1035,7 +1035,21 @@ module.exports = {
 
   ...goosemod.reactUtils // Export GooseMod React utils
 };`,
-  'powercord/components': `module.exports = {
+  'powercord/components': `const allIcons = goosemod.webpackModules.findAll(x => typeof x === 'function' && x.toString().indexOf('"currentColor"') !== -1);
+const Icon = (_props) => {
+  const props = Object.assign({}, _props);
+  delete props.name;
+
+  return React.createElement(allIcons.find(x => x.displayName === _props.name), props);
+};
+
+Icon.Names = allIcons.map(x => x.displayName);
+
+
+module.exports = {
+  Icon,
+
+
   Clickable: goosemod.webpackModules.findByDisplayName('Clickable'),
   Button: goosemod.webpackModules.findByProps('DropdownSizes'),
 

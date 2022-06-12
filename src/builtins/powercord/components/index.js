@@ -1,4 +1,18 @@
+const allIcons = goosemod.webpackModules.findAll(x => typeof x === 'function' && x.toString().indexOf('"currentColor"') !== -1);
+const Icon = (_props) => {
+  const props = Object.assign({}, _props);
+  delete props.name;
+
+  return React.createElement(allIcons.find(x => x.displayName === _props.name), props);
+};
+
+Icon.Names = allIcons.map(x => x.displayName);
+
+
 module.exports = {
+  Icon,
+
+
   Clickable: goosemod.webpackModules.findByDisplayName('Clickable'),
   Button: goosemod.webpackModules.findByProps('DropdownSizes'),
 
