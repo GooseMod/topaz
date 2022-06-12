@@ -8,7 +8,7 @@ const pc = {
     'TaiAurori/custom-timestamps',
     'RazerMoon/vcTimer',
     '12944qwerty/Slowmode-Counter',
-    'skullyplugs/collapsible-ui',
+    // 'skullyplugs/collapsible-ui',
     'E-boi/ShowConnections',
     '12944qwerty/betterInvites',
     '12944qwerty/copy-server-icon',
@@ -49,6 +49,7 @@ const bd = {
     'https://github.com/Zerthox/BetterDiscord-Plugins/blob/master/dist/bd/VoiceEvents.plugin.js',
     'https://github.com/Strencher/BetterDiscordStuff/blob/master/UserDetails/UserDetails.plugin.js',
     'https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.js',
+    'https://github.com/Puv1s/ColorTooltips/blob/main/ColorTooltips.plugin.js',
   ]
 };
 
