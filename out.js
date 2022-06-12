@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 178; // Auto increments on build
+const topazVersion = 179; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1686,9 +1686,7 @@ BdApi = {
     instead: (id, parent, key, patch) => {
       if (!unpatches[id]) unpatches[id] = [];
 
-      const original = Object.assign({}, parent)[key];
-
-      const unpatch = goosemod.patcher.patch(parent, key, function (args) { return bindPatch(patch, unpatch)(this, args, original.bind(this)); }, true);
+      const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return bindPatch(patch, unpatch)(this, args, original.bind(this)); }, false, true);
 
       unpatches[id].push(unpatch);
       return unpatch;
