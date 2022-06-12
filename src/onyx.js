@@ -197,9 +197,10 @@ const Onyx = function (entityID, manifest) {
     }
   };
 
+  let accessedPermissions = {};
+  let firstAccess;
+
   this.safeWebpack = function (mod) {
-    let accessedPermissions = {};
-    let firstAccess;
     const checkPerms = (target, prop, reciever, missingPerm, givenPermissions) => {
       if (!missingPerm) return Reflect.get(target, prop, reciever);
 
@@ -241,7 +242,11 @@ const Onyx = function (entityID, manifest) {
       return mimic(Reflect.get(target, prop, reciever));
     };
 
-    const keys = typeof mod === 'object' ? Reflect.ownKeys(mod) : [];
+    let keys = [];
+    try {
+      keys = Reflect.ownKeys(mod).concat(Reflect.ownKeys(mod.__proto__ ?? {}));
+    } catch { }
+
     // if (keys.includes('Blob')) throw new Error('Onyx blocked access to window in Webpack', mod); // block window
 
     const hasFlags = keys.some(x => typeof x === 'string' && Object.values(permissions).flat().some(y => x === y.split('@')[0])); // has any keys in it
