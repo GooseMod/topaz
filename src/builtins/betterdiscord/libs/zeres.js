@@ -53,9 +53,11 @@ ZLibrary = ZeresPluginLibrary = {
         WebpackModules,
 
         Logger: { // barebones
+          error: (mod, ...msg) => console.error(mod, ...msg),
           err: (mod, ...msg) => console.error(mod, ...msg),
           warn: (mod, ...msg) => console.warn(mod, ...msg),
           info: (mod, ...msg) => console.info(mod, ...msg),
+          dbg: (mod, ...msg) => console.debug(mod, ...msg),
           debug: (mod, ...msg) => console.debug(mod, ...msg),
           log: (mod, ...msg) => console.log(mod, ...msg)
         },

@@ -154,6 +154,10 @@ div + .topaz-permission-choice {
   margin-top: 20px;
 }
 
+.topaz-permission-choice {
+  margin-top: 8px;
+}
+
 .topaz-permission-choice .size14-k_3Hy4 {
   font-weight: 600;
   font-size: 16px;

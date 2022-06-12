@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 176; // Auto increments on build
+const topazVersion = 177; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -583,6 +583,23 @@ const mimic = (orig) => {
   return window[origType[0].toUpperCase() + origType.slice(1)]();
 };
 
+const parseStack = (stack) => [...stack.matchAll(/^    at (.*?)( \\[as (.*)\\])? \\((.*)\\)\$/gm)].map(x => ({
+  func: x[1],
+  alias: x[3],
+  source: x[4],
+  sourceType: x[4].startsWith('Topaz') ? 'topaz' : (x[4].startsWith('https://discord.com') ? 'discord' : (x[4] === '<anonymous>' ? 'anonymous' : 'unknown'))
+}));
+
+const shouldPermitViaStack = () => {
+  const stack = parseStack(Error().stack).slice(2, -2); // slice away onyx wrappers
+
+  const inClone = stack.find(x => (x.func === 'assign' || x.func === 'Function.assign') && x.source === '<anonymous>');
+
+  const internalDiscordClone = inClone && stack[1].sourceType === 'discord';
+
+  return internalDiscordClone;
+};
+
 const perms = {
   'Token': {
     'Read': 'token_read',
@@ -772,7 +789,9 @@ const Onyx = function (entityID, manifest) {
           firstAccess = performance.now();
 
           setTimeout(async () => {
+            firstAccess = null;
             const resultPerms = await permissionsModal(this.manifest, Object.keys(accessedPermissions));
+            Object.keys(resultPerms).forEach(x => delete accessedPermissions[x]);
 
             // save permission allowed/denied
             const store = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}');
@@ -818,11 +837,14 @@ const Onyx = function (entityID, manifest) {
         if (complexPerms.length !== 0) {
           const prox = (toProx) => new Proxy(toProx, {
             get: (sTarget, sProp, sReciever) => {
-              return checkPerms(sTarget, sProp, sReciever, complexPerms.find(x => x[2] === sProp)?.[0], JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}')[this.entityID] ?? {});
+              if (shouldPermitViaStack()) return Reflect.get(sTarget, sProp, sReciever);
+
+              return checkPerms(sTarget, sProp, sReciever, complexPerms.find(x => x[2] === sProp && givenPermissions[x[0]] !== true)?.[0], JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}')[this.entityID] ?? {});
             }
           });
 
           const orig = Reflect.get(target, prop, reciever);
+
           if (typeof orig === 'function') return function() {
             return prox(orig.apply(this, arguments));
           };
@@ -1761,9 +1783,11 @@ ZLibrary = ZeresPluginLibrary = {
         WebpackModules,
 
         Logger: { // barebones
+          error: (mod, ...msg) => console.error(mod, ...msg),
           err: (mod, ...msg) => console.error(mod, ...msg),
           warn: (mod, ...msg) => console.warn(mod, ...msg),
           info: (mod, ...msg) => console.info(mod, ...msg),
+          dbg: (mod, ...msg) => console.debug(mod, ...msg),
           debug: (mod, ...msg) => console.debug(mod, ...msg),
           log: (mod, ...msg) => console.log(mod, ...msg)
         },
@@ -3475,6 +3499,10 @@ cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
 
 div + .topaz-permission-choice {
   margin-top: 20px;
+}
+
+.topaz-permission-choice {
+  margin-top: 8px;
 }
 
 .topaz-permission-choice .size14-k_3Hy4 {
