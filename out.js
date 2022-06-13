@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 187; // Auto increments on build
+const topazVersion = 188; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -1958,7 +1958,7 @@ const api = {
     static getComponentByName = (displayName, selector) => this.getComponent(displayName, selector, m => m.displayName === displayName)
 
     static getComponent = (displayName, selector, filter) => new Promise((_res) => {
-      if (this.cache[displayName]) return res(this.cache[displayName]);
+      if (this.cache[displayName]) return _res(this.cache[displayName]);
 
       const res = (ret) => {
         clearInterval(int);
