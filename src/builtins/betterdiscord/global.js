@@ -120,7 +120,7 @@ BdApi = {
     instead: (id, parent, key, patch) => {
       if (!unpatches[id]) unpatches[id] = [];
 
-      const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return bindPatch(patch, unpatch)(this, args, original.bind(this)); }, false, true);
+      const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return bindPatch(patch, unpatch)(this, args, original); }, false, true);
 
       unpatches[id].push(unpatch);
       return unpatch;
@@ -149,6 +149,7 @@ BdApi = {
       if (typeof id === 'string') arr = unpatches[id] ?? [];
 
       arr.forEach(x => x());
+      if (typeof id === 'string') unpatches[id] = [];
     }
   },
 

@@ -13,13 +13,21 @@ const permissions = {
   readacc_username: [ 'getCurrentUser@username' ],
   readacc_discrim: [ 'getCurrentUser@discriminator' ],
   readacc_email: [ 'getCurrentUser@email' ],
-  readacc_phone: [ 'getCurrentUser@phone' ]
+  readacc_phone: [ 'getCurrentUser@phone' ],
+  friends_readwho: [ 'getRelationships', 'isFriend' ],
+  // friends_check_friend: [ 'isFriend' ],
+  // friends_check_blocked: [ 'isBlocked' ],
+  status_readstatus: [ 'getStatus', 'isMobileOnline' ],
+  status_readactivities: [ 'findActivity', 'getActivities', 'getActivityMetadata', 'getAllApplicationActivities', 'getApplicationActivity', 'getPrimaryActivity' ]
 };
 
 const complexMap = Object.keys(permissions).reduce((acc, x) => acc.concat(permissions[x].filter(y => y.includes('@')).map(y => [ x, ...y.split('@') ])), []);
 
 const mimic = (orig) => {
   const origType = typeof orig; // mimic original value with empty of same type to try and not cause any errors directly
+
+  if (origType === 'function') return () => ({}); // return empty object instead of just undefined to play nicer
+
   return window[origType[0].toUpperCase() + origType.slice(1)]();
 };
 
@@ -42,8 +50,8 @@ const shouldPermitViaStack = () => {
 
 const perms = {
   'Token': {
-    'Read': 'token_read',
-    'Write': 'token_write'
+    'Read your token': 'token_read',
+    'Set your token': 'token_write'
   },
   'Actions': {
     'Set typing state': 'actions_typing',
@@ -55,7 +63,13 @@ const perms = {
     'See your email': 'readacc_email',
     'See your phone number': 'readacc_phone'
   },
-  // messages: [ 'Content', 'Author' ],
+  'Friends': {
+    'See who you are friends with': 'friends_readwho'
+  },
+  'Status': {
+    'See status of users': 'status_readstatus',
+    'See activities of users': 'status_readactivities'
+  }
 };
 
 
@@ -73,7 +87,7 @@ const permissionsModal = async (manifest, neededPerms) => {
   class Permission extends React.PureComponent {
     render() {
       const subPerm = Object.values(perms).find(x => Object.values(x).find(y => y === this.props.perm));
-      const name = `${Object.keys(perms)[Object.values(perms).indexOf(subPerm)]} > ${prettifyString(Object.keys(subPerm).find(x => subPerm[x] === this.props.perm))}`;
+      const name = `${Object.keys(perms)[Object.values(perms).indexOf(subPerm)]} > ${Object.keys(subPerm).find(x => subPerm[x] === this.props.perm)}`;
 
       return React.createElement(Checkbox, {
         type: 'inverted',
@@ -131,7 +145,7 @@ const permissionsModal = async (manifest, neededPerms) => {
       },
       transitionState: e.transitionState
     },
-      ...(`Topaz requires your permission before allowing **${manifest.name}** to **${permsTypes}**:`).split('\n').map((x) => React.createElement(Markdown, {
+      ...(`Topaz requires your permission before allowing **${manifest.name}** to ${permsTypes}:`).split('\n').map((x) => React.createElement(Markdown, {
         size: Text.Sizes.SIZE_16
       }, x)),
 
@@ -206,8 +220,13 @@ const Onyx = function (entityID, manifest) {
   this.manifest = manifest;
   this.context = Object.assign(context);
 
+  let predictedPerms = [];
   this.eval = function (_code) {
     const code = _code + '\n\n;module.exports'; // return module.exports
+
+    // basic static code analysis for predicting needed permissions
+    predictedPerms = Object.keys(permissions).filter(x => permissions[x].some(y => code.includes('.' + y)));
+    topaz.log('onyx', 'predicted perms for', this.manifest.name, predictedPerms);
 
     with (this.context) {
       return eval(code);
@@ -230,7 +249,8 @@ const Onyx = function (entityID, manifest) {
 
           setTimeout(async () => {
             firstAccess = null;
-            const resultPerms = await permissionsModal(this.manifest, Object.keys(accessedPermissions));
+
+            const resultPerms = await permissionsModal(this.manifest, Object.keys(accessedPermissions).concat(predictedPerms));
             Object.keys(resultPerms).forEach(x => delete accessedPermissions[x]);
 
             // save permission allowed/denied
@@ -249,11 +269,11 @@ const Onyx = function (entityID, manifest) {
               throw new Error('Onyx halting potentially dangerous execution');
             } */
 
-            topaz.reload(this.entityID); // reload plugin
+            setTimeout(() => topaz.reload(this.entityID), 500); // reload plugin
           }, 500);
         }
       } else if (givenPermissions[missingPerm] === false) {
-        goosemod.showToast(`Blocked ${this.manifest.name} from accessing ${prop} as it lacks ${prettifyString(missingPerm.replace('_', ' - '))} permission`, { subtext: 'Topaz', type: 'warning' });
+        // goosemod.showToast(`Blocked ${this.manifest.name} from accessing ${prop} as it lacks ${prettifyString(missingPerm.replace('_', ' - '))} permission`, { subtext: 'Topaz', type: 'warning' });
       }
 
       // throw new Error('Onyx blocked access to dangerous property in Webpack: ' + prop);

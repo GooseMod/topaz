@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 184; // Auto increments on build
+const topazVersion = 185; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -529,7 +529,7 @@ const install = async (info, settings = undefined, disabled = false) => {
   plugin.entityID = info; // Re-set metadata for themes and assurance
   plugin.manifest = manifest;
 
-  plugin.__enabled = true;
+  plugin.__enabled = !disabled;
   plugin.__mod = mod;
 
   switch (mod) {
@@ -693,8 +693,10 @@ window.topaz = {
     setDisabled(info, true);
   },
   reload: (info) => {
-    topaz.disable(info);
-    setTimeout(() => topaz.enable(info), 200);
+    plugins[info]._topaz_stop();
+    delete plugins[info];
+
+    setTimeout(() => topaz.install(info), 200);
   },
 
   purge: () => {
@@ -993,8 +995,8 @@ class Plugin extends React.PureComponent {
           onClick: async () => {
             const perms = {
               'Token': {
-                'Read': 'token_read',
-                'Write': 'token_write'
+                'Read your token': 'token_read',
+                'Set your token': 'token_write'
               },
               'Actions': {
                 'Set typing state': 'actions_typing',
@@ -1006,7 +1008,13 @@ class Plugin extends React.PureComponent {
                 'See your email': 'readacc_email',
                 'See your phone number': 'readacc_phone'
               },
-              // messages: [ 'Content', 'Author' ],
+              'Friends': {
+                'See who you are friends with': 'friends_readwho'
+              },
+              'Status': {
+                'See status of users': 'status_readstatus',
+                'See activities of users': 'status_readactivities'
+              }
             };
 
             const givenPermissions = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}')[entityID] ?? {};
