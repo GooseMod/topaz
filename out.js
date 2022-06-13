@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 186; // Auto increments on build
+const topazVersion = 187; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -586,7 +586,7 @@ const complexMap = Object.keys(permissions).reduce((acc, x) => acc.concat(permis
 const mimic = (orig) => {
   const origType = typeof orig; // mimic original value with empty of same type to try and not cause any errors directly
 
-  if (origType === 'function') return () => ({}); // return empty object instead of just undefined to play nicer
+  if (origType === 'function') return () => ([]); // return empty array instead of just undefined to play nicer
 
   return window[origType[0].toUpperCase() + origType.slice(1)]();
 };
