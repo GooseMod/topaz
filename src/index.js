@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 189; // Auto increments on build
+const topazVersion = 191; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -14,6 +14,7 @@ const initStartTime = performance.now();
 const sucrase = eval(await (await fetch('http://localhost:1337/src/sucrase.js')).text());
 const grass = await eval(await (await fetch('http://localhost:1337/src/grass.js')).text());
 const Onyx = eval(await (await fetch('http://localhost:1337/src/onyx.js')).text());
+const attrs = eval(await (await fetch('http://localhost:1337/src/attrs.js')).text());
 
 const includeImports = async (root, code, updateProgress) => {
   if (updateProgress) {
@@ -661,7 +662,13 @@ window.topaz = {
     if (!plugins[info]) return log('uninstall', 'plugin not installed');
     log('uninstall', info);
 
-    plugins[info]._topaz_stop();
+    try { // wrap in try incase plugin failed to install so then fails to uninstall as it never inited properly
+      plugins[info]._topaz_stop();
+    } catch (e) {
+      console.error('UNINSTALL', e);
+      // notify user?
+    }
+
     delete plugins[info];
 
     if (!topaz.__reloading) {
@@ -702,6 +709,7 @@ window.topaz = {
   purge: () => {
     topaz.uninstallAll();
     cssEl.remove();
+    attrs.remove();
 
     msgUnpatch();
     settingsUnpatch();

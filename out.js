@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 189; // Auto increments on build
+const topazVersion = 191; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -733,7 +733,7 @@ const Onyx = function (entityID, manifest) {
 
   // todo: don't allow localStorage, use custom storage api internally
   // todo: filter elements for personal info?
-  const allowGlobals = [ 'topaz', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', '_' ];
+  const allowGlobals = [ 'topaz', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_' ];
 
   // nullify (delete) all keys in window to start except allowlist
   for (const k of Object.keys(window)) { // for (const k of Reflect.ownKeys(window)) {
@@ -881,6 +881,31 @@ const Onyx = function (entityID, manifest) {
 };
 
 Onyx //# sourceURL=Onyx`);
+const attrs = eval(`const { findByProps } = goosemod.webpackModules;
+
+const anon = true; // use fake values
+
+const bodyAttrs = {
+  'data-current-user-id': anon ? '006482395269169152' : findByProps('getCurrentUser').getCurrentUser().id
+};
+
+const manager = {
+  add: () => {
+    for (const x in bodyAttrs) {
+      document.body.setAttribute(x, bodyAttrs[x]);
+    }
+  },
+
+  remove: () => {
+    for (const x in bodyAttrs) {
+      document.body.removeAttribute(x);
+    }
+  }
+};
+
+manager.add();
+
+manager`);
 
 const includeImports = async (root, code, updateProgress) => {
   if (updateProgress) {
@@ -1616,13 +1641,21 @@ const bindPatch = (func, unpatch) => func.bind({ unpatch }); // Overriding props
 const makeAddonAPI = (id) => ({
   folder: \`/topaz/\${id}\`, // fake/mock folder
 
-  isEnabled: (x) => true,
+  isEnabled: (x) => false,
   enable: (x) => {},
   disable: (x) => {},
   toggle: (x) => {},
   reload: (x) => {},
-  get: (x) => {},
-  getAll: () => {}
+  get: (x) => ({
+    version: '',
+    exports: { // temporary. sigh. https://github.com/programmer2514/BetterDiscord-CollapsibleUI/blob/main/CollapsibleUI.plugin.js#L481
+      Logger: {}
+    },
+    instance: {
+      
+    }
+  }),
+  getAll: () => ([])
 });
 
 
@@ -1688,6 +1721,7 @@ BdApi = {
 
 
   loadData: (id, key) => JSON.parse(localStorage.getItem(dataLSId(id)) ?? '{}')[key],
+  getData: (...args) => BdApi.loadData(...args), // alias
 
   saveData: (id, key, value) => {
     const lsId = dataLSId(id);
@@ -1699,6 +1733,7 @@ BdApi = {
 
     return data[key];
   },
+  setData: (...args) => BdApi.saveData(...args), // alias
 
   deleteData: (id, key) => {
     const lsId = dataLSId(id);
@@ -2701,7 +2736,13 @@ window.topaz = {
     if (!plugins[info]) return log('uninstall', 'plugin not installed');
     log('uninstall', info);
 
-    plugins[info]._topaz_stop();
+    try { // wrap in try incase plugin failed to install so then fails to uninstall as it never inited properly
+      plugins[info]._topaz_stop();
+    } catch (e) {
+      console.error('UNINSTALL', e);
+      // notify user?
+    }
+
     delete plugins[info];
 
     if (!topaz.__reloading) {
@@ -2742,6 +2783,7 @@ window.topaz = {
   purge: () => {
     topaz.uninstallAll();
     cssEl.remove();
+    attrs.remove();
 
     msgUnpatch();
     settingsUnpatch();

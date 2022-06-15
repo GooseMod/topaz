@@ -16,13 +16,21 @@ const bindPatch = (func, unpatch) => func.bind({ unpatch }); // Overriding props
 const makeAddonAPI = (id) => ({
   folder: `/topaz/${id}`, // fake/mock folder
 
-  isEnabled: (x) => true,
+  isEnabled: (x) => false,
   enable: (x) => {},
   disable: (x) => {},
   toggle: (x) => {},
   reload: (x) => {},
-  get: (x) => {},
-  getAll: () => {}
+  get: (x) => ({
+    version: '',
+    exports: { // temporary. sigh. https://github.com/programmer2514/BetterDiscord-CollapsibleUI/blob/main/CollapsibleUI.plugin.js#L481
+      Logger: {}
+    },
+    instance: {
+      
+    }
+  }),
+  getAll: () => ([])
 });
 
 
@@ -88,6 +96,7 @@ BdApi = {
 
 
   loadData: (id, key) => JSON.parse(localStorage.getItem(dataLSId(id)) ?? '{}')[key],
+  getData: (...args) => BdApi.loadData(...args), // alias
 
   saveData: (id, key, value) => {
     const lsId = dataLSId(id);
@@ -99,6 +108,7 @@ BdApi = {
 
     return data[key];
   },
+  setData: (...args) => BdApi.saveData(...args), // alias
 
   deleteData: (id, key) => {
     const lsId = dataLSId(id);
