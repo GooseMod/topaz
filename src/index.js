@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 191; // Auto increments on build
+const topazVersion = 192; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -533,7 +533,7 @@ const install = async (info, settings = undefined, disabled = false) => {
   plugin.__enabled = !disabled;
   plugin.__mod = mod;
 
-  switch (mod) {
+  if (!isTheme) switch (mod) {
     case 'pc':
       if (settings) plugin.settings.store = settings;
 
