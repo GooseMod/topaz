@@ -29,6 +29,8 @@ const includeImports = async (root, code, updateProgress) => {
     const basePath = (path.startsWith('./') ? '' : './') + path;
     // console.log(isExternal, isExternal ? path : join(root, basePath));
 
+    console.log('import', isExternal, basePath, path);
+
     let code;
     if (isExternal) {
       if (_.includes('@import') && !_.includes('scss')) return _;
@@ -338,7 +340,7 @@ const install = async (info, settings = undefined, disabled = false) => {
   lastError = '';
 
   let mod;
-  if (info.endsWith('.plugin.js')) {
+  if (info.endsWith('.plugin.js') || info.endsWith('.theme.css')) {
     mod = 'bd';
     if (info.includes('github.com/')) info = info.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '');
   }
@@ -380,7 +382,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     const indexFile = resolveFileFromTree('index');
 
     const indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/${subdir ? (subdir + '/') : ''}index.js`;
-    const root = getDir(indexUrl);
+    let root = getDir(indexUrl);
 
     chunks = {}; // reset chunks
 
@@ -390,24 +392,33 @@ const install = async (info, settings = undefined, disabled = false) => {
     }
 
     let indexCode;
-    if (isGitHub && !indexFile) { // if (indexCode === '404: Not Found') {
-      const themeManifest = await (await fetch(join(root, './powercord_manifest.json'))).json();
+    if (isGitHub && !indexFile) {
+      isTheme = true;
+      let skipTransform = false;
 
-      if (themeManifest) {
-        isTheme = true;
+      switch (mod) {
+        case 'bd':
+          indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
+          manifest = [...indexCode.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
+          skipTransform = true;
 
-        manifest = themeManifest;
+          break;
 
-        const pend = pending.find(x => x.repo === info);
-        if (pend) pend.manifest = manifest;
+        default: // default to pc
+          manifest = await (await fetch(join(root, './powercord_manifest.json'))).json();
 
-        const indexUrl = join(root, './' + themeManifest.theme);
-        const indexRoot = getDir(indexUrl);
-        indexCode = await getCode(root, './' + themeManifest.theme);
+          indexCode = await getCode(root, './' + manifest.theme);
+          root = getDir(join(root, './' + manifest.theme));
+          skipTransform = manifest.theme.endsWith('.css');
 
-        updatePending(info, 'Bundling...');
-        newCode = await transformCSS(indexRoot, indexCode, themeManifest.theme.endsWith('.css'), true);
+          break;
       }
+
+      const pend = pending.find(x => x.repo === info);
+      if (pend) pend.manifest = manifest;
+
+      updatePending(info, 'Bundling...');
+      newCode = await transformCSS(root, indexCode, skipTransform, true);
     } else {
       indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
 
@@ -449,10 +460,9 @@ const install = async (info, settings = undefined, disabled = false) => {
       _topaz_start: () => {
         if (el) el.remove();
         el = document.createElement('style');
-
         el.appendChild(document.createTextNode(newCode)); // Load the stylesheet via style element w/ CSS text
 
-        document.head.appendChild(el);
+        document.body.appendChild(el);
       },
 
       _topaz_stop: () => {
