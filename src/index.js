@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 192; // Auto increments on build
+const topazVersion = 193; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -22,14 +22,15 @@ const includeImports = async (root, code, updateProgress) => {
     updatePending(null, `Fetching (${downloadingProgress})...`);
   }
 
+  // remove comments
   code = code.replaceAll(/\/\*[\s\S]*?\*\//gm, '').replaceAll('/*', '').replaceAll('*/', '');
+  code = code.replaceAll(/[^:]\/\/.*$/gm, '');
+
 
   return await replaceAsync(code, /@(import|use|forward) (url\()?['"](.*?)['"]\)?;?/g, async (_, _1, _2, path) => {
     const isExternal = path.startsWith('http');
     const basePath = (path.startsWith('./') ? '' : './') + path;
     // console.log(isExternal, isExternal ? path : join(root, basePath));
-
-    console.log('import', isExternal, basePath, path);
 
     let code;
     if (isExternal) {
@@ -42,7 +43,10 @@ const includeImports = async (root, code, updateProgress) => {
         code = await req.text();
       }
     } else {
-      code = await getCode(root, resolveFileFromTree(basePath) ?? basePath, basePath + '.scss', basePath + '.css', '_' + basePath + '.scss');
+      const relativePath = '.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', '');
+      console.log(root, basePath, relativePath);
+
+      code = await getCode(transformRoot, resolveFileFromTree(relativePath) ?? resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/')));
     }
 
     const importRoot = isExternal ? getDir(path) : join(root, getDir(basePath));
@@ -51,6 +55,8 @@ const includeImports = async (root, code, updateProgress) => {
 };
 
 const transformCSS = async (root, code, skipTransform = false, updateProgress = false) => {
+  transformRoot = root;
+
   if (updateProgress) downloadingProgress = 0;
 
   let newCode = await includeImports(root, code, updateProgress);

@@ -1,22 +1,6 @@
 (async () => {
-function check_sassWindow() {
-  if (window.Sass && window.Sass.getFileHandle) {
-    if (Sass.is_arrayFile()) {
-      const fileHandle = Sass.getFileHandle
-      if (fileHandle instanceof FileSystemDirectoryHandle) {
-        return {mode: "dir", fileHandle}
-      } else {
-        return {mode: "file", fileHandle}
-      }
-    } else {
-      return false
-    }
-  } else {
-    return false
-  }
-}
 function js_read_fs(path) {
-  console.info('debug')
+  console.info('GRASS read_fs', path)
   return ""
   // const url = new URL(path, `file://${Deno.cwd()}/`);
   // if (js_is_file(path)) {
@@ -28,30 +12,13 @@ function js_read_fs(path) {
 }
 
 function js_is_file(path) {
-  console.log(`file`, path)
+  console.log(`GRASS is_file`, path)
   return true
-  const handle = check_sassWindow()
-  if (handle) {
-    if (handle.mode === "file") {
-      //check if the file is in the handle
-      const { fileHandle } = handle
-    } else {
-      return false
-    }
-  }
 }
 
 function js_is_dir(path) {
-  console.log(`dir`, path)
+  console.log(`GRASS is_dir`, path)
   return false
-  const handle = check_sassWindow()
-  if (handle) {
-    if (handle.mode === "file") {
-      //we need to reask permission for directory
-    } else {
-      return false
-    }
-  }
 }
 const cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });
 const cachedTextEncoder = new TextEncoder('utf-8');
