@@ -188,7 +188,7 @@ const Onyx = function (entityID, manifest) {
 
   context.goosemod.webpackModules = Object.keys(goosemod.webpackModules).reduce((acc, x) => {
     let orig = goosemod.webpackModules[x];
-  
+
     if (typeof orig !== 'function') { // just do non funcs (common)
       acc[x] = orig;
     } else {
