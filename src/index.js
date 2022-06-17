@@ -194,8 +194,6 @@ const genId = (p) => `__topaz_${p.replace(transformRoot, '').replaceAll('./', '/
 
 const makeChunk = async (root, p) => {
   // console.log('makeChunk', p);
-  downloadingProgress++;
-  updatePending(null, `Fetching (${downloadingProgress})...`);
 
   const joined = (root + '/' + p).replace(transformRoot, '');
   const resPath = builtins[p] ? p : resolvePath(joined).slice(1);
@@ -228,8 +226,10 @@ async function replaceAsync(str, regex, asyncFn) {
 }
 
 let chunks = {}, tree = [];
-let downloadingProgress = 0;
 const includeRequires = async (path, code) => {
+  fetchProgressTotal++;
+  updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
+
   const root = getDir(path);
 
   // console.log({ path, root });
@@ -257,6 +257,9 @@ const includeRequires = async (path, code) => {
 
     return `this.loadStylesheet(\`${css}\`)`;
   });
+
+  fetchProgressCurrent++;
+  updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
 
   return code;
 };
@@ -595,7 +598,9 @@ const replaceLast = (str, from, to) => { // replace only last instance of string
 
 let transformRoot;
 const transform = async (path, code, info) => {
-  downloadingProgress = 0;
+  fetchProgressCurrent = 0;
+  fetchProgressTotal = 0;
+
   transformRoot = path.split('/').slice(0, -1).join('/');
 
   code = await includeRequires(path, code);
