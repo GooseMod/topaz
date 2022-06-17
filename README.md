@@ -8,17 +8,8 @@ A "next-gen" mod bundling client-side in web, with compat abilities.
 
 ## Usage
 
-- Have GooseMod installed, with experimental branch enabled (GooseMod Settings > Experimental (expand at bottom))
-- Run the following JS in your console:
-- Temporary: Only for current Discord session (until next refresh/reload)
-```js
-eval(await (await fetch('https://goosemod.github.io/topaz/out.js')).text()) // Just run now
-```
-  - Persistent: Every Discord load until you uninstall Topaz
-```js
-goosemod.storage.set('goosemodTopaz', true); // Persist every boot
-eval(await (await fetch('https://goosemod.github.io/topaz/out.js')).text()) // Run now
-```
+- Have GooseMod installed, with Development Branch enabled (GooseMod Settings > Experimental)
+- Enable Topaz in Goosemod's Experimental settings (same category)
 
 
 <br>
