@@ -404,6 +404,9 @@ const install = async (info, settings = undefined, disabled = false) => {
           root = getDir(join(root, './' + manifest.theme));
           skipTransform = manifest.theme.endsWith('.css');
 
+          const subdir = getDir(manifest.theme);
+          tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
+
           break;
       }
 
