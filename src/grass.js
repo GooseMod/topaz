@@ -2,13 +2,6 @@
 function js_read_fs(path) {
   console.info('GRASS read_fs', path)
   return ""
-  // const url = new URL(path, `file://${Deno.cwd()}/`);
-  // if (js_is_file(path)) {
-  //   const file = Deno.readTextFileSync(url);
-  //   return file;
-  // } else {
-  //   return "";
-  // }
 }
 
 function js_is_file(path) {
