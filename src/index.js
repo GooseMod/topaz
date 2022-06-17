@@ -82,13 +82,13 @@ const builtins = {
   'powercord/components/modal': await getBuiltin('powercord/components/modal'),
   'powercord/modal': await getBuiltin('powercord/modal'),
 
-  '@goosemod/patcher': await getBuiltin('goosemod/patcher'),                                                                                                                                                                 
-  '@goosemod/webpack': await getBuiltin('goosemod/webpack'),                                                                                                                                                                 
-  '@goosemod/webpack/common': await getBuiltin('goosemod/webpackCommon'),                                                                                                                                                    
-  '@goosemod/logger': await getBuiltin('goosemod/logger'),                                                                                                                                                                   
-  '@goosemod/reactUtils': await getBuiltin('goosemod/reactUtils'),                                                                                                                                                           
-  '@goosemod/toast': await getBuiltin('goosemod/toast'),                                                                                                                                                                     
-  '@goosemod/settings': await getBuiltin('goosemod/settings'),                                                                                                                                                               
+  '@goosemod/patcher': await getBuiltin('goosemod/patcher'),
+  '@goosemod/webpack': await getBuiltin('goosemod/webpack'),
+  '@goosemod/webpack/common': await getBuiltin('goosemod/webpackCommon'),
+  '@goosemod/logger': await getBuiltin('goosemod/logger'),
+  '@goosemod/reactUtils': await getBuiltin('goosemod/reactUtils'),
+  '@goosemod/toast': await getBuiltin('goosemod/toast'),
+  '@goosemod/settings': await getBuiltin('goosemod/settings'),
   '@goosemod/plugin': await getBuiltin('goosemod/plugin'),
 
   'electron': await getBuiltin('node/electron'),
@@ -144,7 +144,7 @@ class Cache {
   load() {
     const saved = localStorage.getItem(`topaz_cache_${this.id}`);
     if (!saved) return;
-    
+
     this.store = JSON.parse(saved);
   }
 
@@ -215,19 +215,6 @@ async function replaceAsync(str, regex, asyncFn) {
   return str.replace(regex, () => data.shift());
 }
 
-/* async function replaceAwait(str, regex, asyncFn) {
-  let data = [];
-  while (str.match(regex)) {
-    let promise;
-    str.replace(regex, (match, ...args) => {
-      promise = asyncFn(match, ...args);
-    });
-    data.push(await promise);
-  }
-
-  return str.replace(regex, () => data.shift());
-} */
-
 let chunks = {}, tree = [];
 let downloadingProgress = 0;
 const includeRequires = async (path, code) => {
@@ -287,7 +274,7 @@ const log = (_region, ...args) => {
     '',
 
     ...regionStyling,
-    
+
     ...args
   );
 };
@@ -432,13 +419,13 @@ const install = async (info, settings = undefined, disabled = false) => {
         case 'pc':
           manifest = await (await fetch(join(root, './manifest.json'))).json();
           break;
-        
+
         case 'gm':
           manifest = await (await fetch(join(root, './goosemodModule.json'))).json();
 
           manifest.author = (await Promise.all(manifest.authors.map(x => x.length === 18 ? goosemod.webpackModules.findByProps('getUser', 'fetchCurrentUser').getUser(x) : x))).join(', ');
           break;
-        
+
         case 'bd': // read from comment in code
           manifest = [...indexCode.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
           break;
@@ -452,7 +439,7 @@ const install = async (info, settings = undefined, disabled = false) => {
 
       isTheme = false;
     }
-  
+
     finalCache.set(info, [ newCode, manifest, isTheme ]);
   }
 
@@ -529,7 +516,7 @@ const install = async (info, settings = undefined, disabled = false) => {
         };
 
         break;
-      
+
       case 'gm':
         plugin._topaz_start = () => {
           plugin.goosemodHandlers.onImport();
@@ -1282,7 +1269,7 @@ class Settings extends React.PureComponent {
 
         for (const x of matching) {
           const [ mod, name, author ] = x.split('%');
-  
+
           let place = recom[x];
           if (place.length > 40) place = place.slice(0, 40) + '...';
 
@@ -1325,10 +1312,10 @@ class Settings extends React.PureComponent {
 
         React.createElement(TabBar, {
           selectedItem: selectedTab,
-    
+
           type: TabBarClasses1.topPill,
           className: TabBarClasses2.tabBar,
-    
+
           onItemSelect: (x) => {
             if (x === 'RELOAD') return;
 
@@ -1343,23 +1330,23 @@ class Settings extends React.PureComponent {
         },
           React.createElement(TabBar.Item, {
             id: 'PLUGINS',
-    
+
             className: TabBarClasses2.item
           }, 'Plugins'),
           React.createElement(TabBar.Item, {
             id: 'THEMES',
-    
+
             className: TabBarClasses2.item
           }, 'Themes'),
           React.createElement(TabBar.Item, {
             id: 'SETTINGS',
-    
+
             className: TabBarClasses2.item
           }, 'Settings'),
 
           React.createElement(TabBar.Item, {
             id: 'RELOAD',
-    
+
             className: TabBarClasses2.item
           }, React.createElement(PanelButton, {
             icon: goosemod.webpackModules.findByDisplayName('Retry'),
