@@ -16,10 +16,11 @@ const grass = await eval(await (await fetch('http://localhost:1337/src/grass.js'
 const Onyx = eval(await (await fetch('http://localhost:1337/src/onyx.js')).text());
 const attrs = eval(await (await fetch('http://localhost:1337/src/attrs.js')).text());
 
+let fetchProgressCurrent = 0, fetchProgressTotal = 0;
 const includeImports = async (root, code, updateProgress) => {
   if (updateProgress) {
-    downloadingProgress++;
-    updatePending(null, `Fetching (${downloadingProgress})...`);
+    fetchProgressTotal++;
+    updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
   }
 
   // remove comments
@@ -27,12 +28,15 @@ const includeImports = async (root, code, updateProgress) => {
   code = code.replaceAll(/[^:]\/\/.*$/gm, '');
 
 
-  return await replaceAsync(code, /@(import|use|forward) (url\()?['"](.*?)['"]\)?;?/g, async (_, _1, _2, path) => {
+  const res = await replaceAsync(code, /@(import|use|forward) (url\()?['"](.*?)['"]\)?;?/g, async (_, _1, _2, path) => {
+    if (path.startsWith('sass:')) return '';
+
     const isExternal = path.startsWith('http');
     const basePath = (path.startsWith('./') ? '' : './') + path;
     // console.log(isExternal, isExternal ? path : join(root, basePath));
 
     let code;
+    let resolved;
     if (isExternal) {
       if (_.includes('@import') && !_.includes('scss')) return _;
 
@@ -43,21 +47,29 @@ const includeImports = async (root, code, updateProgress) => {
         code = await req.text();
       }
     } else {
-      const relativePath = '.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', '');
-      console.log(root, basePath, relativePath);
+      const relativePath =  resolvePath('.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
+      console.log(root, '|', basePath, relativePath, '|', '.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
 
-      code = await getCode(transformRoot, resolveFileFromTree(relativePath) ?? resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/')));
+      resolved = resolveFileFromTree(relativePath) ?? resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/'));
+      code = await getCode(transformRoot, resolved);
     }
 
-    const importRoot = isExternal ? getDir(path) : join(root, getDir(basePath));
+    const importRoot = isExternal ? getDir(path) : join(transformRoot, getDir(resolved));
     return await includeImports(importRoot, code, updatePending);
   });
+
+  if (updateProgress) fetchProgressCurrent++;
+
+  return res;
 };
 
 const transformCSS = async (root, code, skipTransform = false, updateProgress = false) => {
   transformRoot = root;
 
-  if (updateProgress) downloadingProgress = 0;
+  if (updateProgress) {
+    fetchProgressCurrent = 0;
+    fetchProgressTotal = 0;
+  }
 
   let newCode = await includeImports(root, code, updateProgress);
   newCode = newCode.replaceAll(/\[.*?\]/g, (_) => _.replaceAll('/', '\\/')); // grass bad, it errors when \'s are in attr selectors
@@ -307,7 +319,7 @@ const updatePending = (repo, substate) => {
 
 const resolvePath = (x) => {
   let ind;
-  while (ind = x.indexOf('../') !== -1) x = x.slice(0, ind) + x.slice(ind + 3);
+  while ((ind = x.indexOf('../')) !== -1) x = x.slice(0, ind) + x.slice(ind + 3);
 
   return x;
 };
@@ -405,7 +417,7 @@ const install = async (info, settings = undefined, disabled = false) => {
           skipTransform = manifest.theme.endsWith('.css');
 
           const subdir = getDir(manifest.theme);
-          tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
+          if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
 
           break;
       }
