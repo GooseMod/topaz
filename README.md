@@ -7,10 +7,7 @@ A "next-gen" mod bundling client-side in web, with compat abilities.
 <br>
 
 ## Usage
-
-- Have GooseMod installed, with Development Branch enabled (GooseMod Settings > Experimental)
-- Enable Topaz in Goosemod's Experimental settings (same category)
-
+- Enable Topaz in Goosemod's Experimental settings (in Discord, open Settings > GooseMod > Experimental (scroll down and expand category)
 
 <br>
 
