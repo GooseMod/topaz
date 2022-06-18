@@ -177,7 +177,13 @@ const Onyx = function (entityID, manifest) {
 
   // nullify (delete) all keys in window to start except allowlist
   for (const k of Object.keys(window)) { // for (const k of Reflect.ownKeys(window)) {
-    if (allowGlobals.includes(k)) continue;
+    if (allowGlobals.includes(k)) {
+      const orig = window[k];
+      context[k] = typeof orig === 'function' && k !== '_' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
+
+      continue;
+    }
+
     context[k] = null;
   }
 
