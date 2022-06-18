@@ -1090,7 +1090,7 @@ class Plugin extends React.PureComponent {
                 React.createElement('div', {
                   className: goosemod.webpackModules.findByProps('listContainer', 'addButton').listContainer
                 },
-                  ...Object.keys(perms[category]).map(perm => React.createElement('div', { className: entryClasses.entryItem },
+                  ...Object.keys(perms[category]).filter(x => givenPermissions[perms[category][x]] !== undefined).map(perm => React.createElement('div', { className: entryClasses.entryItem },
                     React.createElement('div', { className: entryClasses.entryName },
                       React.createElement(Text, {
                         color: 'header-primary',
@@ -1121,7 +1121,7 @@ class Plugin extends React.PureComponent {
                 ),
 
                 React.createElement(Divider),
-              ))
+              )).filter(x => x.props.children[1].props.children)
             ));
           }
         }) : null,
