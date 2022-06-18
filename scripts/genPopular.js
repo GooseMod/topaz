@@ -33,6 +33,9 @@ const pc = {
     'DiscordStyles/Slate',
     'DiscordStyles/HorizontalServerList',
     'DiscordStyles/RadialStatus',
+    'Lavender-Discord/Lavender',
+    'CapnKitten/Material-Discord',
+    'catppuccin/discord',
   ]
 };
 
@@ -51,6 +54,7 @@ const bd = {
     'https://github.com/Strencher/BetterDiscordStuff/blob/master/UserDetails/UserDetails.plugin.js',
     'https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.js',
     'https://github.com/Puv1s/ColorTooltips/blob/main/ColorTooltips.plugin.js',
+    'https://github.com/Farcrada/DiscordPlugins/blob/master/Double-click-to-edit/DoubleClickToEdit.plugin.js'
   ]
 };
 
@@ -93,7 +97,7 @@ const getGithubInfo = async (repo) => {
       'Authorization': `token ${process.env.TOPAZ_GITHUB}`
     }
   })).json();
-  
+
   if (info.stargazers_count === undefined) console.log('GH', info);
 
   return githubCache[repo] = info;
@@ -178,7 +182,7 @@ const getManifest_bd = async (place, theme) => { // .plugin.js url
     plugins: (await Promise.all(plugins)).reduce((acc, [ k, v ]) => { acc[k] = v; return acc; }, {}),
     themes: (await Promise.all(themes)).reduce((acc, [ k, v ]) => { acc[k] = v; return acc; }, {})
   };
-  
+
   console.log(out);
 
   writeFileSync('popular.json', JSON.stringify(out));
