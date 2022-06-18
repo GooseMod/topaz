@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 195; // Auto increments on build
+const topazVersion = 196; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -600,9 +600,15 @@ const permissionsModal = async (manifest, neededPerms) => {
   const Markdown = goosemod.webpackModules.find((x) => x.displayName === 'Markdown' && x.rules);
 
   const Checkbox = goosemod.webpackModules.findByDisplayName('Checkbox');
+  const Tooltip = goosemod.webpackModules.findByDisplayName('Tooltip');
 
   const { React } = goosemod.webpackModules.common;
 
+  const isDangerous = (perm) => [ 'token', 'readacc' ].includes(perm.split('_').shift());
+  const whyDangerous = (perm) => ({
+    'token': 'Your token allows access to your account',
+    'readacc': 'Your account information includes private information'
+  })[perm.split('_').shift()];
 
   class Permission extends React.PureComponent {
     render() {
@@ -623,12 +629,31 @@ const permissionsModal = async (manifest, neededPerms) => {
       },
         React.createElement(Text, {
           variant: 'text-sm/normal'
-        }, name)
+        },
+          isDangerous(this.props.perm) ? React.createElement(Tooltip, {
+            position: 'top',
+            color: 'primary',
+            tooltipClassName: 'topaz-nomax-tooltip',
+
+            text: whyDangerous(this.props.perm)
+          }, ({
+            onMouseLeave,
+            onMouseEnter
+          }) => React.createElement(goosemod.webpackModules.findByDisplayName('WarningCircle'), {
+            className: 'topaz-permission-danger-icon',
+            width: 18,
+            height: 18,
+
+            onMouseEnter,
+            onMouseLeave
+          })) : null,
+          React.createElement('span', {}, name)
+        )
       );
     }
   }
 
-  const finalPerms = neededPerms.reduce((acc, x) => { acc[x] = true; return acc; }, {});
+  const finalPerms = neededPerms.reduce((acc, x) => { acc[x] = false; return acc; }, {});
 
   const permsIncludesReads = neededPerms.some(x => x.includes('read'));
   const permsIncludesWrites = neededPerms.some(x => x.includes('write'));
@@ -649,32 +674,47 @@ const permissionsModal = async (manifest, neededPerms) => {
   const res = await new Promise((res) => goosemod.webpackModules.findByProps('openModal', 'updateModal').openModal(e => {
     if (e.transitionState === 3) res(false);
 
-    return React.createElement(goosemod.webpackModules.findByDisplayName("ConfirmModal"), {
-      header: \`\${manifest.name} requires permissions\`,
-      confirmText: \`Allow Chosen\`,
-      cancelText: \`Deny All\`,
-      confirmButtonColor: ButtonColors.colorBrand,
-      onClose: () => res(false), // General close (?)
-      onCancel: () => { // Cancel text
-        res(false);
-        e.onClose();
-      },
-      onConfirm: () => { // Confirm button
-        res(true);
-        e.onClose();
-      },
-      transitionState: e.transitionState
-    },
-      ...(\`Topaz requires your permission before allowing **\${manifest.name}** to \${permsTypes}:\`).split('\\n').map((x) => React.createElement(Markdown, {
-        size: Text.Sizes.SIZE_16
-      }, x)),
+    class Modal extends React.PureComponent {
+      render() {
+        const allowedCount = Object.values(finalPerms).filter(x => x).length;
+        const totalCount = Object.values(finalPerms).length;
+        const allSuffix = totalCount > 1 ? ' All' : '';
 
-      ...Object.keys(finalPerms).map(x => React.createElement(Permission, {
-        perm: x,
-        onChange: y => finalPerms[x] = y,
-        checked: finalPerms[x]
-      }))
-    );
+        return React.createElement(goosemod.webpackModules.findByDisplayName("ConfirmModal"), {
+          header: \`\${manifest.name} requires permissions\`,
+          confirmText: allowedCount === 0 ? \`Deny\${allSuffix}\` : (allowedCount === totalCount ? \`Allow\${allSuffix}\` : \`Allow \${allowedCount}\`),
+          cancelText: allowedCount === 0 ? '' : \`Deny\${allSuffix}\`,
+          confirmButtonColor: allowedCount === 0 ? ButtonColors.colorRed : ButtonColors.colorBrand,
+          onClose: () => res(false), // General close (?)
+          onCancel: () => { // Cancel text
+            res(false);
+            e.onClose();
+          },
+          onConfirm: () => { // Confirm button
+            if (allowedCount === 0) res(false);
+              else res(true);
+
+            e.onClose();
+          },
+          transitionState: e.transitionState
+        },
+          ...(\`Topaz requires your permission before allowing **\${manifest.name}** to \${permsTypes}:\`).split('\\n').map((x) => React.createElement(Markdown, {
+            size: Text.Sizes.SIZE_16
+          }, x)),
+
+          ...Object.keys(finalPerms).map(x => React.createElement(Permission, {
+            perm: x,
+            onChange: y => {
+              finalPerms[x] = y;
+              this.forceUpdate();
+            },
+            checked: finalPerms[x]
+          }))
+        );
+      }
+    }
+
+    return React.createElement(Modal);
   }));
 
   if (res === false) { // Deny all
@@ -3627,6 +3667,22 @@ cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
 .topaz-permission-label {
   color: var(--text-normal);
   font-weight: 400;
+}
+
+.topaz-nomax-tooltip {
+  max-width: unset !important;
+}
+
+.topaz-permission-danger-icon {
+  display: inline-block;
+  vertical-align: top;
+
+  color: var(--status-danger-background);
+  margin-right: 6px;
+}
+
+.topaz-permission-danger-icon + span {
+  vertical-align: bottom;
 }
 
 div + .topaz-permission-choice {
