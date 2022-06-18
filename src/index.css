@@ -150,6 +150,22 @@
   font-weight: 400;
 }
 
+.topaz-nomax-tooltip {
+  max-width: unset !important;
+}
+
+.topaz-permission-danger-icon {
+  display: inline-block;
+  vertical-align: top;
+
+  color: var(--status-danger-background);
+  margin-right: 6px;
+}
+
+.topaz-permission-danger-icon + span {
+  vertical-align: bottom;
+}
+
 div + .topaz-permission-choice {
   margin-top: 20px;
 }
