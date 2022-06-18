@@ -110,35 +110,34 @@ powercord = {
   api: {
     commands: {
       registerCommand: ({ command, alias, description, usage, executor }) => {
-        const sendMessage = goosemod.webpackModules.findByProps('sendMessage', 'receiveMessage').sendMessage;
         const getChannelId = goosemod.webpackModules.findByProps('getChannelId').getChannelId;
 
         // TODO: implement alias
-      
+
         goosemod.patcher.commands.add(command, description,
           async (ret) => {
             // Don't just destructure as using without text arguments returns empty object ({})
-      
+
             let textGiven = '';
             if (ret[0]?.value) {
               const [{ value: text }] = ret;
               textGiven = text;
             }
-      
+
             const out = await executor(textGiven.split(' ')); // Run original executor func (await incase it's an async function)
-      
+
             if (!out) return;
             if (!out.send) {
               goosemod.patcher.internalMessage(out.result); // PC impl. sends internal message when out.send === false, so we also do the same via our previous Patcher API function
               return;
             }
 
-      
+
             // When send is true, we send it as a message via sendMessage
-      
-            sendMessage(getChannelId(), {
+
+            goosemod.webpackModules.findByProps('sendMessage', 'receiveMessage').sendMessage(getChannelId(), {
               content: out.result,
-      
+
               tts: false,
               invalidEmojis: [],
               validNonShortcutEmojis: []
@@ -156,9 +155,9 @@ powercord = {
     settings: {
       registerSettings: (id, { label, render, category }) => {
         const { React } = goosemod.webpackModules.common;
-      
+
         const SettingsView = goosemod.webpackModules.findByDisplayName('SettingsView');
-      
+
         const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
         const FormSection = goosemod.webpackModules.findByDisplayName('FormSection');
 
@@ -172,14 +171,14 @@ powercord = {
           if (!logout || !topaz.settings.pluginSettingsSidebar) return sections;
 
           const finalLabel = typeof label === 'function' ? label() : label;
-          
+
           sections.splice(sections.indexOf(logout) - 1, 0, {
             section: finalLabel,
             label: finalLabel,
             predicate: () => { },
             element: () => React.createElement(FormSection, { },
               React.createElement(FormTitle, { tag: 'h2' }, finalLabel),
-          
+
               React.createElement(render, {
                 ...settingStore
               })
@@ -210,7 +209,7 @@ powercord = {
 
     i18n: {
       loadAllStrings: (obj) => {
-  
+
       }
     },
 

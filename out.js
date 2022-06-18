@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 193; // Auto increments on build
+const topazVersion = 194; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -16,13 +16,6 @@ const grass = await eval(`(async () => {
 function js_read_fs(path) {
   console.info('GRASS read_fs', path)
   return ""
-  // const url = new URL(path, \`file://\${Deno.cwd()}/\`);
-  // if (js_is_file(path)) {
-  //   const file = Deno.readTextFileSync(url);
-  //   return file;
-  // } else {
-  //   return "";
-  // }
 }
 
 function js_is_file(path) {
@@ -704,7 +697,13 @@ const Onyx = function (entityID, manifest) {
 
   // nullify (delete) all keys in window to start except allowlist
   for (const k of Object.keys(window)) { // for (const k of Reflect.ownKeys(window)) {
-    if (allowGlobals.includes(k)) continue;
+    if (allowGlobals.includes(k)) {
+      const orig = window[k];
+      context[k] = typeof orig === 'function' && k !== '_' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
+
+      continue;
+    }
+
     context[k] = null;
   }
 
@@ -715,7 +714,7 @@ const Onyx = function (entityID, manifest) {
 
   context.goosemod.webpackModules = Object.keys(goosemod.webpackModules).reduce((acc, x) => {
     let orig = goosemod.webpackModules[x];
-  
+
     if (typeof orig !== 'function') { // just do non funcs (common)
       acc[x] = orig;
     } else {
@@ -874,10 +873,11 @@ manager.add();
 
 manager`);
 
+let fetchProgressCurrent = 0, fetchProgressTotal = 0;
 const includeImports = async (root, code, updateProgress) => {
   if (updateProgress) {
-    downloadingProgress++;
-    updatePending(null, `Fetching (${downloadingProgress})...`);
+    fetchProgressTotal++;
+    updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
   }
 
   // remove comments
@@ -885,12 +885,15 @@ const includeImports = async (root, code, updateProgress) => {
   code = code.replaceAll(/[^:]\/\/.*$/gm, '');
 
 
-  return await replaceAsync(code, /@(import|use|forward) (url\()?['"](.*?)['"]\)?;?/g, async (_, _1, _2, path) => {
+  const res = await replaceAsync(code, /@(import|use|forward) (url\()?['"](.*?)['"]\)?;?/g, async (_, _1, _2, path) => {
+    if (path.startsWith('sass:')) return '';
+
     const isExternal = path.startsWith('http');
     const basePath = (path.startsWith('./') ? '' : './') + path;
     // console.log(isExternal, isExternal ? path : join(root, basePath));
 
     let code;
+    let resolved;
     if (isExternal) {
       if (_.includes('@import') && !_.includes('scss')) return _;
 
@@ -901,21 +904,29 @@ const includeImports = async (root, code, updateProgress) => {
         code = await req.text();
       }
     } else {
-      const relativePath = '.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', '');
-      console.log(root, basePath, relativePath);
+      const relativePath =  resolvePath('.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
+      console.log(root, '|', basePath, relativePath, '|', '.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
 
-      code = await getCode(transformRoot, resolveFileFromTree(relativePath) ?? resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/')));
+      resolved = resolveFileFromTree(relativePath) ?? resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/'));
+      code = await getCode(transformRoot, resolved);
     }
 
-    const importRoot = isExternal ? getDir(path) : join(root, getDir(basePath));
+    const importRoot = isExternal ? getDir(path) : join(transformRoot, getDir(resolved));
     return await includeImports(importRoot, code, updatePending);
   });
+
+  if (updateProgress) fetchProgressCurrent++;
+
+  return res;
 };
 
 const transformCSS = async (root, code, skipTransform = false, updateProgress = false) => {
   transformRoot = root;
 
-  if (updateProgress) downloadingProgress = 0;
+  if (updateProgress) {
+    fetchProgressCurrent = 0;
+    fetchProgressTotal = 0;
+  }
 
   let newCode = await includeImports(root, code, updateProgress);
   newCode = newCode.replaceAll(/\[.*?\]/g, (_) => _.replaceAll('/', '\\/')); // grass bad, it errors when \'s are in attr selectors
@@ -1282,13 +1293,13 @@ module.exports = {
   closeAll: () => modalManager.closeAllModals()
 };`,
 
-  '@goosemod/patcher': `module.exports = goosemod.patcher;`,                                                                                                                                                                 
-  '@goosemod/webpack': `module.exports = goosemod.webpackModules;`,                                                                                                                                                                 
-  '@goosemod/webpack/common': `module.exports = goosemod.webpackModules.common;`,                                                                                                                                                    
-  '@goosemod/logger': `module.exports = goosemod.logger;`,                                                                                                                                                                   
-  '@goosemod/reactUtils': `module.exports = goosemod.reactUtils;`,                                                                                                                                                           
-  '@goosemod/toast': `module.exports = goosemod.showToast;`,                                                                                                                                                                     
-  '@goosemod/settings': `module.exports = goosemod.settings;`,                                                                                                                                                               
+  '@goosemod/patcher': `module.exports = goosemod.patcher;`,
+  '@goosemod/webpack': `module.exports = goosemod.webpackModules;`,
+  '@goosemod/webpack/common': `module.exports = goosemod.webpackModules.common;`,
+  '@goosemod/logger': `module.exports = goosemod.logger;`,
+  '@goosemod/reactUtils': `module.exports = goosemod.reactUtils;`,
+  '@goosemod/toast': `module.exports = goosemod.showToast;`,
+  '@goosemod/settings': `module.exports = goosemod.settings;`,
   '@goosemod/plugin': `module.exports = class Plugin {
   constructor() {
     this.patches = [];
@@ -1481,35 +1492,34 @@ powercord = {
   api: {
     commands: {
       registerCommand: ({ command, alias, description, usage, executor }) => {
-        const sendMessage = goosemod.webpackModules.findByProps('sendMessage', 'receiveMessage').sendMessage;
         const getChannelId = goosemod.webpackModules.findByProps('getChannelId').getChannelId;
 
         // TODO: implement alias
-      
+
         goosemod.patcher.commands.add(command, description,
           async (ret) => {
             // Don't just destructure as using without text arguments returns empty object ({})
-      
+
             let textGiven = '';
             if (ret[0]?.value) {
               const [{ value: text }] = ret;
               textGiven = text;
             }
-      
+
             const out = await executor(textGiven.split(' ')); // Run original executor func (await incase it's an async function)
-      
+
             if (!out) return;
             if (!out.send) {
               goosemod.patcher.internalMessage(out.result); // PC impl. sends internal message when out.send === false, so we also do the same via our previous Patcher API function
               return;
             }
 
-      
+
             // When send is true, we send it as a message via sendMessage
-      
-            sendMessage(getChannelId(), {
+
+            goosemod.webpackModules.findByProps('sendMessage', 'receiveMessage').sendMessage(getChannelId(), {
               content: out.result,
-      
+
               tts: false,
               invalidEmojis: [],
               validNonShortcutEmojis: []
@@ -1527,9 +1537,9 @@ powercord = {
     settings: {
       registerSettings: (id, { label, render, category }) => {
         const { React } = goosemod.webpackModules.common;
-      
+
         const SettingsView = goosemod.webpackModules.findByDisplayName('SettingsView');
-      
+
         const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
         const FormSection = goosemod.webpackModules.findByDisplayName('FormSection');
 
@@ -1543,14 +1553,14 @@ powercord = {
           if (!logout || !topaz.settings.pluginSettingsSidebar) return sections;
 
           const finalLabel = typeof label === 'function' ? label() : label;
-          
+
           sections.splice(sections.indexOf(logout) - 1, 0, {
             section: finalLabel,
             label: finalLabel,
             predicate: () => { },
             element: () => React.createElement(FormSection, { },
               React.createElement(FormTitle, { tag: 'h2' }, finalLabel),
-          
+
               React.createElement(render, {
                 ...settingStore
               })
@@ -1581,7 +1591,7 @@ powercord = {
 
     i18n: {
       loadAllStrings: (obj) => {
-  
+
       }
     },
 
@@ -2185,7 +2195,7 @@ class Cache {
   load() {
     const saved = localStorage.getItem(`topaz_cache_${this.id}`);
     if (!saved) return;
-    
+
     this.store = JSON.parse(saved);
   }
 
@@ -2223,8 +2233,6 @@ const genId = (p) => `__topaz_${p.replace(transformRoot, '').replaceAll('./', '/
 
 const makeChunk = async (root, p) => {
   // console.log('makeChunk', p);
-  downloadingProgress++;
-  updatePending(null, `Fetching (${downloadingProgress})...`);
 
   const joined = (root + '/' + p).replace(transformRoot, '');
   const resPath = builtins[p] ? p : resolvePath(joined).slice(1);
@@ -2256,22 +2264,11 @@ async function replaceAsync(str, regex, asyncFn) {
   return str.replace(regex, () => data.shift());
 }
 
-/* async function replaceAwait(str, regex, asyncFn) {
-  let data = [];
-  while (str.match(regex)) {
-    let promise;
-    str.replace(regex, (match, ...args) => {
-      promise = asyncFn(match, ...args);
-    });
-    data.push(await promise);
-  }
-
-  return str.replace(regex, () => data.shift());
-} */
-
 let chunks = {}, tree = [];
-let downloadingProgress = 0;
 const includeRequires = async (path, code) => {
+  fetchProgressTotal++;
+  updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
+
   const root = getDir(path);
 
   // console.log({ path, root });
@@ -2299,6 +2296,9 @@ const includeRequires = async (path, code) => {
 
     return `this.loadStylesheet(\`${css}\`)`;
   });
+
+  fetchProgressCurrent++;
+  updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
 
   return code;
 };
@@ -2328,7 +2328,7 @@ const log = (_region, ...args) => {
     '',
 
     ...regionStyling,
-    
+
     ...args
   );
 };
@@ -2361,7 +2361,7 @@ const updatePending = (repo, substate) => {
 
 const resolvePath = (x) => {
   let ind;
-  while (ind = x.indexOf('../') !== -1) x = x.slice(0, ind) + x.slice(ind + 3);
+  while ((ind = x.indexOf('../')) !== -1) x = x.slice(0, ind) + x.slice(ind + 3);
 
   return x;
 };
@@ -2458,6 +2458,9 @@ const install = async (info, settings = undefined, disabled = false) => {
           root = getDir(join(root, './' + manifest.theme));
           skipTransform = manifest.theme.endsWith('.css');
 
+          const subdir = getDir(manifest.theme);
+          if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
+
           break;
       }
 
@@ -2473,13 +2476,13 @@ const install = async (info, settings = undefined, disabled = false) => {
         case 'pc':
           manifest = await (await fetch(join(root, './manifest.json'))).json();
           break;
-        
+
         case 'gm':
           manifest = await (await fetch(join(root, './goosemodModule.json'))).json();
 
           manifest.author = (await Promise.all(manifest.authors.map(x => x.length === 18 ? goosemod.webpackModules.findByProps('getUser', 'fetchCurrentUser').getUser(x) : x))).join(', ');
           break;
-        
+
         case 'bd': // read from comment in code
           manifest = [...indexCode.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
           break;
@@ -2493,7 +2496,7 @@ const install = async (info, settings = undefined, disabled = false) => {
 
       isTheme = false;
     }
-  
+
     finalCache.set(info, [ newCode, manifest, isTheme ]);
   }
 
@@ -2570,7 +2573,7 @@ const install = async (info, settings = undefined, disabled = false) => {
         };
 
         break;
-      
+
       case 'gm':
         plugin._topaz_start = () => {
           plugin.goosemodHandlers.onImport();
@@ -2634,7 +2637,9 @@ const replaceLast = (str, from, to) => { // replace only last instance of string
 
 let transformRoot;
 const transform = async (path, code, info) => {
-  downloadingProgress = 0;
+  fetchProgressCurrent = 0;
+  fetchProgressTotal = 0;
+
   transformRoot = path.split('/').slice(0, -1).join('/');
 
   code = await includeRequires(path, code);
@@ -3323,7 +3328,7 @@ class Settings extends React.PureComponent {
 
         for (const x of matching) {
           const [ mod, name, author ] = x.split('%');
-  
+
           let place = recom[x];
           if (place.length > 40) place = place.slice(0, 40) + '...';
 
@@ -3366,10 +3371,10 @@ class Settings extends React.PureComponent {
 
         React.createElement(TabBar, {
           selectedItem: selectedTab,
-    
+
           type: TabBarClasses1.topPill,
           className: TabBarClasses2.tabBar,
-    
+
           onItemSelect: (x) => {
             if (x === 'RELOAD') return;
 
@@ -3384,23 +3389,23 @@ class Settings extends React.PureComponent {
         },
           React.createElement(TabBar.Item, {
             id: 'PLUGINS',
-    
+
             className: TabBarClasses2.item
           }, 'Plugins'),
           React.createElement(TabBar.Item, {
             id: 'THEMES',
-    
+
             className: TabBarClasses2.item
           }, 'Themes'),
           React.createElement(TabBar.Item, {
             id: 'SETTINGS',
-    
+
             className: TabBarClasses2.item
           }, 'Settings'),
 
           React.createElement(TabBar.Item, {
             id: 'RELOAD',
-    
+
             className: TabBarClasses2.item
           }, React.createElement(PanelButton, {
             icon: goosemod.webpackModules.findByDisplayName('Retry'),
