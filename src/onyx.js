@@ -271,10 +271,9 @@ const Onyx = function (entityID, manifest) {
     const code = _code + '\n\n;module.exports'; // return module.exports
 
     // basic static code analysis for predicting needed permissions
-    const objectPredictBlacklist = [ 'clyde' ];
-
-    predictedPerms = Object.keys(permissions).filter(x => permissions[x].some(y => [...code.matchAll(new RegExp(`([^. 	]*?)\\.${y}`, 'g'))].some(z => z && !objectPredictBlacklist.includes(z[1].toLowerCase()))));
-    topaz.log('onyx', 'predicted perms for', this.manifest.name, predictedPerms);
+    // const objectPredictBlacklist = [ 'clyde' ];
+    // predictedPerms = Object.keys(permissions).filter(x => permissions[x].some(y => [...code.matchAll(new RegExp(`([^. 	]*?)\\.${y}`, 'g'))].some(z => z && !objectPredictBlacklist.includes(z[1].toLowerCase()))));
+    // topaz.log('onyx', 'predicted perms for', this.manifest.name, predictedPerms);
 
     with (this.context) {
       return eval(code);
