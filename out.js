@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 196; // Auto increments on build
+const topazVersion = 197; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -791,7 +791,8 @@ const Onyx = function (entityID, manifest) {
     const code = _code + '\\n\\n;module.exports'; // return module.exports
 
     // basic static code analysis for predicting needed permissions
-    // predictedPerms = Object.keys(permissions).filter(x => permissions[x].some(y => code.includes('.' + y)));
+    // const objectPredictBlacklist = [ 'clyde' ];
+    // predictedPerms = Object.keys(permissions).filter(x => permissions[x].some(y => [...code.matchAll(new RegExp(\`([^. 	]*?)\\\\.\${y}\`, 'g'))].some(z => z && !objectPredictBlacklist.includes(z[1].toLowerCase()))));
     // topaz.log('onyx', 'predicted perms for', this.manifest.name, predictedPerms);
 
     with (this.context) {
