@@ -15,6 +15,7 @@ const sucrase = eval(await (await fetch('http://localhost:1337/src/sucrase.js'))
 const grass = await eval(await (await fetch('http://localhost:1337/src/grass.js')).text());
 const Onyx = eval(await (await fetch('http://localhost:1337/src/onyx.js')).text());
 const attrs = eval(await (await fetch('http://localhost:1337/src/attrs.js')).text());
+const Editor = await eval(await (await fetch('http://localhost:1337/src/editor.js')).text());
 
 let fetchProgressCurrent = 0, fetchProgressTotal = 0;
 const includeImports = async (root, code, updateProgress) => {
@@ -253,7 +254,7 @@ const includeRequires = async (path, code) => {
   });
 
   code = await replaceAsync(code, /this\.loadStylesheet\(['"`](.*?)['"`]\)/g, async (_, p) => {
-    const css = (await transformCSS(root, await getCode(root, './' + p))).replace(/\\/g, '\\\\').replace(/\`/g, '\`');
+    const css = (await transformCSS(root, await getCode(root, './' + p.replace(/^.\//, '')))).replace(/\\/g, '\\\\').replace(/\`/g, '\`');
 
     return `this.loadStylesheet(\`${css}\`)`;
   });
@@ -329,7 +330,7 @@ const resolvePath = (x) => {
 
 let lastError;
 const resolveFileFromTree = (path) => {
-  const res = tree.find((x) => x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
+  const res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
 
   console.log('RESOLVE', path, tree, 'OUT', res);
 
@@ -553,6 +554,7 @@ const install = async (info, settings = undefined, disabled = false) => {
 
   plugin.__enabled = !disabled;
   plugin.__mod = mod;
+  plugin.__root = transformRoot;
 
   if (!isTheme) switch (mod) {
     case 'pc':
@@ -1019,6 +1021,25 @@ class Plugin extends React.PureComponent {
             openSub(manifest.name, 'settings', React.createElement(settings.render, settings.props ?? {}));
           }
         }) : null,
+
+        React.createElement(PanelButton, {
+          icon: goosemod.webpackModules.findByDisplayName('Pencil'),
+          tooltipText: 'Edit',
+          onClick: () => {
+            const plugin = plugins[entityID];
+
+            openSub(manifest.name, 'editor', React.createElement(Editor, {
+              files: fetchCache.keys().filter(x => x.includes(entityID.replace('/blob', ''))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {}),
+              plugin,
+              onChange: (file, content) => {
+                const url = plugin.__root + '/' + file;
+                console.log(file, '->', url, fetchCache.get(url)?.length);
+
+                // fetchCache.set(url, content);
+              }
+            }));
+          }
+        }),
 
         !isTheme ? React.createElement(PanelButton, {
           icon: goosemod.webpackModules.findByDisplayName('PersonShield'),

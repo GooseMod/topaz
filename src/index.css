@@ -243,6 +243,31 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   min-height: initial !important;
 }
 
+.topaz-editor > [role="tablist"] {
+  overflow-y: auto;
+}
+
+.topaz-editor > [role="tablist"] > div {
+  background: var(--background-secondary-alt);
+  padding: 4px 16px;
+}
+
+.topaz-editor > [role="tablist"] > div:not(:first-child) {
+  border-left: 1px solid var(--background-secondary);
+}
+
+.topaz-editor > [role="tablist"] > div[aria-selected="true"] {
+  background: var(--background-floating);
+}
+
+.topaz-editor > [role="tablist"] > div:first-child {
+  border-radius: 8px 0 0 0;
+}
+
+.topaz-editor > [role="tablist"] > div:last-child {
+  border-radius: 0 8px 0 0;
+}
+
 /* Hide some elements for Simple UI */
 .topaz-simple .topaz-tag { /* Mod tag */
   display: none;
