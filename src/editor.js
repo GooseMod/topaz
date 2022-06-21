@@ -4,13 +4,36 @@ window.React = React; // pain but have to
 
 const imp = async url => eval(await (await fetch(url)).text());
 
+const patchAppend = (which) => { // sorry
+  const orig = document[which].appendChild;
+
+  document[which].appendChild = function(el) {
+    if (el.nodeName === 'SCRIPT' && el.src.includes('monaco')) {
+      (async () => {
+        console.log('monaco', which, el.src);
+        (1, eval)(await (await fetch(el.src)).text());
+        console.log(window.require);
+        el.onload?.();
+      })();
+
+      return;
+    }
+
+    return orig.apply(this, arguments);
+  };
+};
+
+patchAppend('body');
+patchAppend('head');
+
+
 if (!window.monaco_react) { // only load once, or errors
   // monaco loader and react dependencies
   await imp('https://unpkg.com/prop-types@15.7.2/prop-types.js');
   await imp('https://unpkg.com/state-local@1.0.7/lib/umd/state-local.min.js');
 
-  await imp('https://unpkg.com/@monaco-editor/loader@0.1.2/lib/umd/monaco-loader.min.js'); // monaco loader
-  await imp('https://unpkg.com/@monaco-editor/react@4.0.0/lib/umd/monaco-react.min.js'); // monaco react
+  await imp('https://unpkg.com/@monaco-editor/loader@1.3.2/lib/umd/monaco-loader.min.js'); // monaco loader
+  await imp('https://unpkg.com/@monaco-editor/react@4.4.5/lib/umd/monaco-react.min.js'); // monaco react
 }
 
 const MonacoEditor = monaco_react.default;
@@ -24,6 +47,8 @@ const langs = {
 const TabBar = goosemod.webpackModules.findByDisplayName('TabBar');
 const TabBarClasses1 = goosemod.webpackModules.findByProps('topPill');
 const TabBarClasses2 = goosemod.webpackModules.findByProps('tabBar', 'nowPlayingColumn');
+
+const PanelButton = goosemod.webpackModules.findByDisplayName('PanelButton');
 
 const ScrollerClasses = goosemod.webpackModules.findByProps('scrollerBase', 'auto', 'thin');
 
@@ -63,18 +88,43 @@ return function Editor(props) {
       look: 1,
 
       onItemSelect: (x) => {
+        if (x.startsWith('_')) return;
         setOpenFile(x);
       }
     },
       ...Object.keys(files).map(x => React.createElement(TabBar.Item, {
         id: x,
         className: TabBarClasses2.item
-      }, x))
+      }, x)),
+
+      React.createElement(TabBar.Item, {
+        id: '_settings',
+
+        className: TabBarClasses2.item
+      }, React.createElement(PanelButton, {
+        icon: goosemod.webpackModules.findByDisplayName('Gear'),
+        tooltipText: 'Editor Settings',
+        onClick: async () => {
+          console.log('settings');
+        }
+      })),
+
+      React.createElement(TabBar.Item, {
+        id: '_reload',
+
+        className: TabBarClasses2.item
+      }, React.createElement(PanelButton, {
+        icon: goosemod.webpackModules.findByDisplayName('Retry'),
+        tooltipText: 'Reload Plugin',
+        onClick: async () => {
+          console.log('reload');
+        }
+      }))
     ),
 
     React.createElement(MonacoEditor, {
-      value: files[openFile],
-      language: langs[openExt] ?? openExt,
+      defaultValue: files[openFile],
+      defaultLanguage: langs[openExt] ?? openExt,
       path: openFile,
       saveViewState: false,
 

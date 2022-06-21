@@ -15,7 +15,15 @@ const sucrase = eval(await (await fetch('http://localhost:1337/src/sucrase.js'))
 const grass = await eval(await (await fetch('http://localhost:1337/src/grass.js')).text());
 const Onyx = eval(await (await fetch('http://localhost:1337/src/onyx.js')).text());
 const attrs = eval(await (await fetch('http://localhost:1337/src/attrs.js')).text());
-const Editor = await eval(await (await fetch('http://localhost:1337/src/editor.js')).text());
+
+const Editor = { // defer loading until editor is wanted
+  get Component() {
+    return (async () => { // async getter
+      delete this.Component;
+      return this.Component = await eval(await (await fetch('http://localhost:1337/src/editor.js')).text());
+    })();
+  }
+};
 
 let fetchProgressCurrent = 0, fetchProgressTotal = 0;
 const includeImports = async (root, code, updateProgress) => {
@@ -1025,10 +1033,11 @@ class Plugin extends React.PureComponent {
         React.createElement(PanelButton, {
           icon: goosemod.webpackModules.findByDisplayName('Pencil'),
           tooltipText: 'Edit',
-          onClick: () => {
+          onClick: async () => {
             const plugin = plugins[entityID];
 
-            openSub(manifest.name, 'editor', React.createElement(Editor, {
+
+            openSub(manifest.name, 'editor', React.createElement(await Editor.Component, {
               files: fetchCache.keys().filter(x => x.includes(entityID.replace('/blob', ''))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {}),
               plugin,
               onChange: (file, content) => {
@@ -1037,7 +1046,18 @@ class Plugin extends React.PureComponent {
 
                 // fetchCache.set(url, content);
               }
-            }));
+            }), [
+              {
+                text: 'Reload Plugin',
+                icon: 'Retry',
+                onClick: () => {}
+              },
+              {
+                text: 'Editor Settings',
+                icon: 'Gear',
+                onClick: () => {}
+              }
+            ]);
           }
         }),
 

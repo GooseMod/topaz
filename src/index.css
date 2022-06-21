@@ -247,6 +247,10 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   overflow-y: auto;
 }
 
+.topaz-editor > [role="tablist"] {
+
+}
+
 .topaz-editor > [role="tablist"] > div {
   background: var(--background-secondary-alt);
   padding: 4px 16px;
