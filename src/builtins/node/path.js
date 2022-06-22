@@ -10,5 +10,5 @@ const resolve = (x) => {
 
 module.exports = {
   join: (...parts) => resolve(parts.join('/')),
-  resolve
+  resolve: (...parts) => resolve(parts.join('/')) // todo: implement resolve properly (root / overwrite)
 };
