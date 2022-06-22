@@ -1042,9 +1042,9 @@ class Plugin extends React.PureComponent {
               plugin,
               onChange: (file, content) => {
                 const url = plugin.__root + '/' + file;
-                console.log(file, '->', url, fetchCache.get(url)?.length);
+                console.log(file, '->', url, fetchCache.get(url)?.length - content.length);
 
-                // fetchCache.set(url, content);
+                fetchCache.set(url, content);
               }
             }), [
               {

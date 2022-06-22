@@ -54,6 +54,7 @@ const ScrollerClasses = goosemod.webpackModules.findByProps('scrollerBase', 'aut
 
 let lastPlugin;
 let expandInt;
+
 return function Editor(props) {
   let { files, defaultFile, plugin } = props;
   defaultFile = defaultFile ?? Object.keys(files)[0];
@@ -63,8 +64,9 @@ return function Editor(props) {
 
   if (lastPlugin !== plugin.entityID) {
     lastPlugin = plugin.entityID;
-    if (window.monaco) monaco.editor.getModels()[0]?.dispose?.();
+    if (window.monaco) monaco.editor.getModels().forEach(x => x.dispose());
   }
+
 
   if (!expandInt) {
     expandInt = setInterval(() => {
@@ -77,22 +79,19 @@ return function Editor(props) {
       document.querySelector('.contentRegion-3HkfJJ').style.flex = '';
       document.querySelector('.sidebarRegion-1VBisG').style.flex = '';
       document.querySelector('.contentRegionScroller-2_GT_N').style.overflow = 'hidden scroll';
-    }, 500);
+      document.querySelector('.toolsContainer-25FL6V').style.top = '';
+    }, 300);
 
-    document.querySelector('.contentColumn-1C7as6.contentColumnDefault-3eyv5o').style.maxWidth = 'calc(100% - 90px)';
-    document.querySelector('.contentRegion-3HkfJJ').style.flex = '1 1 70%';
+    document.querySelector('.contentColumn-1C7as6.contentColumnDefault-3eyv5o').style.maxWidth = 'calc(100vw - 40px - 218px - 40px)';
+    document.querySelector('.contentRegion-3HkfJJ').style.flex = '1 1 80%';
     document.querySelector('.sidebarRegion-1VBisG').style.flex = '1 0 0';
+    document.querySelector('.toolsContainer-25FL6V').style.top = '-50px';
 
     document.querySelector('.contentColumn-1C7as6.contentColumnDefault-3eyv5o').style.transition = 'max-width .5s';
     document.querySelector('.contentRegion-3HkfJJ').style.transition = 'flex .5s';
     document.querySelector('.sidebarRegion-1VBisG').style.transition = 'flex .5s';
 
     document.querySelector('.contentRegionScroller-2_GT_N').style.overflow = 'visible';
-
-    setTimeout(() => { // after render, move higher
-      document.querySelector('.topaz-editor-page').style.top = '-40px';
-      document.querySelector('.topaz-editor-page').style.position = 'relative';
-    }, 0);
   }
 
   const openExt = openFile.split('.').pop();
@@ -147,7 +146,8 @@ return function Editor(props) {
         icon: goosemod.webpackModules.findByDisplayName('Retry'),
         tooltipText: 'Reload Plugin',
         onClick: async () => {
-          console.log('reload');
+          topaz.reload(plugin.entityID);
+          goosemod.webpackModules.findByProps('showToast').showToast(goosemod.webpackModules.findByProps('createToast').createToast('Reloaded ' + plugin.manifest.name, 0, { duration: 5000, position: 1 }));
         }
       }))
     ),
@@ -160,8 +160,7 @@ return function Editor(props) {
 
       onMount: editor => editorRef.current = editor,
       onChange: value => props.onChange(openFile, value),
-      theme: 'vs-dark',
-      height: '88vh'
+      theme: 'vs-dark'
     })
   );
 };

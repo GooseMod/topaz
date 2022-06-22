@@ -243,17 +243,36 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   min-height: initial !important;
 }
 
-.topaz-editor > [role="tablist"] {
-  overflow-y: auto;
+.topaz-editor > * {
+  width: calc(100vw - 40px - 218px - 40px) !important;
+}
+
+.topaz-editor > section {
+  height: 88vh !important;
 }
 
 .topaz-editor > [role="tablist"] {
+  overflow: auto hidden;
+}
 
+.topaz-editor > [role="tablist"] > [aria-controls^="_"] {
+  position: absolute;
+  right: 0px;
+  padding: 3px;
+}
+
+.topaz-editor > [role="tablist"] > [aria-controls="_settings-tab"] {
+  border-radius: 0 8px 0 0;
+}
+
+.topaz-editor > [role="tablist"] > [aria-controls="_reload-tab"] {
+  right: 40px;
+  border-radius: 8px 0 0 0;
 }
 
 .topaz-editor > [role="tablist"] > div {
   background: var(--background-secondary-alt);
-  padding: 4px 16px;
+  padding: 8px 16px;
 }
 
 .topaz-editor > [role="tablist"] > div:not(:first-child) {
@@ -264,12 +283,22 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   background: var(--background-floating);
 }
 
-.topaz-editor > [role="tablist"] > div:first-child {
+.topaz-editor-page {
+  top: -30px;
+  position: relative;
+}
+
+/* Rounding edges for bprder files */
+.topaz-editor > [role="tablist"] > div:first-child { /* First */
   border-radius: 8px 0 0 0;
 }
 
-.topaz-editor > [role="tablist"] > div:last-child {
+.topaz-editor > [role="tablist"] > div:nth-last-child(3) { /* Last */
   border-radius: 0 8px 0 0;
+}
+
+.topaz-editor > [role="tablist"] > div:first-child:nth-last-child(3) { /* Only */
+  border-radius: 8px 8px 0 0;
 }
 
 /* Hide some elements for Simple UI */
