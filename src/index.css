@@ -245,21 +245,33 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 
 .topaz-editor-focus .contentColumn-1C7as6.contentColumnDefault-3eyv5o {
   max-width: calc(100vw - 270px);
+}
+
+.contentColumn-1C7as6.contentColumnDefault-3eyv5o {
   transition: max-width .5s;
 }
 
 .topaz-editor-focus .contentRegion-3HkfJJ {
   flex: 1 1 80%;
+}
+
+.contentRegion-3HkfJJ {
   transition: flex .5s;
 }
 
 .topaz-editor-focus .sidebarRegion-1VBisG {
   flex: 1 0 0;
+}
+
+.sidebarRegion-1VBisG {
   transition: flex .5s;
 }
 
 .topaz-editor-focus .toolsContainer-25FL6V {
   top: -50px;
+}
+
+.toolsContainer-25FL6V {
   transition: top .5s;
 }
 
