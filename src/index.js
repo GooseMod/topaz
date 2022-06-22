@@ -115,6 +115,7 @@ const builtins = {
   'electron': await getBuiltin('node/electron'),
   'path': await getBuiltin('node/path'),
   'fs': await getBuiltin('node/fs'),
+  'process': await getBuiltin('node/process'),
   'request': await getBuiltin('node/request')
 };
 
