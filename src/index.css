@@ -322,6 +322,10 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   display: none;
 }
 
+.topaz-simple [aria-label="Edit"] { /* Edit button */
+  display: none;
+}
+
 #topaz-repo-autocomplete.topaz-simple .code-style { /* Hide repos in autocomplete */
   display: none;
 }
