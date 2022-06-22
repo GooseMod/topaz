@@ -6,7 +6,7 @@ if (window.topaz) { // live reload handling
   topaz.__reloading = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
 
-  setTimeout(() => updateOpenSettings(), 1000);
+  // setTimeout(() => updateOpenSettings(), 1000);
 }
 
 const initStartTime = performance.now();
