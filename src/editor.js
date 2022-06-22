@@ -12,7 +12,6 @@ const patchAppend = (which) => { // sorry
       (async () => {
         console.log('monaco', which, el.src);
         (1, eval)(await (await fetch(el.src)).text());
-        console.log(window.require);
         el.onload?.();
       })();
 
@@ -55,6 +54,25 @@ const ScrollerClasses = goosemod.webpackModules.findByProps('scrollerBase', 'aut
 let lastPlugin;
 let expandInt;
 
+const editorSettings = JSON.parse(localStorage.getItem('topaz_editor_settings') ?? 'null') ?? {
+  theme: 'vs-dark',
+  focusMode: true
+};
+
+const saveEditorSettings = () => localStorage.setItem('topaz_editor_settings', JSON.stringify(editorSettings));
+
+const _loadedThemes = {};
+const setTheme = async (x) => {
+  if (!x.startsWith('vs') && !_loadedThemes[x]) _loadedThemes[x] = monaco.editor.defineTheme(x, await (await fetch(`https://raw.githubusercontent.com/brijeshb42/monaco-themes/master/themes/${x}.json`)).json());
+
+  monaco.editor.setTheme(x);
+  editorSettings.theme = x;
+};
+setTheme(editorSettings.theme);
+
+const focus_enlarge = () => document.body.classList.add('topaz-editor-focus');
+const focus_revert = () => document.body.classList.remove('topaz-editor-focus');
+
 return function Editor(props) {
   let { files, defaultFile, plugin } = props;
   defaultFile = defaultFile ?? Object.keys(files)[0];
@@ -68,30 +86,17 @@ return function Editor(props) {
   }
 
 
-  if (!expandInt) {
+  if (!expandInt && editorSettings.focusMode) {
     expandInt = setInterval(() => {
       if (document.querySelector('.topaz-editor')) return;
 
       clearInterval(expandInt);
       expandInt = undefined;
 
-      document.querySelector('.contentColumn-1C7as6.contentColumnDefault-3eyv5o').style.maxWidth = '';
-      document.querySelector('.contentRegion-3HkfJJ').style.flex = '';
-      document.querySelector('.sidebarRegion-1VBisG').style.flex = '';
-      document.querySelector('.contentRegionScroller-2_GT_N').style.overflow = 'hidden scroll';
-      document.querySelector('.toolsContainer-25FL6V').style.top = '';
+      focus_revert();
     }, 300);
 
-    document.querySelector('.contentColumn-1C7as6.contentColumnDefault-3eyv5o').style.maxWidth = 'calc(100vw - 40px - 218px - 40px)';
-    document.querySelector('.contentRegion-3HkfJJ').style.flex = '1 1 80%';
-    document.querySelector('.sidebarRegion-1VBisG').style.flex = '1 0 0';
-    document.querySelector('.toolsContainer-25FL6V').style.top = '-50px';
-
-    document.querySelector('.contentColumn-1C7as6.contentColumnDefault-3eyv5o').style.transition = 'max-width .5s';
-    document.querySelector('.contentRegion-3HkfJJ').style.transition = 'flex .5s';
-    document.querySelector('.sidebarRegion-1VBisG').style.transition = 'flex .5s';
-
-    document.querySelector('.contentRegionScroller-2_GT_N').style.overflow = 'visible';
+    focus_enlarge();
   }
 
   const openExt = openFile.split('.').pop();
@@ -134,7 +139,97 @@ return function Editor(props) {
         icon: goosemod.webpackModules.findByDisplayName('Gear'),
         tooltipText: 'Editor Settings',
         onClick: async () => {
-          console.log('settings');
+          const LegacyHeader = goosemod.webpackModules.findByDisplayName('LegacyHeader');
+          const ModalStuff = goosemod.webpackModules.findByProps('ModalRoot');
+          const { openModal } = goosemod.webpackModules.findByProps('openModal', 'updateModal');
+          const Flex = goosemod.webpackModules.findByDisplayName('Flex');
+
+          const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
+          const _SingleSelect = goosemod.webpackModules.findByProps('SingleSelect').SingleSelect;
+
+          const forceWrap = (comp, key) => class extends React.PureComponent {
+            render() {
+              return React.createElement(comp, {
+                ...this.props,
+                onChange: x => {
+                  this.props[key] = x;
+                  this.forceUpdate();
+
+                  this.props.onChange(x);
+                }
+              });
+            }
+          };
+
+          const _SwitchItem = goosemod.webpackModules.findByDisplayName('SwitchItem');
+
+          const SwitchItem = forceWrap(_SwitchItem, 'value');
+          const SingleSelect = forceWrap(_SingleSelect, 'value');
+
+          const titleCase = (str) => str.split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
+
+          openModal((e) => {
+            return React.createElement(ModalStuff.ModalRoot, {
+              transitionState: e.transitionState,
+              size: 'large'
+            },
+              React.createElement(ModalStuff.ModalHeader, {},
+                React.createElement(Flex.Child, {
+                  basis: 'auto',
+                  grow: 1,
+                  shrink: 1,
+                  wrap: false,
+                },
+                  React.createElement(LegacyHeader, {
+                    tag: 'h2',
+                    size: LegacyHeader.Sizes.SIZE_20,
+                  }, 'Editor Settings')
+                ),
+                React.createElement('FlexChild', {
+                  basis: 'auto',
+                  grow: 0,
+                  shrink: 1,
+                  wrap: false
+                },
+                  React.createElement(ModalStuff.ModalCloseButton, {
+                    onClick: e.onClose
+                  })
+                )
+              ),
+
+              React.createElement(ModalStuff.ModalContent, {
+                className: `topaz-modal-content`
+              },
+                React.createElement(SwitchItem, {
+                  note: 'Enlarges settings content for larger editor',
+                  value: editorSettings.focusMode,
+                  onChange: x => {
+                    editorSettings.focusMode = x;
+                    saveEditorSettings();
+
+                    if (x) focus_enlarge();
+                      else focus_revert();
+                  }
+                }, 'Focus Mode'),
+
+                React.createElement(FormTitle, {
+                  tag: 'h5'
+                }, 'Theme'),
+
+                React.createElement(SingleSelect, {
+                  onChange: x => {
+                    setTheme(x);
+                    saveEditorSettings();
+                  },
+                  options: [ 'vs-dark', 'vs-light', 'Dracula', 'Monokai', 'Nord', 'Twilight' ].map(x => ({
+                    label: titleCase(x.replace('vs-', 'VS ')),
+                    value: x
+                  })),
+                  value: editorSettings.theme
+                })
+              )
+            )
+          });
         }
       })),
 
@@ -160,7 +255,7 @@ return function Editor(props) {
 
       onMount: editor => editorRef.current = editor,
       onChange: value => props.onChange(openFile, value),
-      theme: 'vs-dark'
+      theme: editorSettings.theme
     })
   );
 };

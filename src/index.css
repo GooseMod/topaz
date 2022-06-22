@@ -133,7 +133,7 @@
   border-bottom: thin solid var(--background-modifier-accent);
 }
 
-.topaz-settings-modal-content, .topaz-permissions-modal-content {
+.topaz-modal-content {
   padding-top: 20px;
 }
 
@@ -243,8 +243,36 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   min-height: initial !important;
 }
 
+.topaz-editor-focus .contentColumn-1C7as6.contentColumnDefault-3eyv5o {
+  max-width: calc(100vw - 270px);
+  transition: max-width .5s;
+}
+
+.topaz-editor-focus .contentRegion-3HkfJJ {
+  flex: 1 1 80%;
+  transition: flex .5s;
+}
+
+.topaz-editor-focus .sidebarRegion-1VBisG {
+  flex: 1 0 0;
+  transition: flex .5s;
+}
+
+.topaz-editor-focus .toolsContainer-25FL6V {
+  top: -50px;
+  transition: top .5s;
+}
+
+.topaz-editor-focus .contentRegionScroller-2_GT_N {
+  overflow: visible;
+}
+
 .topaz-editor > * {
-  width: calc(100vw - 40px - 218px - 40px) !important;
+  width: 100%;
+}
+
+.topaz-editor-focus .topaz-editor > * {
+  width: calc(100vw - 308px) !important;
 }
 
 .topaz-editor > section {

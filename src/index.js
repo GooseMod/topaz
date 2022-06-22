@@ -948,7 +948,7 @@ const openSub_modal = (header, content, type) => {
       ),
 
       React.createElement(ModalStuff.ModalContent, {
-        className: `topaz-${type}-modal-content`
+        className: `topaz-modal-content topaz-${type}-modal-content`
       },
         content
       )
