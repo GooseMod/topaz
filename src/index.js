@@ -423,6 +423,8 @@ const install = async (info, settings = undefined, disabled = false) => {
           break;
 
         default: // default to pc
+          mod = 'pc';
+
           manifest = await (await fetch(join(root, './powercord_manifest.json'))).json();
 
           indexCode = await getCode(root, './' + manifest.theme);
