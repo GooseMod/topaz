@@ -707,10 +707,10 @@ window.topaz = {
     if (!topaz.__reloading) {
       purgeCacheForPlugin(info);
       purgePermsForPlugin(info);
-    }
 
-    savePlugins();
-    setDisabled(info, false); // Remove from disabled list
+      savePlugins();
+      setDisabled(info, false); // Remove from disabled list
+    }
   },
   uninstallAll: () => Object.keys(plugins).forEach((x) => topaz.uninstall(x)),
 
