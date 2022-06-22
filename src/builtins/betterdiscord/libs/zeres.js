@@ -28,6 +28,33 @@ const showToast = (content, options = {}) => goosemod.showToast(content, options
 
 const injectedCSS = {};
 
+const _observerHooks = [];
+const Observer = new MutationObserver((muts) => {
+  for (const hook of _observerHooks) {
+    const matches = muts.filter(hook.filter);
+    if (matches.length === 0) continue;
+
+    hook.callback(matches);
+  }
+});
+
+const observe = (selector, callback) => {
+  const id = Math.random().toString().slice(2);
+  _observerHooks.push({
+    id,
+    callback,
+    filter: mut => mut.target.matches(selector) || [ ...mut.addedNodes, ...mut.removedNodes ].some(x => x.querySelector && (x.matches(selector) || x.querySelector(selector)))
+  });
+
+  if (_observerHooks.length === 1) Observer.observe(document.getElementById("app-mount"), { attributes: true, childList: true, subtree: true });
+
+  return () => { // unhook func
+    _observerHooks.splice(_observerHooks.find(x => x.id === id), 1);
+
+    if (_observerHooks.length === 0) Observer.disconnect(); // no hooks, disconnect
+  }
+};
+
 const api = {
   WebpackModules,
 
@@ -198,7 +225,7 @@ const api = {
       if (this.cache[displayName]) return _res(this.cache[displayName]);
 
       const res = (ret) => {
-        clearInterval(int);
+        unobs();
 
         // if (!ret.displayName) ret.displayName = displayName
 
@@ -239,7 +266,7 @@ const api = {
       };
 
       setTimeout(check, 0);
-      const int = setInterval(check, 5000);
+      const unobs = observe(selector, check);
     })
   },
 
