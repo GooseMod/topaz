@@ -39,6 +39,7 @@ const MonacoEditor = monaco_react.default;
 
 const langs = {
   'js': 'javascript',
+  'jsx': 'javascript', // jsx is half broken because monaco bad but do anyway
   'css': 'css',
   'html':'html'
 };
