@@ -16,6 +16,10 @@ const SettingsFormClasses = goosemod.webpackModules.findByProps('dividerDefault'
 const OriginalTextInput = goosemod.webpackModules.findByDisplayName('TextInput');
 const OriginalSlider = goosemod.webpackModules.findByDisplayName('Slider');
 
+const SelectTempWrapper = goosemod.webpackModules.findByDisplayName('SelectTempWrapper');
+
+const OriginalRadioGroup = goosemod.webpackModules.findByDisplayName('RadioGroup');
+
 class Divider extends React.PureComponent {
   render() {
     return React.createElement(FormDivider, {
@@ -31,7 +35,7 @@ class FormItem extends React.PureComponent {
         required: this.props.required,
         className: [Flex.Direction.VERTICAL, Flex.Justify.START, Flex.Align.STRETCH, Flex.Wrap.NO_WRAP, Margins.marginBottom20].join(' '),
         onClick: () => {
-          this.props.onClick();
+          this.props.onClick?.();
         }
       },
 
@@ -53,7 +57,7 @@ module.exports = {
         ...this.props,
         onChange: (e) => {
           this.props.onChange(e);
-          
+
           this.props.value = e;
           this.forceUpdate();
         }
@@ -65,15 +69,15 @@ module.exports = {
     render() {
       const title = this.props.children;
       delete this.props.children;
-  
+
       return React.createElement(FormItem, {
           title,
           note: this.props.note,
           required: this.props.required,
-  
+
           noteHasMargin: true
         },
-  
+
         React.createElement(OriginalTextInput, {
           ...this.props
         })
@@ -100,10 +104,48 @@ module.exports = {
     }
   },
 
+  SelectInput: class SelectInput extends React.PureComponent {
+    render() {
+      const title = this.props.children;
+      delete this.props.children;
+
+      return React.createElement(FormItem, {
+          title,
+          note: this.props.note,
+          required: this.props.required,
+
+          noteHasMargin: true
+        },
+
+        React.createElement(SelectTempWrapper, {
+          ...this.props
+        })
+      );
+    }
+  },
+
+  RadioGroup: class RadioGroup extends React.PureComponent {
+    render() {
+      const title = this.props.children;
+      delete this.props.children;
+
+      return React.createElement(FormItem, {
+          title,
+          note: this.props.note,
+          required: this.props.required
+        },
+
+        React.createElement(OriginalRadioGroup, {
+          ...this.props
+        })
+      );
+    }
+  },
+
   Category: class Category extends React.PureComponent {
     render() {
       const children = this.props.opened ? this.props.children : [];
-  
+
       return React.createElement(FormItem, {
           title: React.createElement('div', {},
             React.createElement('svg', {
@@ -121,7 +163,7 @@ module.exports = {
                 d: 'M9.29 15.88L13.17 12 9.29 8.12c-.39-.39-.39-1.02 0-1.41.39-.39 1.02-.39 1.41 0l4.59 4.59c.39.39.39 1.02 0 1.41L10.7 17.3c-.39.39-1.02.39-1.41 0-.38-.39-.39-1.03 0-1.42z'
               }),
             ),
-  
+
             React.createElement('label', {
               class: FormClasses.title,
               style: {
@@ -131,7 +173,7 @@ module.exports = {
               }
             },
               this.props.name,
-  
+
               React.createElement(FormText, {
                 className: FormClasses.description,
                 style: {
@@ -140,12 +182,12 @@ module.exports = {
               }, this.props.description)
             ),
           ),
-  
+
           onClick: () => {
             this.props.onChange(!this.props.opened);
           }
         },
-  
+
         ...children
       );
     }

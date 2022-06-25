@@ -3,7 +3,7 @@ const { copy } = goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy'); /
 module.exports = {
   clipboard: {
     writeText: (text) => copy(text),
-    readText: () => DiscordNative.clipboard.read()
+    readText: () => window.DiscordNative ? DiscordNative.clipboard.read() : 'clipboard' // await navigator.clipboard.readText()
   },
 
   shell: {

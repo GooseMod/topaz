@@ -1,8 +1,11 @@
 let powercord;
 
 (() => {
-class SimpleStore {
-  constructor() {
+const { React, Flux, FluxDispatcher } = goosemod.webpackModules.common;
+
+class SettingsStore extends Flux.Store {
+  constructor (Dispatcher, handlers) {
+    super(Dispatcher, handlers);
     this.store = {};
   }
 
@@ -37,13 +40,54 @@ class SimpleStore {
   set = this.updateSetting
   delete = this.deleteSetting
 
-  // random stub
-  connectStore = () => {}
+  // not flux but yes
+  connectStore = (comp) => class ConnectWrap extends React.PureComponent {
+    render() {
+      const props = this.props;
+      delete props.children;
+
+      return React.createElement(comp, {
+        ...props,
+        getSetting: settingStore.getSetting,
+        updateSetting: settingStore.updateSetting,
+        toggleSetting: settingStore.toggleSetting,
+        deleteSetting: settingStore.deleteSetting,
+      }, this.props.children)
+    }
+  }
 }
 
-const settingStore = new SimpleStore();
+const settingStore = new SettingsStore(FluxDispatcher, {
+  POWERCORD_SETTINGS_UPDATE: ({ category, settings }) => updateSettings(category, settings),
+  POWERCORD_SETTING_TOGGLE: ({ category, setting, defaultValue }) => toggleSetting(category, setting, defaultValue),
+  POWERCORD_SETTING_UPDATE: ({ category, setting, value }) => updateSetting(category, setting, value),
+  POWERCORD_SETTING_DELETE: ({ category, setting }) => deleteSetting(category, setting)
+});
 
 const settingsUnpatch = {};
+const i18nMessages = {};
+
+const i18n = goosemod.webpackModules.find(x => x.getLanguages && x.Messages?.ACCOUNT);
+const locale = () => goosemod.webpackModules.findByProps('getLocaleInfo').getLocale();
+const updateI18n = () => {
+  const parent = i18n._provider?._context ?? i18n._proxyContext;
+  let { messages, defaultMessages } = parent;
+
+  Object.defineProperty(parent, 'messages', {
+    enumerable: true,
+    get: () => messages,
+    set: o => messages = Object.assign(o, i18nMessages[locale()])
+  });
+
+  Object.defineProperty(parent, 'defaultMessages', {
+    enumerable: true,
+    get: () => defaultMessages,
+    set: o => defaultMessages = Object.assign(o, i18nMessages['en-US'])
+  });
+
+  parent.messages = messages;
+  parent.defaultMessages = defaultMessages;
+};
 
 const updateOpenSettings = async () => {
   try {
@@ -60,7 +104,6 @@ const updateOpenSettings = async () => {
   } catch (_e) { }
 };
 
-const { React } = goosemod.webpackModules.common;
 class AsyncComponent extends React.PureComponent {
   constructor (props) {
     super(props);
@@ -200,7 +243,9 @@ powercord = {
         delete settingsUnpatch[id];
 
         updateOpenSettings();
-      }
+      },
+
+      store: settingStore
     },
 
     notices: {
@@ -208,8 +253,15 @@ powercord = {
     },
 
     i18n: {
-      loadAllStrings: (obj) => {
+      loadAllStrings: (obj) => { // todo: re-add on locale change
+        for (const locale in obj) {
+          i18nMessages[locale] = {
+            ...(i18nMessages[locale] ?? {}),
+            ...obj[locale]
+          };
+        }
 
+        updateI18n();
       }
     },
 
@@ -221,8 +273,9 @@ powercord = {
   },
 
   __topaz: {
-    settingStore,
     AsyncComponent
   }
 };
+
+
 })();

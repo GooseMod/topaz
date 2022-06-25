@@ -59,7 +59,7 @@ const includeImports = async (root, code, updateProgress) => {
       const relativePath =  resolvePath('.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
       console.log(root, '|', basePath, relativePath, '|', '.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
 
-      resolved = resolveFileFromTree(relativePath) ?? resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/'));
+      resolved = await resolveFileFromTree(relativePath) ?? await resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/'));
       code = await getCode(transformRoot, resolved);
     }
 
@@ -102,6 +102,8 @@ const builtins = {
   'powercord/components/settings': await getBuiltin('powercord/components/settings'),
   'powercord/components/modal': await getBuiltin('powercord/components/modal'),
   'powercord/modal': await getBuiltin('powercord/modal'),
+  'powercord/http': await getBuiltin('powercord/http'),
+  'powercord/constants': await getBuiltin('powercord/constants'),
 
   '@goosemod/patcher': await getBuiltin('goosemod/patcher'),
   '@goosemod/webpack': await getBuiltin('goosemod/webpack'),
@@ -116,7 +118,8 @@ const builtins = {
   'path': await getBuiltin('node/path'),
   'fs': await getBuiltin('node/fs'),
   'process': await getBuiltin('node/process'),
-  'request': await getBuiltin('node/request')
+  'request': await getBuiltin('node/request'),
+  'querystring': await getBuiltin('node/querystring')
 };
 
 const globals = {
@@ -183,7 +186,7 @@ const getCode = async (root, p, ...backups) => {
   const origPath = join(root, p);
   if (fetchCache.get(origPath)) return fetchCache.get(origPath);
 
-  let code = '404: Not Found';
+  let code = `'failed to fetch: ${p}'`;
   let path;
   for (path of [ p, ...backups ]) {
     if (!path) continue;
@@ -191,6 +194,7 @@ const getCode = async (root, p, ...backups) => {
     const req = await fetch(join(root, path));
     // console.log('REQ', join(root, path), req.status);
     if (req.status !== 200) continue;
+    console.log(p, req.status);
 
     code = await req.text();
     break;
@@ -207,11 +211,14 @@ const makeChunk = async (root, p) => {
 
   const joined = (root + '/' + p).replace(transformRoot, '');
   const resPath = builtins[p] ? p : resolvePath(joined).slice(1);
-  const resolved = resolveFileFromTree(resPath);
+  const resolved = await resolveFileFromTree(resPath);
   console.log('CHUNK', genId(resPath), '|', root.replace(transformRoot, ''), p, '|', joined, resPath, resolved);
 
-  let code = await getCode(transformRoot, resolved ?? p, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
-  if (!builtins[p]) code = await includeRequires(join(transformRoot, resolved), code);
+  const finalPath = resolved ?? p;
+
+  let code = await getCode(transformRoot, finalPath, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
+  // if (!builtins[p]) code = await includeRequires(join(transformRoot, finalPath), code);
+  code = await includeRequires(join(transformRoot, finalPath), code);
   const id = genId(resPath);
 
   if (p.endsWith('.json') || code.startsWith('{')) code = 'module.exports = ' + code;
@@ -266,6 +273,12 @@ const includeRequires = async (path, code) => {
     const css = (await transformCSS(root, await getCode(root, './' + p.replace(/^.\//, '')))).replace(/\\/g, '\\\\').replace(/\`/g, '\`');
 
     return `this.loadStylesheet(\`${css}\`)`;
+  });
+
+  code = await replaceAsync(code, /powercord\.api\.i18n\.loadAllStrings\(.*?\)/g, async (_, p) => { // todo: actual pc i18n
+    const english = (await getCode(transformRoot, './i18n/en-US.json')).replace(/\\/g, '\\\\').replace(/\`/g, '\`');
+
+    return `powercord.api.i18n.loadAllStrings({ 'en-US': JSON.parse(\`${english}\`) })`;
   });
 
   fetchProgressCurrent++;
@@ -332,16 +345,37 @@ const updatePending = (repo, substate) => {
 
 const resolvePath = (x) => {
   let ind;
-  while ((ind = x.indexOf('../')) !== -1) x = x.slice(0, ind) + x.slice(ind + 3);
+  if (x.startsWith('./')) x = x.substring(2);
+  x = x.replaceAll('/./', '/').replaceAll('//', '/'); // example/./test -> example/test
+
+  while ((ind = x.indexOf('../')) !== -1) {
+      const priorSlash = x.lastIndexOf('/', ind - 4);
+      x = x.slice(0, priorSlash === -1 ? 0 : (priorSlash + 1)) + x.slice(ind + 3); // example/test/../sub -> example/sub
+  }
 
   return x;
 };
 
 let lastError;
-const resolveFileFromTree = (path) => {
-  const res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
+const resolveFileFromTree = async (path) => {
+  const dirRes = tree.find((x) => x.type === 'tree' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
+  let res;
 
-  console.log('RESOLVE', path, tree, 'OUT', res);
+  if (path === dirRes) { // just require(dir)
+    res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/index'))?.path;
+    if (!res) {
+      res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/package.json'))?.path;
+      if (res) {
+        const package = JSON.parse(await getCode(transformRoot, './' + res));
+        if (package.main.startsWith('/')) package.main = package.main.slice(1);
+        if (package.main.startsWith('./')) package.main = package.main.slice(2);
+
+        console.log('PACKAGE', package.main);
+
+        res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/' + package.main))?.path;
+      }
+    }
+  } else res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
 
   if (path.startsWith('powercord/') && !builtins[path]) {
     console.warn('Missing builtin', path);
@@ -397,7 +431,7 @@ const install = async (info, settings = undefined, disabled = false) => {
 
     updatePending(info, 'Fetching index...');
 
-    const indexFile = resolveFileFromTree('index');
+    const indexFile = await resolveFileFromTree('index');
 
     const indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/${subdir ? (subdir + '/') : ''}index.js`;
     let root = getDir(indexUrl);
@@ -405,8 +439,8 @@ const install = async (info, settings = undefined, disabled = false) => {
     chunks = {}; // reset chunks
 
     if (!mod) {
-      if (resolveFileFromTree('manifest.json')) mod = 'pc';
-      if (resolveFileFromTree('goosemodModule.json')) mod = 'gm';
+      if (await resolveFileFromTree('manifest.json')) mod = 'pc';
+      if (await resolveFileFromTree('goosemodModule.json')) mod = 'gm';
     }
 
     let indexCode;
@@ -640,7 +674,7 @@ const transform = async (path, code, info) => {
 
   code = `(function () {
 ${code}
-})(); //# sourceURL=${encodeURI(`Topaz | ${info}`)}`;
+})();`;
 
   return code;
 };
@@ -831,6 +865,8 @@ const LegacyText = goosemod.webpackModules.findByDisplayName('LegacyText');
 const Spinner = goosemod.webpackModules.findByDisplayName('Spinner');
 const PanelButton = goosemod.webpackModules.findByDisplayName('PanelButton');
 const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
+const Markdown = goosemod.webpackModules.find((x) => x.displayName === 'Markdown' && x.rules);
+const DropdownArrow = goosemod.webpackModules.findByDisplayName('DropdownArrow');
 const HeaderBarContainer = goosemod.webpackModules.findByDisplayName('HeaderBarContainer');
 const FormItem = goosemod.webpackModules.findByDisplayName('FormItem');
 const TextInput = goosemod.webpackModules.findByDisplayName('TextInput');
@@ -858,7 +894,145 @@ class Switch extends React.PureComponent {
   }
 }
 
-const openSub = (plugin, type, content) => {
+class TZErrorBoundary extends React.PureComponent {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      error: false
+    };
+  }
+
+  componentDidCatch(error, moreInfo) {
+    console.log('honk', {error, moreInfo});
+
+    const errorStack = decodeURI(error.stack.split('\n').filter((x) => !x.includes('/assets/')).join('\n'));
+    const componentStack = decodeURI(moreInfo.componentStack.split('\n').slice(1, 9).join('\n'));
+
+
+    const suspectedPlugin = errorStack.match(/\((.*) \| GM Module:/)?.[1] ?? componentStack.match(/\((.*) \| GM Module:/)?.[1] ??
+      errorStack.match(/\((.*) \| Topaz:/)?.[1] ?? componentStack.match(/\((.*) \| Topaz:/)?.[1];
+
+    let suspectedName = suspectedPlugin ?? 'Unknown';
+    const suspectedType = suspectedPlugin ? 'Plugin' : 'Cause';
+
+    if (suspectedName === 'Unknown') {
+      if (errorStack.includes('GooseMod')) {
+        suspectedName = 'GooseMod Internals';
+      }
+
+      if (errorStack.includes('Topaz')) {
+        suspectedName = 'Topaz Internals';
+      }
+
+      if (errorStack.toLowerCase().includes('powercord') || errorStack.toLowerCase().includes('betterdiscord')) {
+        suspectedName = 'Other Mods';
+      }
+    }
+
+    this.setState({
+      error: true,
+
+      suspectedCause: {
+        name: suspectedName,
+        type: suspectedType
+      },
+
+      errorStack: {
+        raw: error.stack,
+        useful: errorStack
+      },
+
+      componentStack: {
+        raw: moreInfo.componentStack,
+        useful: componentStack
+      }
+    });
+  }
+
+  render() {
+    if (this.state.toRetry) {
+      this.state.error = false;
+    }
+
+    setTimeout(() => {
+      this.state.toRetry = true;
+    }, 100);
+
+    return this.state.error ? React.createElement('div', {
+      className: 'gm-error-boundary'
+    },
+      React.createElement('div', {},
+        React.createElement('div', {}),
+
+        React.createElement(FormTitle, {
+          tag: 'h1'
+        }, this.props.header ?? 'Topaz has handled an error',
+          (this.props.showSuspected ?? true) ? React.createElement(Markdown, {}, `## Suspected ${this.state.suspectedCause.type}: ${this.state.suspectedCause.name}`) : null
+        )
+      ),
+
+      React.createElement('div', {},
+        React.createElement(Button, {
+          color: Button.Colors.BRAND,
+          size: Button.Sizes.LARGE,
+
+          onClick: () => {
+            this.state.toRetry = true;
+            this.forceUpdate();
+          }
+        }, 'Retry'),
+
+        React.createElement(Button, {
+          color: Button.Colors.RED,
+          size: Button.Sizes.LARGE,
+
+          onClick: () => {
+            location.reload();
+          }
+        }, 'Refresh')
+      ),
+
+      React.createElement('div', {
+        onClick: () => {
+          this.state.toRetry = false;
+          this.state.showDetails = !this.state.showDetails;
+          this.forceUpdate();
+        }
+      },
+        React.createElement('div', {
+          style: {
+            transform: `rotate(${this.state.showDetails ? '0' : '-90'}deg)`
+          },
+        },
+          React.createElement(DropdownArrow, {
+            width: 24,
+            height: 24
+          })
+        ),
+
+        this.state.showDetails ? 'Hide Details' : 'Show Details'
+      ),
+
+      this.state.showDetails ? React.createElement('div', {},
+        React.createElement(Markdown, {}, `# Error Stack`),
+        React.createElement(Markdown, {}, `\`\`\`
+${this.state.errorStack.useful}
+\`\`\``),
+        React.createElement(Markdown, {}, `# Component Stack`),
+        React.createElement(Markdown, {}, `\`\`\`
+${this.state.componentStack.useful}
+\`\`\``),
+        /* React.createElement(Markdown, {}, `# Debug Info`),
+        React.createElement(Markdown, {}, `\`\`\`
+${goosemod.genDebugInfo()}
+\`\`\``) */
+      ) : null
+    ) : this.props.children;
+  }
+}
+
+const openSub = (plugin, type, _content) => {
   const useModal = topazSettings.modalPages;
 
   const breadcrumbBase = {
@@ -875,6 +1049,11 @@ const openSub = (plugin, type, content) => {
 
     onBreadcrumbClick: (x) => {},
   };
+
+  const content = React.createElement(TZErrorBoundary, {
+    header: 'Topaz failed to render ' + type + ' for ' + plugin,
+    showSuspected: false
+  }, _content);
 
   if (useModal) {
     const LegacyHeader = goosemod.webpackModules.findByDisplayName('LegacyHeader');

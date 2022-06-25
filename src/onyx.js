@@ -1,5 +1,5 @@
 const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) => { acc[x] = obj[x].__sentry_original__ ?? obj[x]; return acc; }, {});
-
+const makeSourceURL = (name) => `${name} | Topaz`.replace(/ /g, '%20');
 const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
 // discord's toast for simplicity
@@ -26,7 +26,9 @@ const complexMap = Object.keys(permissions).reduce((acc, x) => acc.concat(permis
 const mimic = (orig) => {
   const origType = typeof orig; // mimic original value with empty of same type to try and not cause any errors directly
 
-  if (origType === 'function') return () => ([]); // return empty array instead of just undefined to play nicer
+  switch (origType) {
+    case 'function': return () => ([]); // return empty array instead of just undefined to play nicer
+  }
 
   return window[origType[0].toUpperCase() + origType.slice(1)]();
 };
@@ -213,7 +215,7 @@ const Onyx = function (entityID, manifest) {
 
   // todo: don't allow localStorage, use custom storage api internally
   // todo: filter elements for personal info?
-  const allowGlobals = [ 'topaz', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_' ];
+  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'fetch' ];
 
   // nullify (delete) all keys in window to start except allowlist
   for (const k of Object.keys(window)) { // for (const k of Reflect.ownKeys(window)) {
@@ -255,8 +257,18 @@ const Onyx = function (entityID, manifest) {
 
   // mock node
   context.global = context;
-
   context.module = {};
+  context.__dirname = '/home/topaz/plugin';
+  context.process = {
+    versions: {
+      electron: '13.6.6'
+    }
+  }
+
+  // fake global_env for more privacy as it should basically never be really needed
+  context.GLOBAL_ENV = {
+    RELEASE_CHANNEL: 'canary'
+  };
 
   // custom globals
   context.__entityID = entityID;
@@ -268,7 +280,7 @@ const Onyx = function (entityID, manifest) {
 
   let predictedPerms = [];
   this.eval = function (_code) {
-    const code = _code + '\n\n;module.exports'; // return module.exports
+    const code = _code + `\n\n;module.exports //# sourceURL=${makeSourceURL(this.manifest.name)}`; // return module.exports
 
     // basic static code analysis for predicting needed permissions
     // const objectPredictBlacklist = [ 'clyde' ];
@@ -320,7 +332,7 @@ const Onyx = function (entityID, manifest) {
           }, 500);
         }
       } else if (givenPermissions[missingPerm] === false) {
-        // goosemod.showToast(`Blocked ${this.manifest.name} from accessing ${prop} as it lacks ${prettifyString(missingPerm.replace('_', ' - '))} permission`, { subtext: 'Topaz', type: 'warning' });
+        // todo: non-invasively warn user blocked perm and probably broken
       }
 
       // throw new Error('Onyx blocked access to dangerous property in Webpack: ' + prop);

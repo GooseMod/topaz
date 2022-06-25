@@ -9,12 +9,12 @@ class Plugin {
     el.appendChild(document.createTextNode(css)); // Load the stylesheet via style element w/ CSS text
 
     document.head.appendChild(el);
-  
+
     this.stylesheets.push(el); // Push to internal array so we can remove the elements on unload
   }
 
   get settings() {
-    return powercord.__topaz.settingStore;
+    return powercord.api.settings.store;
   }
 
   _topaz_start() {
@@ -26,7 +26,7 @@ class Plugin {
 
     this.pluginWillUnload.bind(this)();
   }
-  
+
   _load = this._topaz_start
   _unload = this._topaz_stop
 }
