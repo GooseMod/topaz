@@ -1,12 +1,12 @@
 (async () => {
-const topazVersion = 197; // Auto increments on build
+const topazVersion = 198; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
   topaz.__reloading = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
 
-  setTimeout(() => updateOpenSettings(), 1000);
+  // setTimeout(() => updateOpenSettings(), 1000);
 }
 
 const initStartTime = performance.now();
@@ -519,7 +519,7 @@ const wasm = wasmInstance.exports;
 return str;
 })(); //# sourceURL=Grass`);
 const Onyx = eval(`const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) => { acc[x] = obj[x].__sentry_original__ ?? obj[x]; return acc; }, {});
-
+const makeSourceURL = (name) => \`\${name} | Topaz\`.replace(/ /g, '%20');
 const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
 // discord's toast for simplicity
@@ -546,7 +546,9 @@ const complexMap = Object.keys(permissions).reduce((acc, x) => acc.concat(permis
 const mimic = (orig) => {
   const origType = typeof orig; // mimic original value with empty of same type to try and not cause any errors directly
 
-  if (origType === 'function') return () => ([]); // return empty array instead of just undefined to play nicer
+  switch (origType) {
+    case 'function': return () => ([]); // return empty array instead of just undefined to play nicer
+  }
 
   return window[origType[0].toUpperCase() + origType.slice(1)]();
 };
@@ -733,7 +735,7 @@ const Onyx = function (entityID, manifest) {
 
   // todo: don't allow localStorage, use custom storage api internally
   // todo: filter elements for personal info?
-  const allowGlobals = [ 'topaz', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_' ];
+  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'fetch' ];
 
   // nullify (delete) all keys in window to start except allowlist
   for (const k of Object.keys(window)) { // for (const k of Reflect.ownKeys(window)) {
@@ -775,8 +777,18 @@ const Onyx = function (entityID, manifest) {
 
   // mock node
   context.global = context;
-
   context.module = {};
+  context.__dirname = '/home/topaz/plugin';
+  context.process = {
+    versions: {
+      electron: '13.6.6'
+    }
+  }
+
+  // fake global_env for more privacy as it should basically never be really needed
+  context.GLOBAL_ENV = {
+    RELEASE_CHANNEL: 'canary'
+  };
 
   // custom globals
   context.__entityID = entityID;
@@ -788,7 +800,7 @@ const Onyx = function (entityID, manifest) {
 
   let predictedPerms = [];
   this.eval = function (_code) {
-    const code = _code + '\\n\\n;module.exports'; // return module.exports
+    const code = _code + \`\\n\\n;module.exports //# sourceURL=\${makeSourceURL(this.manifest.name)}\`; // return module.exports
 
     // basic static code analysis for predicting needed permissions
     // const objectPredictBlacklist = [ 'clyde' ];
@@ -840,7 +852,7 @@ const Onyx = function (entityID, manifest) {
           }, 500);
         }
       } else if (givenPermissions[missingPerm] === false) {
-        // goosemod.showToast(\`Blocked \${this.manifest.name} from accessing \${prop} as it lacks \${prettifyString(missingPerm.replace('_', ' - '))} permission\`, { subtext: 'Topaz', type: 'warning' });
+        // todo: non-invasively warn user blocked perm and probably broken
       }
 
       // throw new Error('Onyx blocked access to dangerous property in Webpack: ' + prop);
@@ -914,6 +926,277 @@ manager.add();
 
 manager`);
 
+const Editor = { // defer loading until editor is wanted
+  get Component() {
+    return (async () => { // async getter
+      delete this.Component;
+      return this.Component = await eval(`(async () => {
+const { React } = goosemod.webpackModules.common;
+window.React = React; // pain but have to
+
+const imp = async url => eval(await (await fetch(url)).text());
+
+const patchAppend = (which) => { // sorry
+  const orig = document[which].appendChild;
+
+  document[which].appendChild = function(el) {
+    if (el.nodeName === 'SCRIPT' && el.src.includes('monaco')) {
+      (async () => {
+        console.log('monaco', which, el.src);
+        (1, eval)(await (await fetch(el.src)).text());
+        el.onload?.();
+      })();
+
+      return;
+    }
+
+    return orig.apply(this, arguments);
+  };
+};
+
+patchAppend('body');
+patchAppend('head');
+
+
+if (!window.monaco_react) { // only load once, or errors
+  // monaco loader and react dependencies
+  await imp('https://unpkg.com/prop-types@15.7.2/prop-types.js');
+  await imp('https://unpkg.com/state-local@1.0.7/lib/umd/state-local.min.js');
+
+  await imp('https://unpkg.com/@monaco-editor/loader@1.3.2/lib/umd/monaco-loader.min.js'); // monaco loader
+  await imp('https://unpkg.com/@monaco-editor/react@4.4.5/lib/umd/monaco-react.min.js'); // monaco react
+}
+
+const MonacoEditor = monaco_react.default;
+
+const langs = {
+  'js': 'javascript',
+  'jsx': 'javascript', // jsx is half broken because monaco bad but do anyway
+  'css': 'css',
+  'html':'html'
+};
+
+const TabBar = goosemod.webpackModules.findByDisplayName('TabBar');
+const TabBarClasses1 = goosemod.webpackModules.findByProps('topPill');
+const TabBarClasses2 = goosemod.webpackModules.findByProps('tabBar', 'nowPlayingColumn');
+
+const PanelButton = goosemod.webpackModules.findByDisplayName('PanelButton');
+
+const ScrollerClasses = goosemod.webpackModules.findByProps('scrollerBase', 'auto', 'thin');
+
+let lastPlugin;
+let expandInt;
+
+const editorSettings = JSON.parse(localStorage.getItem('topaz_editor_settings') ?? 'null') ?? {
+  theme: 'vs-dark',
+  focusMode: true
+};
+
+const saveEditorSettings = () => localStorage.setItem('topaz_editor_settings', JSON.stringify(editorSettings));
+
+const _loadedThemes = {};
+const setTheme = async (x) => {
+  if (!x.startsWith('vs') && !_loadedThemes[x]) _loadedThemes[x] = monaco.editor.defineTheme(x, await (await fetch(\`https://raw.githubusercontent.com/brijeshb42/monaco-themes/master/themes/\${x}.json\`)).json());
+
+  monaco.editor.setTheme(x);
+  editorSettings.theme = x;
+};
+setTheme(editorSettings.theme);
+
+const focus_enlarge = () => document.body.classList.add('topaz-editor-focus');
+const focus_revert = () => document.body.classList.remove('topaz-editor-focus');
+
+return function Editor(props) {
+  let { files, defaultFile, plugin } = props;
+  defaultFile = defaultFile ?? Object.keys(files)[0];
+
+  const editorRef = React.useRef(null);
+  const [ openFile, setOpenFile ] = React.useState(defaultFile);
+
+  if (lastPlugin !== plugin.entityID) {
+    lastPlugin = plugin.entityID;
+    if (window.monaco) monaco.editor.getModels().forEach(x => x.dispose());
+  }
+
+
+  if (!expandInt && editorSettings.focusMode) {
+    expandInt = setInterval(() => {
+      if (document.querySelector('.topaz-editor')) return;
+
+      clearInterval(expandInt);
+      expandInt = undefined;
+
+      focus_revert();
+    }, 300);
+
+    focus_enlarge();
+  }
+
+  const openExt = openFile.split('.').pop();
+
+  React.useEffect(() => {
+    console.log('ref', editorRef);
+    if (!editorRef.current) return;
+
+    editorRef.current.revealLine(0);
+
+    // editorRef.current.setSelection(new monaco.Selection(0, 0, 0, 0));
+    // editorRef.current.focus();
+  }, [ openFile ]);
+
+  return React.createElement('div', {
+    className: 'topaz-editor'
+  },
+    React.createElement(TabBar, {
+      selectedItem: openFile,
+
+      className: [ TabBarClasses2.tabBar, ScrollerClasses.auto ].join(' '),
+      type: TabBarClasses1.top,
+      look: 1,
+
+      onItemSelect: (x) => {
+        if (x.startsWith('_')) return;
+        setOpenFile(x);
+      }
+    },
+      ...Object.keys(files).map(x => React.createElement(TabBar.Item, {
+        id: x,
+        className: TabBarClasses2.item
+      }, x)),
+
+      React.createElement(TabBar.Item, {
+        id: '_settings',
+
+        className: TabBarClasses2.item
+      }, React.createElement(PanelButton, {
+        icon: goosemod.webpackModules.findByDisplayName('Gear'),
+        tooltipText: 'Editor Settings',
+        onClick: async () => {
+          const LegacyHeader = goosemod.webpackModules.findByDisplayName('LegacyHeader');
+          const ModalStuff = goosemod.webpackModules.findByProps('ModalRoot');
+          const { openModal } = goosemod.webpackModules.findByProps('openModal', 'updateModal');
+          const Flex = goosemod.webpackModules.findByDisplayName('Flex');
+
+          const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
+          const _SingleSelect = goosemod.webpackModules.findByProps('SingleSelect').SingleSelect;
+
+          const forceWrap = (comp, key) => class extends React.PureComponent {
+            render() {
+              return React.createElement(comp, {
+                ...this.props,
+                onChange: x => {
+                  this.props[key] = x;
+                  this.forceUpdate();
+
+                  this.props.onChange(x);
+                }
+              });
+            }
+          };
+
+          const _SwitchItem = goosemod.webpackModules.findByDisplayName('SwitchItem');
+
+          const SwitchItem = forceWrap(_SwitchItem, 'value');
+          const SingleSelect = forceWrap(_SingleSelect, 'value');
+
+          const titleCase = (str) => str.split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
+
+          openModal((e) => {
+            return React.createElement(ModalStuff.ModalRoot, {
+              transitionState: e.transitionState,
+              size: 'large'
+            },
+              React.createElement(ModalStuff.ModalHeader, {},
+                React.createElement(Flex.Child, {
+                  basis: 'auto',
+                  grow: 1,
+                  shrink: 1,
+                  wrap: false,
+                },
+                  React.createElement(LegacyHeader, {
+                    tag: 'h2',
+                    size: LegacyHeader.Sizes.SIZE_20,
+                  }, 'Editor Settings')
+                ),
+                React.createElement('FlexChild', {
+                  basis: 'auto',
+                  grow: 0,
+                  shrink: 1,
+                  wrap: false
+                },
+                  React.createElement(ModalStuff.ModalCloseButton, {
+                    onClick: e.onClose
+                  })
+                )
+              ),
+
+              React.createElement(ModalStuff.ModalContent, {
+                className: \`topaz-modal-content\`
+              },
+                React.createElement(SwitchItem, {
+                  note: 'Enlarges settings content for larger editor',
+                  value: editorSettings.focusMode,
+                  onChange: x => {
+                    editorSettings.focusMode = x;
+                    saveEditorSettings();
+
+                    if (x) focus_enlarge();
+                      else focus_revert();
+                  }
+                }, 'Focus Mode'),
+
+                React.createElement(FormTitle, {
+                  tag: 'h5'
+                }, 'Theme'),
+
+                React.createElement(SingleSelect, {
+                  onChange: x => {
+                    setTheme(x);
+                    saveEditorSettings();
+                  },
+                  options: [ 'vs-dark', 'vs-light', 'Dracula', 'Monokai', 'Nord', 'Twilight' ].map(x => ({
+                    label: titleCase(x.replace('vs-', 'VS ')),
+                    value: x
+                  })),
+                  value: editorSettings.theme
+                })
+              )
+            )
+          });
+        }
+      })),
+
+      React.createElement(TabBar.Item, {
+        id: '_reload',
+
+        className: TabBarClasses2.item
+      }, React.createElement(PanelButton, {
+        icon: goosemod.webpackModules.findByDisplayName('Retry'),
+        tooltipText: 'Reload Plugin',
+        onClick: async () => {
+          topaz.reload(plugin.entityID);
+          goosemod.webpackModules.findByProps('showToast').showToast(goosemod.webpackModules.findByProps('createToast').createToast('Reloaded ' + plugin.manifest.name, 0, { duration: 5000, position: 1 }));
+        }
+      }))
+    ),
+
+    React.createElement(MonacoEditor, {
+      defaultValue: files[openFile],
+      defaultLanguage: langs[openExt] ?? openExt,
+      path: openFile,
+      saveViewState: false,
+
+      onMount: editor => editorRef.current = editor,
+      onChange: value => props.onChange(openFile, value),
+      theme: editorSettings.theme
+    })
+  );
+};
+})(); //# sourceURL=TopazEditor`);
+    })();
+  }
+};
+
 let fetchProgressCurrent = 0, fetchProgressTotal = 0;
 const includeImports = async (root, code, updateProgress) => {
   if (updateProgress) {
@@ -948,7 +1231,7 @@ const includeImports = async (root, code, updateProgress) => {
       const relativePath =  resolvePath('.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
       console.log(root, '|', basePath, relativePath, '|', '.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
 
-      resolved = resolveFileFromTree(relativePath) ?? resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/'));
+      resolved = await resolveFileFromTree(relativePath) ?? await resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/'));
       code = await getCode(transformRoot, resolved);
     }
 
@@ -994,12 +1277,12 @@ const builtins = {
     el.appendChild(document.createTextNode(css)); // Load the stylesheet via style element w/ CSS text
 
     document.head.appendChild(el);
-  
+
     this.stylesheets.push(el); // Push to internal array so we can remove the elements on unload
   }
 
   get settings() {
-    return powercord.__topaz.settingStore;
+    return powercord.api.settings.store;
   }
 
   _topaz_start() {
@@ -1011,7 +1294,7 @@ const builtins = {
 
     this.pluginWillUnload.bind(this)();
   }
-  
+
   _load = this._topaz_start
   _unload = this._topaz_stop
 }
@@ -1086,6 +1369,9 @@ module.exports = {
   'powercord/util': `const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const { getOwnerInstance } = goosemod.reactUtils;
 
+const { FluxDispatcher, constants: { Routes } } = goosemod.webpackModules.common;
+
+
 module.exports = {
   sleep,
 
@@ -1103,6 +1389,22 @@ module.exports = {
       if (!x) continue;
       getOwnerInstance(x)?.forceUpdate?.();
     }
+  },
+
+  gotoOrJoinServer: async (inviteCode, channelId) => {
+    const invite = goosemod.webpackModules.findByProps('getInvite').getInvite(inviteCode) ?? (await goosemod.webpackModules.findByProps('resolveInvite').resolveInvite(inviteCode)).invite;
+
+    if (goosemod.webpackModules.findByProps('getGuilds').getGuilds()[invite.guild.id]) goosemod.webpackModules.findByProps('transitionTo').transitionTo(Routes.CHANNEL(invite.guild.id, channelId ? channelId : goosemod.webpackModules.findByProps('getLastSelectedChannelId').getChannelId(invite.guild.id)));
+      else FluxDispatcher.dispatch({
+      type: 'INVITE_MODAL_OPEN',
+      context: 'APP',
+      invite,
+      code
+    });
+  },
+
+  injectContextMenu: (injectionId, displayName, patch, before = false) => { // todo: implement
+
   },
 
   ...goosemod.reactUtils // Export GooseMod React utils
@@ -1142,7 +1444,9 @@ module.exports = {
   AdvancedScrollerAuto: goosemod.webpackModules.findByProps('AdvancedScrollerAuto').AdvancedScrollerAuto,
   AdvancedScrollerNone: goosemod.webpackModules.findByProps('AdvancedScrollerNone').AdvancedScrollerNone,
 
-  AsyncComponent: powercord.__topaz.AsyncComponent
+  AsyncComponent: powercord.__topaz.AsyncComponent,
+
+  settings: require('powercord/components/settings')
 };`,
   'powercord/components/settings': `const { React } = goosemod.webpackModules.common;
 const OriginalSwitchItem = goosemod.webpackModules.findByDisplayName('SwitchItem');
@@ -1162,6 +1466,10 @@ const SettingsFormClasses = goosemod.webpackModules.findByProps('dividerDefault'
 const OriginalTextInput = goosemod.webpackModules.findByDisplayName('TextInput');
 const OriginalSlider = goosemod.webpackModules.findByDisplayName('Slider');
 
+const SelectTempWrapper = goosemod.webpackModules.findByDisplayName('SelectTempWrapper');
+
+const OriginalRadioGroup = goosemod.webpackModules.findByDisplayName('RadioGroup');
+
 class Divider extends React.PureComponent {
   render() {
     return React.createElement(FormDivider, {
@@ -1177,7 +1485,7 @@ class FormItem extends React.PureComponent {
         required: this.props.required,
         className: [Flex.Direction.VERTICAL, Flex.Justify.START, Flex.Align.STRETCH, Flex.Wrap.NO_WRAP, Margins.marginBottom20].join(' '),
         onClick: () => {
-          this.props.onClick();
+          this.props.onClick?.();
         }
       },
 
@@ -1199,7 +1507,7 @@ module.exports = {
         ...this.props,
         onChange: (e) => {
           this.props.onChange(e);
-          
+
           this.props.value = e;
           this.forceUpdate();
         }
@@ -1211,15 +1519,15 @@ module.exports = {
     render() {
       const title = this.props.children;
       delete this.props.children;
-  
+
       return React.createElement(FormItem, {
           title,
           note: this.props.note,
           required: this.props.required,
-  
+
           noteHasMargin: true
         },
-  
+
         React.createElement(OriginalTextInput, {
           ...this.props
         })
@@ -1246,10 +1554,48 @@ module.exports = {
     }
   },
 
+  SelectInput: class SelectInput extends React.PureComponent {
+    render() {
+      const title = this.props.children;
+      delete this.props.children;
+
+      return React.createElement(FormItem, {
+          title,
+          note: this.props.note,
+          required: this.props.required,
+
+          noteHasMargin: true
+        },
+
+        React.createElement(SelectTempWrapper, {
+          ...this.props
+        })
+      );
+    }
+  },
+
+  RadioGroup: class RadioGroup extends React.PureComponent {
+    render() {
+      const title = this.props.children;
+      delete this.props.children;
+
+      return React.createElement(FormItem, {
+          title,
+          note: this.props.note,
+          required: this.props.required
+        },
+
+        React.createElement(OriginalRadioGroup, {
+          ...this.props
+        })
+      );
+    }
+  },
+
   Category: class Category extends React.PureComponent {
     render() {
       const children = this.props.opened ? this.props.children : [];
-  
+
       return React.createElement(FormItem, {
           title: React.createElement('div', {},
             React.createElement('svg', {
@@ -1267,7 +1613,7 @@ module.exports = {
                 d: 'M9.29 15.88L13.17 12 9.29 8.12c-.39-.39-.39-1.02 0-1.41.39-.39 1.02-.39 1.41 0l4.59 4.59c.39.39.39 1.02 0 1.41L10.7 17.3c-.39.39-1.02.39-1.41 0-.38-.39-.39-1.03 0-1.42z'
               }),
             ),
-  
+
             React.createElement('label', {
               class: FormClasses.title,
               style: {
@@ -1277,7 +1623,7 @@ module.exports = {
               }
             },
               this.props.name,
-  
+
               React.createElement(FormText, {
                 className: FormClasses.description,
                 style: {
@@ -1286,12 +1632,12 @@ module.exports = {
               }, this.props.description)
             ),
           ),
-  
+
           onClick: () => {
             this.props.onChange(!this.props.opened);
           }
         },
-  
+
         ...children
       );
     }
@@ -1332,6 +1678,93 @@ module.exports = {
   close: () => modalManager.closeModal(lastId),
 
   closeAll: () => modalManager.closeAllModals()
+};`,
+  'powercord/http': `class Request {
+  constructor(method, url) {
+    this.method = method;
+    this.url = url;
+
+    this.data = null;
+    this.headers = {};
+    this.query = {};
+  }
+
+  set(key, value) { // set header
+    this.headers[key] = value;
+    return this;
+  }
+
+  query(key, value) { // set query param
+    this.query[key] = value;
+    return this;
+  }
+
+  send(body) { // set post data
+    this.body = body;
+    return this;
+  }
+
+  execute() {
+    return new Promise(async (res, _rej) => {
+      const rej = err => console.error(err) || _rej(err);
+
+      let url = this.url;
+
+      if (Object.keys(this.query).length > 0) {
+        url += '?' + new URLSearchParams(this.query).toString();
+      }
+
+      const opts = {
+        method: this.method,
+        headers: this.headers
+      };
+
+      if (this.body) opts.body = this.headers['Content-Type'] === 'application/x-www-form-urlencoded' ? new URLSearchParams(this.body) : JSON.stringify(this.body);
+
+      topaz.log('powercord.http', 'fetch', url, opts);
+
+      const resp = await fetch(\`https://topaz-cors.goosemod.workers.dev/?\` + url, opts).catch(rej);
+
+      const body = await resp.text().catch(rej);
+
+      topaz.log('powercord.http', 'fetch', resp, body);
+
+      res({
+        raw: body,
+        body: resp.headers.get('Content-Type').includes('application/json') ? JSON.parse(body) : body,
+
+        ok: resp.status >= 200 && resp.status < 400,
+        statusCode: resp.status,
+        statusText: resp.statusText,
+        headers: Object.fromEntries(resp.headers)
+      });
+    });
+  }
+
+  then(res, rej) {
+    if (this._res) return this._res.then(res, rej);
+
+    return this._res = this.execute().then(res, rej);
+  }
+
+  catch(rej) {
+    return this.then(() => {}, rej);
+  }
+}
+
+module.exports = [ 'get', 'post', 'put', 'del', 'head' ].reduce((acc, x) => { acc[x] = (url) => new Request(x === 'del' ? 'DELETE' : x.toUpperCase(), url); return acc; }, {});`,
+  'powercord/constants': `module.exports = {
+  WEBSITE: '',
+  I18N_WEBSITE: '',
+  REPO_URL: '',
+
+  SETTINGS_FOLDER: '/home/topaz/powercord/settings',
+  CACHE_FOLDER: '/home/topaz/powercord/settings',
+  LOGS_FOLDER: '/home/topaz/powercord/settings',
+
+  DISCORD_INVITE: 'neMncS2', // mock topaz ones
+  GUILD_ID: '756146058320674998',
+  SpecialChannels: [ 'KNOWN_ISSUES', 'SUPPORT_INSTALLATION', 'SUPPORT_PLUGINS', 'SUPPORT_MISC', 'STORE_PLUGINS', 'STORE_THEMES', 'CSS_SNIPPETS', 'JS_SNIPPETS' ].reduce((acc, x) => { acc[x] = '944004406536466462'; return acc; }, {})
 };`,
 
   '@goosemod/patcher': `module.exports = goosemod.patcher;`,
@@ -1395,7 +1828,7 @@ module.exports = {
 module.exports = {
   clipboard: {
     writeText: (text) => copy(text),
-    readText: () => DiscordNative.clipboard.read()
+    readText: () => window.DiscordNative ? DiscordNative.clipboard.read() : 'clipboard' // await navigator.clipboard.readText()
   },
 
   shell: {
@@ -1414,18 +1847,32 @@ module.exports = {
 
 module.exports = {
   join: (...parts) => resolve(parts.join('/')),
-  resolve
+  resolve: (...parts) => resolve(parts.join('/')) // todo: implement resolve properly (root / overwrite)
 };`,
-  'fs': `module.exports = {};`,
-  'request': `module.exports = {};`
+  'fs': `module.exports = {
+  readdirSync: path => []
+};`,
+  'process': `module.exports = {
+  platform: 'linux',
+  env: {
+    HOME: '/home/topaz'
+  }
+};`,
+  'request': `module.exports = {};`,
+  'querystring': `module.exports = {
+  stringify: x => new URLSearchParams(x).toString()
+};`
 };
 
 const globals = {
   powercord: `let powercord;
 
 (() => {
-class SimpleStore {
-  constructor() {
+const { React, Flux, FluxDispatcher } = goosemod.webpackModules.common;
+
+class SettingsStore extends Flux.Store {
+  constructor (Dispatcher, handlers) {
+    super(Dispatcher, handlers);
     this.store = {};
   }
 
@@ -1460,13 +1907,54 @@ class SimpleStore {
   set = this.updateSetting
   delete = this.deleteSetting
 
-  // random stub
-  connectStore = () => {}
+  // not flux but yes
+  connectStore = (comp) => class ConnectWrap extends React.PureComponent {
+    render() {
+      const props = this.props;
+      delete props.children;
+
+      return React.createElement(comp, {
+        ...props,
+        getSetting: settingStore.getSetting,
+        updateSetting: settingStore.updateSetting,
+        toggleSetting: settingStore.toggleSetting,
+        deleteSetting: settingStore.deleteSetting,
+      }, this.props.children)
+    }
+  }
 }
 
-const settingStore = new SimpleStore();
+const settingStore = new SettingsStore(FluxDispatcher, {
+  POWERCORD_SETTINGS_UPDATE: ({ category, settings }) => updateSettings(category, settings),
+  POWERCORD_SETTING_TOGGLE: ({ category, setting, defaultValue }) => toggleSetting(category, setting, defaultValue),
+  POWERCORD_SETTING_UPDATE: ({ category, setting, value }) => updateSetting(category, setting, value),
+  POWERCORD_SETTING_DELETE: ({ category, setting }) => deleteSetting(category, setting)
+});
 
 const settingsUnpatch = {};
+const i18nMessages = {};
+
+const i18n = goosemod.webpackModules.find(x => x.getLanguages && x.Messages?.ACCOUNT);
+const locale = () => goosemod.webpackModules.findByProps('getLocaleInfo').getLocale();
+const updateI18n = () => {
+  const parent = i18n._provider?._context ?? i18n._proxyContext;
+  let { messages, defaultMessages } = parent;
+
+  Object.defineProperty(parent, 'messages', {
+    enumerable: true,
+    get: () => messages,
+    set: o => messages = Object.assign(o, i18nMessages[locale()])
+  });
+
+  Object.defineProperty(parent, 'defaultMessages', {
+    enumerable: true,
+    get: () => defaultMessages,
+    set: o => defaultMessages = Object.assign(o, i18nMessages['en-US'])
+  });
+
+  parent.messages = messages;
+  parent.defaultMessages = defaultMessages;
+};
 
 const updateOpenSettings = async () => {
   try {
@@ -1483,7 +1971,6 @@ const updateOpenSettings = async () => {
   } catch (_e) { }
 };
 
-const { React } = goosemod.webpackModules.common;
 class AsyncComponent extends React.PureComponent {
   constructor (props) {
     super(props);
@@ -1623,7 +2110,9 @@ powercord = {
         delete settingsUnpatch[id];
 
         updateOpenSettings();
-      }
+      },
+
+      store: settingStore
     },
 
     notices: {
@@ -1631,8 +2120,15 @@ powercord = {
     },
 
     i18n: {
-      loadAllStrings: (obj) => {
+      loadAllStrings: (obj) => { // todo: re-add on locale change
+        for (const locale in obj) {
+          i18nMessages[locale] = {
+            ...(i18nMessages[locale] ?? {}),
+            ...obj[locale]
+          };
+        }
 
+        updateI18n();
       }
     },
 
@@ -1644,10 +2140,11 @@ powercord = {
   },
 
   __topaz: {
-    settingStore,
     AsyncComponent
   }
 };
+
+
 })();`,
   betterdiscord: `let BdApi;
 let global = window;
@@ -1852,6 +2349,33 @@ const showToast = (content, options = {}) => goosemod.showToast(content, options
 
 const injectedCSS = {};
 
+const _observerHooks = [];
+const Observer = new MutationObserver((muts) => {
+  for (const hook of _observerHooks) {
+    const matches = muts.filter(hook.filter);
+    if (matches.length === 0) continue;
+
+    hook.callback(matches);
+  }
+});
+
+const observe = (selector, callback) => {
+  const id = Math.random().toString().slice(2);
+  _observerHooks.push({
+    id,
+    callback,
+    filter: mut => mut.target.matches(selector) || [ ...mut.addedNodes, ...mut.removedNodes ].some(x => x.querySelector && (x.matches(selector) || x.querySelector(selector)))
+  });
+
+  if (_observerHooks.length === 1) Observer.observe(document.getElementById("app-mount"), { attributes: true, childList: true, subtree: true });
+
+  return () => { // unhook func
+    _observerHooks.splice(_observerHooks.find(x => x.id === id), 1);
+
+    if (_observerHooks.length === 0) Observer.disconnect(); // no hooks, disconnect
+  }
+};
+
 const api = {
   WebpackModules,
 
@@ -2022,7 +2546,7 @@ const api = {
       if (this.cache[displayName]) return _res(this.cache[displayName]);
 
       const res = (ret) => {
-        clearInterval(int);
+        unobs();
 
         // if (!ret.displayName) ret.displayName = displayName
 
@@ -2063,7 +2587,7 @@ const api = {
       };
 
       setTimeout(check, 0);
-      const int = setInterval(check, 5000);
+      const unobs = observe(selector, check);
     })
   },
 
@@ -2253,7 +2777,7 @@ const getCode = async (root, p, ...backups) => {
   const origPath = join(root, p);
   if (fetchCache.get(origPath)) return fetchCache.get(origPath);
 
-  let code = '404: Not Found';
+  let code = `'failed to fetch: ${p}'`;
   let path;
   for (path of [ p, ...backups ]) {
     if (!path) continue;
@@ -2261,6 +2785,7 @@ const getCode = async (root, p, ...backups) => {
     const req = await fetch(join(root, path));
     // console.log('REQ', join(root, path), req.status);
     if (req.status !== 200) continue;
+    console.log(p, req.status);
 
     code = await req.text();
     break;
@@ -2277,11 +2802,14 @@ const makeChunk = async (root, p) => {
 
   const joined = (root + '/' + p).replace(transformRoot, '');
   const resPath = builtins[p] ? p : resolvePath(joined).slice(1);
-  const resolved = resolveFileFromTree(resPath);
+  const resolved = await resolveFileFromTree(resPath);
   console.log('CHUNK', genId(resPath), '|', root.replace(transformRoot, ''), p, '|', joined, resPath, resolved);
 
-  let code = await getCode(transformRoot, resolved ?? p, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
-  if (!builtins[p]) code = await includeRequires(join(transformRoot, resolved), code);
+  const finalPath = resolved ?? p;
+
+  let code = await getCode(transformRoot, finalPath, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
+  // if (!builtins[p]) code = await includeRequires(join(transformRoot, finalPath), code);
+  code = await includeRequires(join(transformRoot, finalPath), code);
   const id = genId(resPath);
 
   if (p.endsWith('.json') || code.startsWith('{')) code = 'module.exports = ' + code;
@@ -2333,9 +2861,15 @@ const includeRequires = async (path, code) => {
   });
 
   code = await replaceAsync(code, /this\.loadStylesheet\(['"`](.*?)['"`]\)/g, async (_, p) => {
-    const css = (await transformCSS(root, await getCode(root, './' + p))).replace(/\\/g, '\\\\').replace(/\`/g, '\`');
+    const css = (await transformCSS(root, await getCode(root, './' + p.replace(/^.\//, '')))).replace(/\\/g, '\\\\').replace(/\`/g, '\`');
 
     return `this.loadStylesheet(\`${css}\`)`;
+  });
+
+  code = await replaceAsync(code, /powercord\.api\.i18n\.loadAllStrings\(.*?\)/g, async (_, p) => { // todo: actual pc i18n
+    const english = (await getCode(transformRoot, './i18n/en-US.json')).replace(/\\/g, '\\\\').replace(/\`/g, '\`');
+
+    return `powercord.api.i18n.loadAllStrings({ 'en-US': JSON.parse(\`${english}\`) })`;
   });
 
   fetchProgressCurrent++;
@@ -2402,16 +2936,37 @@ const updatePending = (repo, substate) => {
 
 const resolvePath = (x) => {
   let ind;
-  while ((ind = x.indexOf('../')) !== -1) x = x.slice(0, ind) + x.slice(ind + 3);
+  if (x.startsWith('./')) x = x.substring(2);
+  x = x.replaceAll('/./', '/').replaceAll('//', '/'); // example/./test -> example/test
+
+  while ((ind = x.indexOf('../')) !== -1) {
+      const priorSlash = x.lastIndexOf('/', ind - 4);
+      x = x.slice(0, priorSlash === -1 ? 0 : (priorSlash + 1)) + x.slice(ind + 3); // example/test/../sub -> example/sub
+  }
 
   return x;
 };
 
 let lastError;
-const resolveFileFromTree = (path) => {
-  const res = tree.find((x) => x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
+const resolveFileFromTree = async (path) => {
+  const dirRes = tree.find((x) => x.type === 'tree' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
+  let res;
 
-  console.log('RESOLVE', path, tree, 'OUT', res);
+  if (path === dirRes) { // just require(dir)
+    res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/index'))?.path;
+    if (!res) {
+      res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/package.json'))?.path;
+      if (res) {
+        const package = JSON.parse(await getCode(transformRoot, './' + res));
+        if (package.main.startsWith('/')) package.main = package.main.slice(1);
+        if (package.main.startsWith('./')) package.main = package.main.slice(2);
+
+        console.log('PACKAGE', package.main);
+
+        res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/' + package.main))?.path;
+      }
+    }
+  } else res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
 
   if (path.startsWith('powercord/') && !builtins[path]) {
     console.warn('Missing builtin', path);
@@ -2467,7 +3022,7 @@ const install = async (info, settings = undefined, disabled = false) => {
 
     updatePending(info, 'Fetching index...');
 
-    const indexFile = resolveFileFromTree('index');
+    const indexFile = await resolveFileFromTree('index');
 
     const indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/${subdir ? (subdir + '/') : ''}index.js`;
     let root = getDir(indexUrl);
@@ -2475,8 +3030,8 @@ const install = async (info, settings = undefined, disabled = false) => {
     chunks = {}; // reset chunks
 
     if (!mod) {
-      if (resolveFileFromTree('manifest.json')) mod = 'pc';
-      if (resolveFileFromTree('goosemodModule.json')) mod = 'gm';
+      if (await resolveFileFromTree('manifest.json')) mod = 'pc';
+      if (await resolveFileFromTree('goosemodModule.json')) mod = 'gm';
     }
 
     let indexCode;
@@ -2493,6 +3048,8 @@ const install = async (info, settings = undefined, disabled = false) => {
           break;
 
         default: // default to pc
+          mod = 'pc';
+
           manifest = await (await fetch(join(root, './powercord_manifest.json'))).json();
 
           indexCode = await getCode(root, './' + manifest.theme);
@@ -2633,6 +3190,7 @@ const install = async (info, settings = undefined, disabled = false) => {
 
   plugin.__enabled = !disabled;
   plugin.__mod = mod;
+  plugin.__root = transformRoot;
 
   if (!isTheme) switch (mod) {
     case 'pc':
@@ -2707,7 +3265,7 @@ const transform = async (path, code, info) => {
 
   code = `(function () {
 ${code}
-})(); //# sourceURL=${encodeURI(`Topaz | ${info}`)}`;
+})();`;
 
   return code;
 };
@@ -2777,10 +3335,10 @@ window.topaz = {
     if (!topaz.__reloading) {
       purgeCacheForPlugin(info);
       purgePermsForPlugin(info);
-    }
 
-    savePlugins();
-    setDisabled(info, false); // Remove from disabled list
+      savePlugins();
+      setDisabled(info, false); // Remove from disabled list
+    }
   },
   uninstallAll: () => Object.keys(plugins).forEach((x) => topaz.uninstall(x)),
 
@@ -2898,6 +3456,8 @@ const LegacyText = goosemod.webpackModules.findByDisplayName('LegacyText');
 const Spinner = goosemod.webpackModules.findByDisplayName('Spinner');
 const PanelButton = goosemod.webpackModules.findByDisplayName('PanelButton');
 const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
+const Markdown = goosemod.webpackModules.find((x) => x.displayName === 'Markdown' && x.rules);
+const DropdownArrow = goosemod.webpackModules.findByDisplayName('DropdownArrow');
 const HeaderBarContainer = goosemod.webpackModules.findByDisplayName('HeaderBarContainer');
 const FormItem = goosemod.webpackModules.findByDisplayName('FormItem');
 const TextInput = goosemod.webpackModules.findByDisplayName('TextInput');
@@ -2925,7 +3485,145 @@ class Switch extends React.PureComponent {
   }
 }
 
-const openSub = (plugin, type, content) => {
+class TZErrorBoundary extends React.PureComponent {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      error: false
+    };
+  }
+
+  componentDidCatch(error, moreInfo) {
+    console.log('honk', {error, moreInfo});
+
+    const errorStack = decodeURI(error.stack.split('\n').filter((x) => !x.includes('/assets/')).join('\n'));
+    const componentStack = decodeURI(moreInfo.componentStack.split('\n').slice(1, 9).join('\n'));
+
+
+    const suspectedPlugin = errorStack.match(/\((.*) \| GM Module:/)?.[1] ?? componentStack.match(/\((.*) \| GM Module:/)?.[1] ??
+      errorStack.match(/\((.*) \| Topaz:/)?.[1] ?? componentStack.match(/\((.*) \| Topaz:/)?.[1];
+
+    let suspectedName = suspectedPlugin ?? 'Unknown';
+    const suspectedType = suspectedPlugin ? 'Plugin' : 'Cause';
+
+    if (suspectedName === 'Unknown') {
+      if (errorStack.includes('GooseMod')) {
+        suspectedName = 'GooseMod Internals';
+      }
+
+      if (errorStack.includes('Topaz')) {
+        suspectedName = 'Topaz Internals';
+      }
+
+      if (errorStack.toLowerCase().includes('powercord') || errorStack.toLowerCase().includes('betterdiscord')) {
+        suspectedName = 'Other Mods';
+      }
+    }
+
+    this.setState({
+      error: true,
+
+      suspectedCause: {
+        name: suspectedName,
+        type: suspectedType
+      },
+
+      errorStack: {
+        raw: error.stack,
+        useful: errorStack
+      },
+
+      componentStack: {
+        raw: moreInfo.componentStack,
+        useful: componentStack
+      }
+    });
+  }
+
+  render() {
+    if (this.state.toRetry) {
+      this.state.error = false;
+    }
+
+    setTimeout(() => {
+      this.state.toRetry = true;
+    }, 100);
+
+    return this.state.error ? React.createElement('div', {
+      className: 'gm-error-boundary'
+    },
+      React.createElement('div', {},
+        React.createElement('div', {}),
+
+        React.createElement(FormTitle, {
+          tag: 'h1'
+        }, this.props.header ?? 'Topaz has handled an error',
+          (this.props.showSuspected ?? true) ? React.createElement(Markdown, {}, `## Suspected ${this.state.suspectedCause.type}: ${this.state.suspectedCause.name}`) : null
+        )
+      ),
+
+      React.createElement('div', {},
+        React.createElement(Button, {
+          color: Button.Colors.BRAND,
+          size: Button.Sizes.LARGE,
+
+          onClick: () => {
+            this.state.toRetry = true;
+            this.forceUpdate();
+          }
+        }, 'Retry'),
+
+        React.createElement(Button, {
+          color: Button.Colors.RED,
+          size: Button.Sizes.LARGE,
+
+          onClick: () => {
+            location.reload();
+          }
+        }, 'Refresh')
+      ),
+
+      React.createElement('div', {
+        onClick: () => {
+          this.state.toRetry = false;
+          this.state.showDetails = !this.state.showDetails;
+          this.forceUpdate();
+        }
+      },
+        React.createElement('div', {
+          style: {
+            transform: `rotate(${this.state.showDetails ? '0' : '-90'}deg)`
+          },
+        },
+          React.createElement(DropdownArrow, {
+            width: 24,
+            height: 24
+          })
+        ),
+
+        this.state.showDetails ? 'Hide Details' : 'Show Details'
+      ),
+
+      this.state.showDetails ? React.createElement('div', {},
+        React.createElement(Markdown, {}, `# Error Stack`),
+        React.createElement(Markdown, {}, `\`\`\`
+${this.state.errorStack.useful}
+\`\`\``),
+        React.createElement(Markdown, {}, `# Component Stack`),
+        React.createElement(Markdown, {}, `\`\`\`
+${this.state.componentStack.useful}
+\`\`\``),
+        /* React.createElement(Markdown, {}, `# Debug Info`),
+        React.createElement(Markdown, {}, `\`\`\`
+${goosemod.genDebugInfo()}
+\`\`\``) */
+      ) : null
+    ) : this.props.children;
+  }
+}
+
+const openSub = (plugin, type, _content) => {
   const useModal = topazSettings.modalPages;
 
   const breadcrumbBase = {
@@ -2942,6 +3640,11 @@ const openSub = (plugin, type, content) => {
 
     onBreadcrumbClick: (x) => {},
   };
+
+  const content = React.createElement(TZErrorBoundary, {
+    header: 'Topaz failed to render ' + type + ' for ' + plugin,
+    showSuspected: false
+  }, _content);
 
   if (useModal) {
     const LegacyHeader = goosemod.webpackModules.findByDisplayName('LegacyHeader');
@@ -3015,7 +3718,7 @@ const openSub_modal = (header, content, type) => {
       ),
 
       React.createElement(ModalStuff.ModalContent, {
-        className: `topaz-${type}-modal-content`
+        className: `topaz-modal-content topaz-${type}-modal-content`
       },
         content
       )
@@ -3099,6 +3802,37 @@ class Plugin extends React.PureComponent {
             openSub(manifest.name, 'settings', React.createElement(settings.render, settings.props ?? {}));
           }
         }) : null,
+
+        React.createElement(PanelButton, {
+          icon: goosemod.webpackModules.findByDisplayName('Pencil'),
+          tooltipText: 'Edit',
+          onClick: async () => {
+            const plugin = plugins[entityID];
+
+
+            openSub(manifest.name, 'editor', React.createElement(await Editor.Component, {
+              files: fetchCache.keys().filter(x => x.includes(entityID.replace('/blob', ''))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {}),
+              plugin,
+              onChange: (file, content) => {
+                const url = plugin.__root + '/' + file;
+                console.log(file, '->', url, fetchCache.get(url)?.length - content.length);
+
+                fetchCache.set(url, content);
+              }
+            }), [
+              {
+                text: 'Reload Plugin',
+                icon: 'Retry',
+                onClick: () => {}
+              },
+              {
+                text: 'Editor Settings',
+                icon: 'Gear',
+                onClick: () => {}
+              }
+            ]);
+          }
+        }),
 
         !isTheme ? React.createElement(PanelButton, {
           icon: goosemod.webpackModules.findByDisplayName('PersonShield'),
@@ -3653,7 +4387,7 @@ cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
   border-bottom: thin solid var(--background-modifier-accent);
 }
 
-.topaz-settings-modal-content, .topaz-permissions-modal-content {
+.topaz-modal-content {
   padding-top: 20px;
 }
 
@@ -3763,6 +4497,104 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   min-height: initial !important;
 }
 
+.topaz-editor-focus .contentColumn-1C7as6.contentColumnDefault-3eyv5o {
+  max-width: calc(100vw - 270px);
+}
+
+.contentColumn-1C7as6.contentColumnDefault-3eyv5o {
+  transition: max-width .5s;
+}
+
+.topaz-editor-focus .contentRegion-3HkfJJ {
+  flex: 1 1 80%;
+}
+
+.contentRegion-3HkfJJ {
+  transition: flex .5s;
+}
+
+.topaz-editor-focus .sidebarRegion-1VBisG {
+  flex: 1 0 0;
+}
+
+.sidebarRegion-1VBisG {
+  transition: flex .5s;
+}
+
+.topaz-editor-focus .toolsContainer-25FL6V {
+  top: -50px;
+}
+
+.toolsContainer-25FL6V {
+  transition: top .5s;
+}
+
+.topaz-editor-focus .contentRegionScroller-2_GT_N {
+  overflow: visible;
+}
+
+.topaz-editor > * {
+  width: 100%;
+}
+
+.topaz-editor-focus .topaz-editor > * {
+  width: calc(100vw - 308px) !important;
+}
+
+.topaz-editor > section {
+  height: 88vh !important;
+}
+
+.topaz-editor > [role="tablist"] {
+  overflow: auto hidden;
+}
+
+.topaz-editor > [role="tablist"] > [aria-controls^="_"] {
+  position: absolute;
+  right: 0px;
+  padding: 3px;
+}
+
+.topaz-editor > [role="tablist"] > [aria-controls="_settings-tab"] {
+  border-radius: 0 8px 0 0;
+}
+
+.topaz-editor > [role="tablist"] > [aria-controls="_reload-tab"] {
+  right: 40px;
+  border-radius: 8px 0 0 0;
+}
+
+.topaz-editor > [role="tablist"] > div {
+  background: var(--background-secondary-alt);
+  padding: 8px 16px;
+}
+
+.topaz-editor > [role="tablist"] > div:not(:first-child) {
+  border-left: 1px solid var(--background-secondary);
+}
+
+.topaz-editor > [role="tablist"] > div[aria-selected="true"] {
+  background: var(--background-floating);
+}
+
+.topaz-editor-page {
+  top: -30px;
+  position: relative;
+}
+
+/* Rounding edges for bprder files */
+.topaz-editor > [role="tablist"] > div:first-child { /* First */
+  border-radius: 8px 0 0 0;
+}
+
+.topaz-editor > [role="tablist"] > div:nth-last-child(3) { /* Last */
+  border-radius: 0 8px 0 0;
+}
+
+.topaz-editor > [role="tablist"] > div:first-child:nth-last-child(3) { /* Only */
+  border-radius: 8px 8px 0 0;
+}
+
 /* Hide some elements for Simple UI */
 .topaz-simple .topaz-tag { /* Mod tag */
   display: none;
@@ -3781,6 +4613,10 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 }
 
 .topaz-simple [aria-label="Permissions"] { /* Permissions button */
+  display: none;
+}
+
+.topaz-simple [aria-label="Edit"] { /* Edit button */
   display: none;
 }
 
