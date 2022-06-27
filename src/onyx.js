@@ -37,13 +37,13 @@ const parseStack = (stack) => [...stack.matchAll(/^    at (.*?)( \[as (.*)\])? \
   func: x[1],
   alias: x[3],
   source: x[4],
-  sourceType: x[4].startsWith('Topaz') ? 'topaz' : (x[4].startsWith('https://discord.com') ? 'discord' : (x[4] === '<anonymous>' ? 'anonymous' : 'unknown'))
+  sourceType: x[4].startsWith('Topaz') ? 'topaz' : (x[4].includes('discord.com/') ? 'discord' : (x[4] === '<anonymous>' ? 'anonymous' : 'unknown'))
 }));
 
 const shouldPermitViaStack = () => {
   const stack = parseStack(Error().stack).slice(2, -2); // slice away onyx wrappers
 
-  const inClone = stack.find(x => (x.func === 'assign' || x.func === 'Function.assign') && x.source === '<anonymous>');
+  const inClone = !!stack.find(x => (x.func === 'assign' || x.func === 'Function.assign') && x.source === '<anonymous>');
 
   const internalDiscordClone = inClone && stack[1].sourceType === 'discord';
 
