@@ -408,6 +408,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     if (spl.length > 2) { // Not just repo
       repo = spl.slice(0, 2).join('/');
       subdir = spl.slice(4).join('/');
+      branch = spl[3] ?? 'HEAD';
 
       console.log('SUBDIR', repo, subdir);
     }
