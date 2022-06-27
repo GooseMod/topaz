@@ -270,7 +270,7 @@ const api = {
     })
   },
 
-  Utilities: class Utilities { // class because... https://github.com/Strencher/BetterDiscordStuff/blob/master/UserDetails/UserDetails.plugin.js#L757
+  Utilities: class Utilities {
     static suppressErrors = (func, label) => (...args) => {
       try {
         func(...args);
@@ -280,6 +280,19 @@ const api = {
     }
 
     static findInReactTree = goosemod.reactUtils.findInReactTree
+
+    static className(...args) {
+      return args.map(x => {
+        if (Array.isArray(x)) return x;
+        if (typeof x === 'object') return Object.keys(x).filter(y => x[y]);
+
+        return x;
+      }).flat().join(' ');
+    }
+
+    static getNestedProp(parent, route) {
+      return route.split('.').reduce((acc, x) => acc && acc[x], parent);
+    }
   },
 
   PluginUtilities: {
@@ -302,6 +315,10 @@ const api = {
     removeStyle: (id) => {
       injectedCSS[id]?.remove();
     }
+  },
+
+  ReactTools: {
+    ...goosemod.reactUtils
   },
 
   Toasts: {
