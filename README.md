@@ -1,5 +1,5 @@
 # topaz
-A "next-gen" mod bundling client-side in web, with compat abilities.
+A "next-gen" mod bundling client-side in web, designed for wide compat and with no limits.
 
 > **Warning** |
 > Topaz is in **alpha**, you should not rely on it.
