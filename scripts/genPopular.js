@@ -2,6 +2,8 @@
 const { writeFileSync } = require('fs');
 const { join } = require('path');
 
+const [ GITHUB_TOKEN, DISCORD_TOKEN ] = process.argv.slice(1);
+
 const pc = {
   plugins: [
     'romdotdog/wpm',
@@ -25,15 +27,17 @@ const pc = {
     'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-clickableEdits',
     'discord-modifications/show-hidden-channels',
     'FifiTheBulldog/token',
+    'CanadaHonk/message-translate', // fork as waiting for PR to merge
+    'katlyn/pronoundb-powercord', // fork as waiting for PR to merge
   ],
 
   themes: [
     'leeprky/MaterialYouTheme',
     'eternal404/dark-discord',
     'NYRI4/Comfy',
-    'DiscordStyles/Slate',
+    'DiscordStyles/Slate@deploy',
     'DiscordStyles/HorizontalServerList',
-    'DiscordStyles/RadialStatus',
+    'DiscordStyles/RadialStatus@deploy',
     'Lavender-Discord/Lavender',
     'CapnKitten/Material-Discord',
     'catppuccin/discord',
@@ -55,7 +59,8 @@ const bd = {
     'https://github.com/Strencher/BetterDiscordStuff/blob/master/UserDetails/UserDetails.plugin.js',
     'https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.js',
     'https://github.com/Puv1s/ColorTooltips/blob/main/ColorTooltips.plugin.js',
-    'https://github.com/Farcrada/DiscordPlugins/blob/master/Double-click-to-edit/DoubleClickToEdit.plugin.js'
+    'https://github.com/Farcrada/DiscordPlugins/blob/master/Double-click-to-edit/DoubleClickToEdit.plugin.js',
+    'https://github.com/Strencher/BetterDiscordStuff/blob/master/PlatformIndicators/APlatformIndicators.plugin.js'
   ]
 };
 
@@ -83,7 +88,7 @@ const getDiscordUser = async (id) => {
 
   return userCache[id] = await (await fetch(`https://discord.com/api/v9/users/${id}`, {
     headers: {
-      'Authorization': `Bot ${process.env.TOPAZ_DISCORD}`
+      'Authorization': `Bot ${DISCORD_TOKEN}`
     }
   })).json();
 };
@@ -95,7 +100,7 @@ const getGithubInfo = async (repo) => {
 
   const info = await (await fetch(`https://api.github.com/repos/${repo}`, {
     headers: {
-      'Authorization': `token ${process.env.TOPAZ_GITHUB}`
+      'Authorization': `token ${GITHUB_TOKEN}`
     }
   })).json();
 
@@ -109,8 +114,10 @@ const getManifest_pc = async (place, theme) => { // just repo or url
 
   console.log(place);
 
-  let manifestUrl = place + '/' + manifestName;
-  if (!place.startsWith('http')) manifestUrl = `https://raw.githubusercontent.com/${place}/HEAD/${manifestName}`;
+  const [ repo, branch ] = place.split('@');
+
+  let manifestUrl = repo + '/' + manifestName;
+  if (!place.startsWith('http')) manifestUrl = `https://raw.githubusercontent.com/${repo}/${branch ?? 'HEAD'}/${manifestName}`;
 
   return await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
 };
