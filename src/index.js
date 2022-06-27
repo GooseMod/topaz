@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 201; // Auto increments on build
+const topazVersion = 202; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling

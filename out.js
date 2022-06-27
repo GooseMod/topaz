@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 201; // Auto increments on build
+const topazVersion = 202; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -557,13 +557,13 @@ const parseStack = (stack) => [...stack.matchAll(/^    at (.*?)( \\[as (.*)\\])?
   func: x[1],
   alias: x[3],
   source: x[4],
-  sourceType: x[4].startsWith('Topaz') ? 'topaz' : (x[4].startsWith('https://discord.com') ? 'discord' : (x[4] === '<anonymous>' ? 'anonymous' : 'unknown'))
+  sourceType: x[4].startsWith('Topaz') ? 'topaz' : (x[4].includes('discord.com/') ? 'discord' : (x[4] === '<anonymous>' ? 'anonymous' : 'unknown'))
 }));
 
 const shouldPermitViaStack = () => {
   const stack = parseStack(Error().stack).slice(2, -2); // slice away onyx wrappers
 
-  const inClone = stack.find(x => (x.func === 'assign' || x.func === 'Function.assign') && x.source === '<anonymous>');
+  const inClone = !!stack.find(x => (x.func === 'assign' || x.func === 'Function.assign') && x.source === '<anonymous>');
 
   const internalDiscordClone = inClone && stack[1].sourceType === 'discord';
 
@@ -3016,6 +3016,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     if (spl.length > 2) { // Not just repo
       repo = spl.slice(0, 2).join('/');
       subdir = spl.slice(4).join('/');
+      branch = spl[3] ?? 'HEAD';
 
       console.log('SUBDIR', repo, subdir);
     }
@@ -3826,9 +3827,8 @@ class Plugin extends React.PureComponent {
           onClick: async () => {
             const plugin = plugins[entityID];
 
-
             openSub(manifest.name, 'editor', React.createElement(await Editor.Component, {
-              files: fetchCache.keys().filter(x => x.includes(entityID.replace('/blob', ''))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {}),
+              files: fetchCache.keys().filter(x => x.includes(entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {}),
               plugin,
               onChange: (file, content) => {
                 const url = plugin.__root + '/' + file;
