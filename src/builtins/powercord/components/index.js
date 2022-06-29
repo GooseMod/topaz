@@ -1,3 +1,5 @@
+const { React } = goosemod.webpackModules.common;
+
 const allIcons = goosemod.webpackModules.findAll(x => typeof x === 'function' && x.toString().indexOf('"currentColor"') !== -1);
 const Icon = (_props) => {
   const props = Object.assign({}, _props);
@@ -11,6 +13,32 @@ Icon.Names = allIcons.map(x => x.displayName);
 
 module.exports = {
   Icon,
+
+  Icons: {
+    FontAwesome: React.memo(props => {
+      if (!document.querySelector('#fontawesome')) { // inject fontawesome when/if needed
+        const el = document.createElement('link');
+        el.rel = 'stylesheet';
+        el.href = 'https://kit-pro.fontawesome.com/releases/v5.15.4/css/pro.min.css';
+        el.id = 'fontawesome';
+
+        document.head.appendChild(el);
+      }
+
+      const styles = {
+        regular: 'r',
+        light: 'l',
+        duotone: 'd',
+        brands: 'b'
+      };
+
+      const style = Object.keys(styles).find(x => props.icon.includes(x));
+
+      return React.createElement('div', {
+        className: `${styles[style] ? `fa${styles[style]}` : 'fas'} fa-fw fa-${props.icon.replace(`-${style}`, '')} ${props.className}`.trim()
+      });
+    })
+  },
 
 
   Clickable: goosemod.webpackModules.findByDisplayName('Clickable'),
@@ -34,6 +62,5 @@ module.exports = {
   AdvancedScrollerNone: goosemod.webpackModules.findByProps('AdvancedScrollerNone').AdvancedScrollerNone,
 
   AsyncComponent: powercord.__topaz.AsyncComponent,
-
   settings: require('powercord/components/settings')
 };
