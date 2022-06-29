@@ -13,6 +13,7 @@ Core "new" (never really done in a public mod fully before) features:
 - Install plugins/themes just via GitHub repo / URL
 - Editing plugin/theme source in client
 - Fully functional in web and desktop
+- Hardened injection / anti-crash
 
 <br>
 
