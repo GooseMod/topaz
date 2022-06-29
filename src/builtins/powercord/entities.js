@@ -13,6 +13,10 @@ class Plugin {
     this.stylesheets.push(el); // Push to internal array so we can remove the elements on unload
   }
 
+  error(...args) {
+    console.error(this.entityID, ...args);
+  }
+
   get settings() {
     return powercord.api.settings.store;
   }
