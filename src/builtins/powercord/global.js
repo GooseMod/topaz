@@ -9,8 +9,8 @@ class SettingsStore extends Flux.Store {
     this.store = {};
   }
 
-  getSetting = (key, defaultValue) => {
-    return this.store[key] ?? defaultValue;
+  getSetting = (key, def) => {
+    return this.store[key] ?? def;
   }
 
   updateSetting = (key, value) => {
@@ -245,7 +245,13 @@ powercord = {
         updateOpenSettings();
       },
 
-      store: settingStore
+      store: settingStore,
+      _fluxProps: (_id) => ({
+        settings: settingStore.store,
+        getSetting: (key, defaultValue) => settingStore.getSetting(key, defaultValue),
+        updateSetting: (key, value) => settingStore.updateSetting(key, value),
+        toggleSetting: (key, defaultValue) => settingStore.toggleSetting(key, defaultValue)
+      })
     },
 
     notices: {
