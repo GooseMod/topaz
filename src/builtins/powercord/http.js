@@ -1,3 +1,11 @@
+class HTTPError extends Error {
+  constructor (message, res) {
+    super(message);
+    Object.assign(this, res);
+    this.name = this.constructor.name;
+  }
+}
+
 class Request {
   constructor(method, url) {
     this.method = method;
@@ -49,7 +57,7 @@ class Request {
 
       topaz.log('powercord.http', 'fetch', resp, body);
 
-      res({
+      const ret = {
         raw: body,
         body: resp.headers.get('Content-Type').includes('application/json') ? JSON.parse(body) : body,
 
@@ -57,7 +65,10 @@ class Request {
         statusCode: resp.status,
         statusText: resp.statusText,
         headers: Object.fromEntries(resp.headers)
-      });
+      };
+
+      if (ret.ok) res(ret);
+        else rej(Object.assign(new Error(resp.status + ' ' + resp.statusText), ret));
     });
   }
 
