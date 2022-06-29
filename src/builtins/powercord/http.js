@@ -42,7 +42,8 @@ class Request {
 
       topaz.log('powercord.http', 'fetch', url, opts);
 
-      const resp = await fetch(`https://topaz-cors.goosemod.workers.dev/?` + url, opts).catch(rej);
+      const corsDont = [ 'api.spotify.com' ];
+      const resp = await fetch((corsDont.some(x => url.includes(x)) ? '' : `https://topaz-cors.goosemod.workers.dev/?`) + url, opts).catch(rej);
 
       const body = await resp.text().catch(rej);
 
@@ -67,7 +68,7 @@ class Request {
   }
 
   catch(rej) {
-    return this.then(() => {}, rej);
+    return this.then(null, rej);
   }
 }
 
