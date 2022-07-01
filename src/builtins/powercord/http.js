@@ -1,11 +1,3 @@
-class HTTPError extends Error {
-  constructor (message, res) {
-    super(message);
-    Object.assign(this, res);
-    this.name = this.constructor.name;
-  }
-}
-
 class Request {
   constructor(method, url) {
     this.method = method;

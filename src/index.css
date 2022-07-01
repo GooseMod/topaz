@@ -217,20 +217,30 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   display: inline-flex;
 }
 
+.topaz-settings [aria-controls="settings-tab"] {
+  position: absolute;
+  right: 100px;
+}
+
 .topaz-settings [aria-controls="reload-tab"] {
   position: absolute;
   right: 42px;
 
   padding: 0;
   margin: 0;
+
+  width: 24px;
+  height: 24px;
 }
 
 .topaz-settings [aria-controls="reload-tab"] > button:hover {
-  background: hsla(359,calc(var(--saturation-factor, 1)*82.6%),59.4%,0.3) !important;
+  color: var(--status-danger);
+  background: none;
 }
 
 .topaz-settings [aria-controls="reload-tab"]:hover {
   background: none !important;
+  cursor: unset !important;
 }
 
 .topaz-settings {
@@ -291,28 +301,119 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   height: 88vh !important;
 }
 
+.topaz-editor-no-files {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  gap: 12px;
+
+  background: var(--background-tertiary);
+}
+
+.topaz-editor-no-files > :first-child {
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 24px;
+  font-family: var(--font-display);
+  color: var(--header-primary);
+}
+
+.topaz-editor-no-files > :nth-child(2) {
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--text-normal);
+}
+
+.topaz-editor-no-files svg {
+  vertical-align: text-bottom;
+  color: var(--text-muted);
+
+  margin: 0 2px;
+}
+
 .topaz-editor > [role="tablist"] {
   overflow: auto hidden;
 }
 
-.topaz-editor > [role="tablist"] > [aria-controls^="_"] {
+.topaz-editor > [role="tablist"] > [aria-controls^="#"] {
   position: absolute;
   right: 0px;
   padding: 3px;
 }
 
-.topaz-editor > [role="tablist"] > [aria-controls="_settings-tab"] {
+.topaz-editor > [role="tablist"] > [aria-controls^="#new-tab"] {
+  right: unset;
+  position: unset;
+
+  padding: 8px 6px;
+}
+
+.topaz-editor > [role="tablist"] > [aria-controls="#settings-tab"] {
   border-radius: 0 8px 0 0;
 }
 
-.topaz-editor > [role="tablist"] > [aria-controls="_reload-tab"] {
+.topaz-editor > [role="tablist"] > [aria-controls="#reload-tab"] {
   right: 40px;
   border-radius: 8px 0 0 0;
+  border-left: none;
 }
 
 .topaz-editor > [role="tablist"] > div {
   background: var(--background-secondary-alt);
-  padding: 8px 16px;
+
+  padding: 8px 4px 8px 12px;
+  height: 40px;
+}
+
+.topaz-editor > [role="tablist"] > div > input {
+  background: none;
+  border: none;
+
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+
+  cursor: default;
+}
+
+.topaz-editor > [role="tablist"] > div > input:active {
+  cursor: text;
+}
+
+.topaz-editor input[type="text"]::-webkit-search-decoration,
+.topaz-editor input[type="text"]::-webkit-search-cancel-button,
+.topaz-editor input[type="text"]::-webkit-search-results-button,
+.topaz-editor input[type="text"]::-webkit-search-results-decoration {
+  display: none;
+}
+
+.topaz-editor > [role="tablist"] > * > :first-child {
+  flex-grow: 1;
+  text-align: left;
+}
+
+.topaz-editor > [role="tablist"] > * > :last-child:not(:first-child) {
+  margin-left: 6px;
+}
+
+.topaz-editor > [role="tablist"] > * {
+  flex-shrink: 0;
+}
+
+.topaz-editor > [role="tablist"] > * > [aria-label="Delete"] svg {
+  width: 18px;
+  height: 18px;
+}
+
+.topaz-editor > [role="tablist"] > * > [aria-label="Delete"]:hover {
+  color: var(--status-danger);
 }
 
 .topaz-editor > [role="tablist"] > div:not(:first-child) {
@@ -337,8 +438,51 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   border-radius: 0 8px 0 0;
 }
 
-.topaz-editor > [role="tablist"] > div:first-child:nth-last-child(3) { /* Only */
-  border-radius: 8px 8px 0 0;
+.topaz-snippets > .topaz-editor {
+  display: flex;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] {
+  flex-direction: column;
+  background: var(--background-secondary-alt);
+  width: 240px !important;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > * {
+  border-radius: 0 !important;
+  border-bottom: none;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > :not([aria-controls^="#"]) {
+  border-left: 2px solid transparent;
+  padding: 8px 4px 8px 16px;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > .selected-g-kMVV {
+  border-left-color: var(--control-brand-foreground);
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls^="#"] {
+  bottom: 0;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#settings-tab"] {
+  border-radius: 8px 0 0 0 !important;
+}
+
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#reload-tab"] {
+  display: none;
+}
+
+.topaz-snippets > .topaz-editor > section {
+  width: calc(100% - 240px) !important;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] .input-2XRLou {
+  position: relative;
+  top: -3px;
+  left: -4px;
 }
 
 /* Hide some elements for Simple UI */

@@ -154,6 +154,8 @@ class Cache {
   remove(key) {
     this.store[key] = undefined;
     delete this.store[key];
+
+    this.save();
   }
 
   keys() {
@@ -645,7 +647,7 @@ const replaceLast = (str, from, to) => { // replace only last instance of string
 };
 
 let transformRoot;
-const transform = async (path, code, info) => {
+const transform = async (path, code, entityID) => {
   fetchProgressCurrent = 0;
   fetchProgressTotal = 0;
 
@@ -779,6 +781,8 @@ window.topaz = {
 
   purge: () => {
     topaz.uninstallAll();
+    for (const snippet in snippets) stopSnippet(snippet);
+
     cssEl.remove();
     attrs.remove();
 
@@ -822,6 +826,33 @@ log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)
 
   try { updateOpenSettings(); } catch { }
 })();
+
+const activeSnippets = {};
+const startSnippet = async (file, content) => {
+  let code;
+
+  if (file.endsWith('css')) {
+    code = await transformCSS('https://discord.com/channels/@me', content, !file.endsWith('scss'), false);
+
+    const cssEl = document.createElement('style');
+    cssEl.appendChild(document.createTextNode(code));
+    document.body.appendChild(cssEl);
+
+    activeSnippets[file] = () => cssEl.remove();
+  } else if (file.includes('.js')) {
+    code = await transform('https://discord.com/channels/@me', content, 'snippet_' + file);
+
+    activeSnippets[file] = () => {}; // no way to stop?
+  }
+};
+const stopSnippet = (file) => activeSnippets[file]?.();
+
+
+const snippets = JSON.parse(localStorage.getItem('topaz_snippets') ?? '{}');
+const snippetsToggled = JSON.parse(localStorage.getItem('topaz_snippets_toggled') ?? '{}');
+for (const snippet in snippets) {
+  if (snippetsToggled[snippet]) startSnippet(snippet, snippets[snippet]);
+}
 
 let popular;
 (async () => { // Load async as not important / needed right away
@@ -1218,28 +1249,33 @@ class Plugin extends React.PureComponent {
           tooltipText: 'Edit',
           onClick: async () => {
             const plugin = plugins[entityID];
+            const getUrl = file => plugin.__root + '/' + file;
+
+            const files = fetchCache.keys().filter(x => x.includes(entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {});
 
             openSub(manifest.name, 'editor', React.createElement(await Editor.Component, {
-              files: fetchCache.keys().filter(x => x.includes(entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {}),
+              files,
               plugin,
               onChange: (file, content) => {
-                const url = plugin.__root + '/' + file;
-                console.log(file, '->', url, fetchCache.get(url)?.length - content.length);
+                fetchCache.set(getUrl(file), content);
 
-                fetchCache.set(url, content);
-              }
-            }), [
-              {
-                text: 'Reload Plugin',
-                icon: 'Retry',
-                onClick: () => {}
+                files[file] = content;
               },
-              {
-                text: 'Editor Settings',
-                icon: 'Gear',
-                onClick: () => {}
+              onRename: (old, val) => {
+                const oldUrl = getUrl(old);
+
+                fetchCache.set(getUrl(val), fetchCache.get(oldUrl));
+                fetchCache.remove(oldUrl);
+
+                files[val] = files[old];
+                delete files[old];
+              },
+              onDelete: (file) => {
+                fetchCache.remove(getUrl(file));
+
+                delete files[file];
               }
-            ]);
+            }));
           }
         }),
 
@@ -1429,6 +1465,66 @@ class TopazSettings extends React.PureComponent {
   }
 }
 
+let activeSnippet;
+class Snippets extends React.PureComponent {
+  render() {
+    const _Editor = (Editor.Component instanceof Promise ? 'div' : Editor.Component) ?? 'div';
+    if (_Editor === 'div') setTimeout(() => this.forceUpdate(), 200);
+
+    const saveSnippets = () => {
+      localStorage.setItem('topaz_snippets', JSON.stringify(snippets));
+      localStorage.setItem('topaz_snippets_toggled', JSON.stringify(snippetsToggled));
+    };
+
+    const updateSnippet = (file, content) => {
+      snippets[file] = content;
+      if (snippetsToggled[file] === undefined) snippetsToggled[file] = true;
+
+      saveSnippets();
+
+      stopSnippet(file);
+      if (snippetsToggled[file] && content) startSnippet(file, content);
+    };
+
+    console.log([activeSnippet, snippets[activeSnippet]]);
+
+    return React.createElement('div', {
+      className: 'topaz-snippets'
+    },
+      React.createElement(_Editor, {
+        files: snippets,
+        toggled: snippetsToggled,
+        defaultFile: snippets[activeSnippet] ? activeSnippet : undefined,
+        plugin: { entityID: 'snippets' },
+
+        onChange: (file, content) => updateSnippet(file, content),
+        onToggle: (file, toggled) => {
+          snippetsToggled[file] = toggled;
+          updateSnippet(file, snippets[file]);
+        },
+        onRename: (old, val) => {
+          snippets[val] = snippets[old];
+          delete snippets[old];
+
+          snippetsToggled[val] = snippetsToggled[old];
+          delete snippetsToggled[old];
+
+          updateSnippet(val, snippets[val]);
+        },
+        onDelete: (file) => {
+          delete snippets[file];
+          delete snippetsToggled[file];
+
+          saveSnippets();
+          stopSnippet(file);
+        },
+
+        onOpen: (file) => activeSnippet = file
+      })
+    );
+  }
+}
+
 class Settings extends React.PureComponent {
   render() {
     const textInputHandler = (inp, init = false) => {
@@ -1582,6 +1678,11 @@ class Settings extends React.PureComponent {
             className: TabBarClasses2.item
           }, 'Themes'),
           React.createElement(TabBar.Item, {
+            id: 'SNIPPETS',
+
+            className: TabBarClasses2.item
+          }, 'Snippets'),
+          React.createElement(TabBar.Item, {
             id: 'SETTINGS',
 
             className: TabBarClasses2.item
@@ -1601,7 +1702,8 @@ class Settings extends React.PureComponent {
         ),
       ),
 
-      selectedTab === 'SETTINGS' ? React.createElement(TopazSettings) : [
+      selectedTab === 'SETTINGS' ? React.createElement(TopazSettings) :
+        selectedTab === 'SNIPPETS' ? React.createElement(Snippets) : [
         React.createElement(FormItem, {
           title: 'Add ' + (selectedTab === 'PLUGINS' ? 'Plugin' : 'Theme'),
           className: [Flex.Direction.VERTICAL, Flex.Justify.START, Flex.Align.STRETCH, Flex.Wrap.NO_WRAP, Margins.marginBottom20].join(' ')

@@ -2,6 +2,28 @@
 const { React } = goosemod.webpackModules.common;
 window.React = React; // pain but have to
 
+const forceWrap = (comp, key) => class extends React.PureComponent {
+  render() {
+    return React.createElement(comp, {
+      ...this.props,
+      onChange: x => {
+        this.props[key] = x;
+        this.forceUpdate();
+
+        this.props.onChange(x);
+      }
+    });
+  }
+};
+
+const debounce = (handler, timeout) => {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => handler(...args), timeout);
+  };
+};
+
 const imp = async url => eval(await (await fetch(url)).text());
 
 const patchAppend = (which) => { // sorry
@@ -49,6 +71,8 @@ const TabBarClasses1 = goosemod.webpackModules.findByProps('topPill');
 const TabBarClasses2 = goosemod.webpackModules.findByProps('tabBar', 'nowPlayingColumn');
 
 const PanelButton = goosemod.webpackModules.findByDisplayName('PanelButton');
+const _Switch = goosemod.webpackModules.findByDisplayName('Switch');
+const Switch = forceWrap(_Switch, 'checked');
 
 const ScrollerClasses = goosemod.webpackModules.findByProps('scrollerBase', 'auto', 'thin');
 
@@ -74,14 +98,16 @@ setTheme(editorSettings.theme);
 const focus_enlarge = () => document.body.classList.add('topaz-editor-focus');
 const focus_revert = () => document.body.classList.remove('topaz-editor-focus');
 
+let ignoreNextSelect = false;
 return function Editor(props) {
-  let { files, defaultFile, plugin } = props;
-  defaultFile = defaultFile ?? Object.keys(files)[0];
+  let { files, defaultFile, plugin, toggled } = props;
+  defaultFile = defaultFile ?? Object.keys(files)[0] ?? '';
 
   const editorRef = React.useRef(null);
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
   const [ openFile, setOpenFile ] = React.useState(defaultFile);
 
-  if (lastPlugin !== plugin.entityID) {
+  if (lastPlugin !== plugin.entityID) { // dispose models to clean up
     lastPlugin = plugin.entityID;
     if (window.monaco) monaco.editor.getModels().forEach(x => x.dispose());
   }
@@ -112,6 +138,7 @@ return function Editor(props) {
     // editorRef.current.focus();
   }, [ openFile ]);
 
+
   return React.createElement('div', {
     className: 'topaz-editor'
   },
@@ -123,17 +150,89 @@ return function Editor(props) {
       look: 1,
 
       onItemSelect: (x) => {
-        if (x.startsWith('_')) return;
+        if (x.startsWith('#')) return;
+        if (ignoreNextSelect) return ignoreNextSelect = false;
+
         setOpenFile(x);
+        props.onOpen?.(x);
       }
     },
       ...Object.keys(files).map(x => React.createElement(TabBar.Item, {
         id: x,
         className: TabBarClasses2.item
-      }, x)),
+      },
+        React.createElement('input', {
+          type: 'text',
+          autocomplete: 'off',
+          spellcheck: 'false',
+          autocorrect: 'off',
+
+          value: x,
+          id: 'inptab-' + x.replace(/[^A-Za-z0-9]/g, '_'),
+
+          style: {
+            width: (x.length * 0.8) + 'ch'
+          },
+
+          onChange: (e) => {
+            const val = e.target.value;
+
+            if (!document.querySelector('.topaz-snippets')) document.querySelector('#inptab-' + x.replace(/[^A-Za-z0-9]/g, '_')).style.width = (val.length * 0.8) + 'ch';
+
+            props.onRename?.(x, val);
+
+            console.log(openFile, x, openFile === x, val);
+            if (openFile === x) setOpenFile(val);
+          }
+        }),
+
+        plugin.entityID !== 'snippets' ? null : React.createElement(Switch, {
+          checked: toggled[x] ?? true,
+          onChange: (y) => props.onToggle?.(x, y)
+        }),
+
+        React.createElement(PanelButton, {
+          icon: goosemod.webpackModules.findByDisplayName('Trash'),
+          tooltipText: 'Delete',
+          onClick: () => {
+            ignoreNextSelect = true;
+
+            const originalIndex = Object.keys(files).indexOf(openFile);
+
+            props.onDelete?.(x);
+
+            if (openFile === x) {
+              let newOpenIndex = originalIndex - 1;
+              if (newOpenIndex < 0) newOpenIndex = 0;
+
+              console.log(openFile, Object.keys(files)[newOpenIndex]);
+
+              setOpenFile(Object.keys(files)[newOpenIndex] ?? '');
+            } else forceUpdate();
+          }
+        })
+      )),
 
       React.createElement(TabBar.Item, {
-        id: '_settings',
+        id: '#new',
+
+        className: TabBarClasses2.item
+      }, React.createElement(PanelButton, {
+        icon: goosemod.webpackModules.findByDisplayName('PlusAlt'),
+        tooltipText: 'New',
+        onClick: () => {
+          const name = '';
+
+          files[name] = '';
+          setOpenFile(name);
+          setTimeout(() => document.querySelector('#inptab-').focus(), 100);
+
+          props.onNew?.(name);
+        }
+      })),
+
+      React.createElement(TabBar.Item, {
+        id: '#settings',
 
         className: TabBarClasses2.item
       }, React.createElement(PanelButton, {
@@ -147,20 +246,6 @@ return function Editor(props) {
 
           const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
           const _SingleSelect = goosemod.webpackModules.findByProps('SingleSelect').SingleSelect;
-
-          const forceWrap = (comp, key) => class extends React.PureComponent {
-            render() {
-              return React.createElement(comp, {
-                ...this.props,
-                onChange: x => {
-                  this.props[key] = x;
-                  this.forceUpdate();
-
-                  this.props.onChange(x);
-                }
-              });
-            }
-          };
 
           const _SwitchItem = goosemod.webpackModules.findByDisplayName('SwitchItem');
 
@@ -235,7 +320,7 @@ return function Editor(props) {
       })),
 
       React.createElement(TabBar.Item, {
-        id: '_reload',
+        id: '#reload',
 
         className: TabBarClasses2.item
       }, React.createElement(PanelButton, {
@@ -248,14 +333,26 @@ return function Editor(props) {
       }))
     ),
 
-    React.createElement(MonacoEditor, {
+    files[openFile] === undefined ? React.createElement('section', {
+      className: 'topaz-editor-no-files',
+    },
+      React.createElement('div', {}, 'You have no ' + (plugin.entityID === 'snippets' ? 'snippets' : 'files')),
+      React.createElement('div', {},
+        'Make a ' + (plugin.entityID === 'snippets' ? 'snippet' : 'file') + ' with the',
+        React.createElement(goosemod.webpackModules.findByDisplayName('PlusAlt'), {
+          width: 20,
+          height: 20
+        }),
+        'icon in the ' + (plugin.entityID === 'snippets' ? 'sidebar' : 'tabbar')
+      )
+    ) : React.createElement(MonacoEditor, {
       defaultValue: files[openFile],
       defaultLanguage: langs[openExt] ?? openExt,
-      path: openFile,
+      path: plugin.entityID + '_' + openFile,
       saveViewState: false,
 
       onMount: editor => editorRef.current = editor,
-      onChange: value => props.onChange(openFile, value),
+      onChange: debounce(value => props.onChange(openFile, value), 500),
       theme: editorSettings.theme
     })
   );
