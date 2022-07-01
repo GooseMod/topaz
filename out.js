@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 202; // Auto increments on build
+const topazVersion = 203; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -934,6 +934,28 @@ const Editor = { // defer loading until editor is wanted
 const { React } = goosemod.webpackModules.common;
 window.React = React; // pain but have to
 
+const forceWrap = (comp, key) => class extends React.PureComponent {
+  render() {
+    return React.createElement(comp, {
+      ...this.props,
+      onChange: x => {
+        this.props[key] = x;
+        this.forceUpdate();
+
+        this.props.onChange(x);
+      }
+    });
+  }
+};
+
+const debounce = (handler, timeout) => {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => handler(...args), timeout);
+  };
+};
+
 const imp = async url => eval(await (await fetch(url)).text());
 
 const patchAppend = (which) => { // sorry
@@ -981,6 +1003,8 @@ const TabBarClasses1 = goosemod.webpackModules.findByProps('topPill');
 const TabBarClasses2 = goosemod.webpackModules.findByProps('tabBar', 'nowPlayingColumn');
 
 const PanelButton = goosemod.webpackModules.findByDisplayName('PanelButton');
+const _Switch = goosemod.webpackModules.findByDisplayName('Switch');
+const Switch = forceWrap(_Switch, 'checked');
 
 const ScrollerClasses = goosemod.webpackModules.findByProps('scrollerBase', 'auto', 'thin');
 
@@ -1006,14 +1030,16 @@ setTheme(editorSettings.theme);
 const focus_enlarge = () => document.body.classList.add('topaz-editor-focus');
 const focus_revert = () => document.body.classList.remove('topaz-editor-focus');
 
+let ignoreNextSelect = false;
 return function Editor(props) {
-  let { files, defaultFile, plugin } = props;
-  defaultFile = defaultFile ?? Object.keys(files)[0];
+  let { files, defaultFile, plugin, toggled } = props;
+  defaultFile = defaultFile ?? Object.keys(files)[0] ?? '';
 
   const editorRef = React.useRef(null);
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
   const [ openFile, setOpenFile ] = React.useState(defaultFile);
 
-  if (lastPlugin !== plugin.entityID) {
+  if (lastPlugin !== plugin.entityID) { // dispose models to clean up
     lastPlugin = plugin.entityID;
     if (window.monaco) monaco.editor.getModels().forEach(x => x.dispose());
   }
@@ -1044,6 +1070,7 @@ return function Editor(props) {
     // editorRef.current.focus();
   }, [ openFile ]);
 
+
   return React.createElement('div', {
     className: 'topaz-editor'
   },
@@ -1055,17 +1082,89 @@ return function Editor(props) {
       look: 1,
 
       onItemSelect: (x) => {
-        if (x.startsWith('_')) return;
+        if (x.startsWith('#')) return;
+        if (ignoreNextSelect) return ignoreNextSelect = false;
+
         setOpenFile(x);
+        props.onOpen?.(x);
       }
     },
       ...Object.keys(files).map(x => React.createElement(TabBar.Item, {
         id: x,
         className: TabBarClasses2.item
-      }, x)),
+      },
+        React.createElement('input', {
+          type: 'text',
+          autocomplete: 'off',
+          spellcheck: 'false',
+          autocorrect: 'off',
+
+          value: x,
+          id: 'inptab-' + x.replace(/[^A-Za-z0-9]/g, '_'),
+
+          style: {
+            width: (x.length * 0.8) + 'ch'
+          },
+
+          onChange: (e) => {
+            const val = e.target.value;
+
+            if (!document.querySelector('.topaz-snippets')) document.querySelector('#inptab-' + x.replace(/[^A-Za-z0-9]/g, '_')).style.width = (val.length * 0.8) + 'ch';
+
+            props.onRename?.(x, val);
+
+            console.log(openFile, x, openFile === x, val);
+            if (openFile === x) setOpenFile(val);
+          }
+        }),
+
+        plugin.entityID !== 'snippets' ? null : React.createElement(Switch, {
+          checked: toggled[x] ?? true,
+          onChange: (y) => props.onToggle?.(x, y)
+        }),
+
+        React.createElement(PanelButton, {
+          icon: goosemod.webpackModules.findByDisplayName('Trash'),
+          tooltipText: 'Delete',
+          onClick: () => {
+            ignoreNextSelect = true;
+
+            const originalIndex = Object.keys(files).indexOf(openFile);
+
+            props.onDelete?.(x);
+
+            if (openFile === x) {
+              let newOpenIndex = originalIndex - 1;
+              if (newOpenIndex < 0) newOpenIndex = 0;
+
+              console.log(openFile, Object.keys(files)[newOpenIndex]);
+
+              setOpenFile(Object.keys(files)[newOpenIndex] ?? '');
+            } else forceUpdate();
+          }
+        })
+      )),
 
       React.createElement(TabBar.Item, {
-        id: '_settings',
+        id: '#new',
+
+        className: TabBarClasses2.item
+      }, React.createElement(PanelButton, {
+        icon: goosemod.webpackModules.findByDisplayName('PlusAlt'),
+        tooltipText: 'New',
+        onClick: () => {
+          const name = '';
+
+          files[name] = '';
+          setOpenFile(name);
+          setTimeout(() => document.querySelector('#inptab-').focus(), 100);
+
+          props.onNew?.(name);
+        }
+      })),
+
+      React.createElement(TabBar.Item, {
+        id: '#settings',
 
         className: TabBarClasses2.item
       }, React.createElement(PanelButton, {
@@ -1079,20 +1178,6 @@ return function Editor(props) {
 
           const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
           const _SingleSelect = goosemod.webpackModules.findByProps('SingleSelect').SingleSelect;
-
-          const forceWrap = (comp, key) => class extends React.PureComponent {
-            render() {
-              return React.createElement(comp, {
-                ...this.props,
-                onChange: x => {
-                  this.props[key] = x;
-                  this.forceUpdate();
-
-                  this.props.onChange(x);
-                }
-              });
-            }
-          };
 
           const _SwitchItem = goosemod.webpackModules.findByDisplayName('SwitchItem');
 
@@ -1167,7 +1252,7 @@ return function Editor(props) {
       })),
 
       React.createElement(TabBar.Item, {
-        id: '_reload',
+        id: '#reload',
 
         className: TabBarClasses2.item
       }, React.createElement(PanelButton, {
@@ -1180,14 +1265,26 @@ return function Editor(props) {
       }))
     ),
 
-    React.createElement(MonacoEditor, {
+    files[openFile] === undefined ? React.createElement('section', {
+      className: 'topaz-editor-no-files',
+    },
+      React.createElement('div', {}, 'You have no ' + (plugin.entityID === 'snippets' ? 'snippets' : 'files')),
+      React.createElement('div', {},
+        'Make a ' + (plugin.entityID === 'snippets' ? 'snippet' : 'file') + ' with the',
+        React.createElement(goosemod.webpackModules.findByDisplayName('PlusAlt'), {
+          width: 20,
+          height: 20
+        }),
+        'icon in the ' + (plugin.entityID === 'snippets' ? 'sidebar' : 'tabbar')
+      )
+    ) : React.createElement(MonacoEditor, {
       defaultValue: files[openFile],
       defaultLanguage: langs[openExt] ?? openExt,
-      path: openFile,
+      path: plugin.entityID + '_' + openFile,
       saveViewState: false,
 
       onMount: editor => editorRef.current = editor,
-      onChange: value => props.onChange(openFile, value),
+      onChange: debounce(value => props.onChange(openFile, value), 500),
       theme: editorSettings.theme
     })
   );
@@ -1279,6 +1376,10 @@ const builtins = {
     document.head.appendChild(el);
 
     this.stylesheets.push(el); // Push to internal array so we can remove the elements on unload
+  }
+
+  error(...args) {
+    console.error(this.entityID, ...args);
   }
 
   get settings() {
@@ -1409,7 +1510,9 @@ module.exports = {
 
   ...goosemod.reactUtils // Export GooseMod React utils
 };`,
-  'powercord/components': `const allIcons = goosemod.webpackModules.findAll(x => typeof x === 'function' && x.toString().indexOf('"currentColor"') !== -1);
+  'powercord/components': `const { React } = goosemod.webpackModules.common;
+
+const allIcons = goosemod.webpackModules.findAll(x => typeof x === 'function' && x.toString().indexOf('"currentColor"') !== -1);
 const Icon = (_props) => {
   const props = Object.assign({}, _props);
   delete props.name;
@@ -1422,6 +1525,32 @@ Icon.Names = allIcons.map(x => x.displayName);
 
 module.exports = {
   Icon,
+
+  Icons: {
+    FontAwesome: React.memo(props => {
+      if (!document.querySelector('#fontawesome')) { // inject fontawesome when/if needed
+        const el = document.createElement('link');
+        el.rel = 'stylesheet';
+        el.href = 'https://kit-pro.fontawesome.com/releases/v5.15.4/css/pro.min.css';
+        el.id = 'fontawesome';
+
+        document.head.appendChild(el);
+      }
+
+      const styles = {
+        regular: 'r',
+        light: 'l',
+        duotone: 'd',
+        brands: 'b'
+      };
+
+      const style = Object.keys(styles).find(x => props.icon.includes(x));
+
+      return React.createElement('div', {
+        className: \`\${styles[style] ? \`fa\${styles[style]}\` : 'fas'} fa-fw fa-\${props.icon.replace(\`-\${style}\`, '')} \${props.className}\`.trim()
+      });
+    })
+  },
 
 
   Clickable: goosemod.webpackModules.findByDisplayName('Clickable'),
@@ -1445,7 +1574,6 @@ module.exports = {
   AdvancedScrollerNone: goosemod.webpackModules.findByProps('AdvancedScrollerNone').AdvancedScrollerNone,
 
   AsyncComponent: powercord.__topaz.AsyncComponent,
-
   settings: require('powercord/components/settings')
 };`,
   'powercord/components/settings': `const { React } = goosemod.webpackModules.common;
@@ -1723,13 +1851,14 @@ module.exports = {
 
       topaz.log('powercord.http', 'fetch', url, opts);
 
-      const resp = await fetch(\`https://topaz-cors.goosemod.workers.dev/?\` + url, opts).catch(rej);
+      const corsDont = [ 'api.spotify.com' ];
+      const resp = await fetch((corsDont.some(x => url.includes(x)) ? '' : \`https://topaz-cors.goosemod.workers.dev/?\`) + url, opts).catch(rej);
 
       const body = await resp.text().catch(rej);
 
       topaz.log('powercord.http', 'fetch', resp, body);
 
-      res({
+      const ret = {
         raw: body,
         body: resp.headers.get('Content-Type').includes('application/json') ? JSON.parse(body) : body,
 
@@ -1737,7 +1866,10 @@ module.exports = {
         statusCode: resp.status,
         statusText: resp.statusText,
         headers: Object.fromEntries(resp.headers)
-      });
+      };
+
+      if (ret.ok) res(ret);
+        else rej(Object.assign(new Error(resp.status + ' ' + resp.statusText), ret));
     });
   }
 
@@ -1748,7 +1880,7 @@ module.exports = {
   }
 
   catch(rej) {
-    return this.then(() => {}, rej);
+    return this.then(null, rej);
   }
 }
 
@@ -1876,8 +2008,8 @@ class SettingsStore extends Flux.Store {
     this.store = {};
   }
 
-  getSetting = (key, defaultValue) => {
-    return this.store[key] ?? defaultValue;
+  getSetting = (key, def) => {
+    return this.store[key] ?? def;
   }
 
   updateSetting = (key, value) => {
@@ -2112,7 +2244,13 @@ powercord = {
         updateOpenSettings();
       },
 
-      store: settingStore
+      store: settingStore,
+      _fluxProps: (_id) => ({
+        settings: settingStore.store,
+        getSetting: (key, defaultValue) => settingStore.getSetting(key, defaultValue),
+        updateSetting: (key, value) => settingStore.updateSetting(key, value),
+        toggleSetting: (key, defaultValue) => settingStore.toggleSetting(key, defaultValue)
+      })
     },
 
     notices: {
@@ -2762,6 +2900,8 @@ class Cache {
   remove(key) {
     this.store[key] = undefined;
     delete this.store[key];
+
+    this.save();
   }
 
   keys() {
@@ -3253,7 +3393,7 @@ const replaceLast = (str, from, to) => { // replace only last instance of string
 };
 
 let transformRoot;
-const transform = async (path, code, info) => {
+const transform = async (path, code, entityID) => {
   fetchProgressCurrent = 0;
   fetchProgressTotal = 0;
 
@@ -3387,6 +3527,8 @@ window.topaz = {
 
   purge: () => {
     topaz.uninstallAll();
+    for (const snippet in snippets) stopSnippet(snippet);
+
     cssEl.remove();
     attrs.remove();
 
@@ -3430,6 +3572,33 @@ log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)
 
   try { updateOpenSettings(); } catch { }
 })();
+
+const activeSnippets = {};
+const startSnippet = async (file, content) => {
+  let code;
+
+  if (file.endsWith('css')) {
+    code = await transformCSS('https://discord.com/channels/@me', content, !file.endsWith('scss'), false);
+
+    const cssEl = document.createElement('style');
+    cssEl.appendChild(document.createTextNode(code));
+    document.body.appendChild(cssEl);
+
+    activeSnippets[file] = () => cssEl.remove();
+  } else if (file.includes('.js')) {
+    code = await transform('https://discord.com/channels/@me', content, 'snippet_' + file);
+
+    activeSnippets[file] = () => {}; // no way to stop?
+  }
+};
+const stopSnippet = (file) => activeSnippets[file]?.();
+
+
+const snippets = JSON.parse(localStorage.getItem('topaz_snippets') ?? '{}');
+const snippetsToggled = JSON.parse(localStorage.getItem('topaz_snippets_toggled') ?? '{}');
+for (const snippet in snippets) {
+  if (snippetsToggled[snippet]) startSnippet(snippet, snippets[snippet]);
+}
 
 let popular;
 (async () => { // Load async as not important / needed right away
@@ -3826,28 +3995,33 @@ class Plugin extends React.PureComponent {
           tooltipText: 'Edit',
           onClick: async () => {
             const plugin = plugins[entityID];
+            const getUrl = file => plugin.__root + '/' + file;
+
+            const files = fetchCache.keys().filter(x => x.includes(entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {});
 
             openSub(manifest.name, 'editor', React.createElement(await Editor.Component, {
-              files: fetchCache.keys().filter(x => x.includes(entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {}),
+              files,
               plugin,
               onChange: (file, content) => {
-                const url = plugin.__root + '/' + file;
-                console.log(file, '->', url, fetchCache.get(url)?.length - content.length);
+                fetchCache.set(getUrl(file), content);
 
-                fetchCache.set(url, content);
-              }
-            }), [
-              {
-                text: 'Reload Plugin',
-                icon: 'Retry',
-                onClick: () => {}
+                files[file] = content;
               },
-              {
-                text: 'Editor Settings',
-                icon: 'Gear',
-                onClick: () => {}
+              onRename: (old, val) => {
+                const oldUrl = getUrl(old);
+
+                fetchCache.set(getUrl(val), fetchCache.get(oldUrl));
+                fetchCache.remove(oldUrl);
+
+                files[val] = files[old];
+                delete files[old];
+              },
+              onDelete: (file) => {
+                fetchCache.remove(getUrl(file));
+
+                delete files[file];
               }
-            ]);
+            }));
           }
         }),
 
@@ -4037,6 +4211,66 @@ class TopazSettings extends React.PureComponent {
   }
 }
 
+let activeSnippet;
+class Snippets extends React.PureComponent {
+  render() {
+    const _Editor = (Editor.Component instanceof Promise ? 'div' : Editor.Component) ?? 'div';
+    if (_Editor === 'div') setTimeout(() => this.forceUpdate(), 200);
+
+    const saveSnippets = () => {
+      localStorage.setItem('topaz_snippets', JSON.stringify(snippets));
+      localStorage.setItem('topaz_snippets_toggled', JSON.stringify(snippetsToggled));
+    };
+
+    const updateSnippet = (file, content) => {
+      snippets[file] = content;
+      if (snippetsToggled[file] === undefined) snippetsToggled[file] = true;
+
+      saveSnippets();
+
+      stopSnippet(file);
+      if (snippetsToggled[file] && content) startSnippet(file, content);
+    };
+
+    console.log([activeSnippet, snippets[activeSnippet]]);
+
+    return React.createElement('div', {
+      className: 'topaz-snippets'
+    },
+      React.createElement(_Editor, {
+        files: snippets,
+        toggled: snippetsToggled,
+        defaultFile: snippets[activeSnippet] ? activeSnippet : undefined,
+        plugin: { entityID: 'snippets' },
+
+        onChange: (file, content) => updateSnippet(file, content),
+        onToggle: (file, toggled) => {
+          snippetsToggled[file] = toggled;
+          updateSnippet(file, snippets[file]);
+        },
+        onRename: (old, val) => {
+          snippets[val] = snippets[old];
+          delete snippets[old];
+
+          snippetsToggled[val] = snippetsToggled[old];
+          delete snippetsToggled[old];
+
+          updateSnippet(val, snippets[val]);
+        },
+        onDelete: (file) => {
+          delete snippets[file];
+          delete snippetsToggled[file];
+
+          saveSnippets();
+          stopSnippet(file);
+        },
+
+        onOpen: (file) => activeSnippet = file
+      })
+    );
+  }
+}
+
 class Settings extends React.PureComponent {
   render() {
     const textInputHandler = (inp, init = false) => {
@@ -4190,6 +4424,11 @@ class Settings extends React.PureComponent {
             className: TabBarClasses2.item
           }, 'Themes'),
           React.createElement(TabBar.Item, {
+            id: 'SNIPPETS',
+
+            className: TabBarClasses2.item
+          }, 'Snippets'),
+          React.createElement(TabBar.Item, {
             id: 'SETTINGS',
 
             className: TabBarClasses2.item
@@ -4209,7 +4448,8 @@ class Settings extends React.PureComponent {
         ),
       ),
 
-      selectedTab === 'SETTINGS' ? React.createElement(TopazSettings) : [
+      selectedTab === 'SETTINGS' ? React.createElement(TopazSettings) :
+        selectedTab === 'SNIPPETS' ? React.createElement(Snippets) : [
         React.createElement(FormItem, {
           title: 'Add ' + (selectedTab === 'PLUGINS' ? 'Plugin' : 'Theme'),
           className: [Flex.Direction.VERTICAL, Flex.Justify.START, Flex.Align.STRETCH, Flex.Wrap.NO_WRAP, Margins.marginBottom20].join(' ')
@@ -4488,20 +4728,30 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   display: inline-flex;
 }
 
+.topaz-settings [aria-controls="settings-tab"] {
+  position: absolute;
+  right: 100px;
+}
+
 .topaz-settings [aria-controls="reload-tab"] {
   position: absolute;
   right: 42px;
 
   padding: 0;
   margin: 0;
+
+  width: 24px;
+  height: 24px;
 }
 
 .topaz-settings [aria-controls="reload-tab"] > button:hover {
-  background: hsla(359,calc(var(--saturation-factor, 1)*82.6%),59.4%,0.3) !important;
+  color: var(--status-danger);
+  background: none;
 }
 
 .topaz-settings [aria-controls="reload-tab"]:hover {
   background: none !important;
+  cursor: unset !important;
 }
 
 .topaz-settings {
@@ -4562,28 +4812,119 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   height: 88vh !important;
 }
 
+.topaz-editor-no-files {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  gap: 12px;
+
+  background: var(--background-tertiary);
+}
+
+.topaz-editor-no-files > :first-child {
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 24px;
+  font-family: var(--font-display);
+  color: var(--header-primary);
+}
+
+.topaz-editor-no-files > :nth-child(2) {
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--text-normal);
+}
+
+.topaz-editor-no-files svg {
+  vertical-align: text-bottom;
+  color: var(--text-muted);
+
+  margin: 0 2px;
+}
+
 .topaz-editor > [role="tablist"] {
   overflow: auto hidden;
 }
 
-.topaz-editor > [role="tablist"] > [aria-controls^="_"] {
+.topaz-editor > [role="tablist"] > [aria-controls^="#"] {
   position: absolute;
   right: 0px;
   padding: 3px;
 }
 
-.topaz-editor > [role="tablist"] > [aria-controls="_settings-tab"] {
+.topaz-editor > [role="tablist"] > [aria-controls^="#new-tab"] {
+  right: unset;
+  position: unset;
+
+  padding: 8px 6px;
+}
+
+.topaz-editor > [role="tablist"] > [aria-controls="#settings-tab"] {
   border-radius: 0 8px 0 0;
 }
 
-.topaz-editor > [role="tablist"] > [aria-controls="_reload-tab"] {
+.topaz-editor > [role="tablist"] > [aria-controls="#reload-tab"] {
   right: 40px;
   border-radius: 8px 0 0 0;
+  border-left: none;
 }
 
 .topaz-editor > [role="tablist"] > div {
   background: var(--background-secondary-alt);
-  padding: 8px 16px;
+
+  padding: 8px 4px 8px 12px;
+  height: 40px;
+}
+
+.topaz-editor > [role="tablist"] > div > input {
+  background: none;
+  border: none;
+
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+
+  cursor: default;
+}
+
+.topaz-editor > [role="tablist"] > div > input:active {
+  cursor: text;
+}
+
+.topaz-editor input[type="text"]::-webkit-search-decoration,
+.topaz-editor input[type="text"]::-webkit-search-cancel-button,
+.topaz-editor input[type="text"]::-webkit-search-results-button,
+.topaz-editor input[type="text"]::-webkit-search-results-decoration {
+  display: none;
+}
+
+.topaz-editor > [role="tablist"] > * > :first-child {
+  flex-grow: 1;
+  text-align: left;
+}
+
+.topaz-editor > [role="tablist"] > * > :last-child:not(:first-child) {
+  margin-left: 6px;
+}
+
+.topaz-editor > [role="tablist"] > * {
+  flex-shrink: 0;
+}
+
+.topaz-editor > [role="tablist"] > * > [aria-label="Delete"] svg {
+  width: 18px;
+  height: 18px;
+}
+
+.topaz-editor > [role="tablist"] > * > [aria-label="Delete"]:hover {
+  color: var(--status-danger);
 }
 
 .topaz-editor > [role="tablist"] > div:not(:first-child) {
@@ -4608,8 +4949,51 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   border-radius: 0 8px 0 0;
 }
 
-.topaz-editor > [role="tablist"] > div:first-child:nth-last-child(3) { /* Only */
-  border-radius: 8px 8px 0 0;
+.topaz-snippets > .topaz-editor {
+  display: flex;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] {
+  flex-direction: column;
+  background: var(--background-secondary-alt);
+  width: 240px !important;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > * {
+  border-radius: 0 !important;
+  border-bottom: none;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > :not([aria-controls^="#"]) {
+  border-left: 2px solid transparent;
+  padding: 8px 4px 8px 16px;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > .selected-g-kMVV {
+  border-left-color: var(--control-brand-foreground);
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls^="#"] {
+  bottom: 0;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#settings-tab"] {
+  border-radius: 8px 0 0 0 !important;
+}
+
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#reload-tab"] {
+  display: none;
+}
+
+.topaz-snippets > .topaz-editor > section {
+  width: calc(100% - 240px) !important;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] .input-2XRLou {
+  position: relative;
+  top: -3px;
+  left: -4px;
 }
 
 /* Hide some elements for Simple UI */
