@@ -208,7 +208,6 @@ powercord = {
 
         topaz.internal.registerSettings(__entityID, { render, props: { ...settingStore } });
 
-
         settingsUnpatch[id] = goosemod.patcher.patch(SettingsView.prototype, 'getPredicateSections', (_, sections) => {
           const logout = sections.find((c) => c.section === 'logout');
           if (!logout || !topaz.settings.pluginSettingsSidebar) return sections;

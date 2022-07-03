@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 203; // Auto increments on build
+const topazVersion = 205; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -15,6 +15,8 @@ const sucrase = eval(await (await fetch('http://localhost:1337/src/sucrase.js'))
 const grass = await eval(await (await fetch('http://localhost:1337/src/grass.js')).text());
 const Onyx = eval(await (await fetch('http://localhost:1337/src/onyx.js')).text());
 const attrs = eval(await (await fetch('http://localhost:1337/src/attrs.js')).text());
+const MapGen = eval(await (await fetch('http://localhost:1337/src/mapgen.js')).text());
+Onyx.prototype.MapGen = MapGen; // import mapgen into onyx
 
 const Editor = { // defer loading until editor is wanted
   get Component() {
@@ -119,14 +121,12 @@ const builtins = {
   'fs': await getBuiltin('node/fs'),
   'process': await getBuiltin('node/process'),
   'request': await getBuiltin('node/request'),
-  'querystring': await getBuiltin('node/querystring')
-};
+  'querystring': await getBuiltin('node/querystring'),
 
-const globals = {
-  powercord: await getBuiltin('powercord/global'),
-  betterdiscord: await getBuiltin('betterdiscord/global'),
-
-  bd_zeres: await getBuiltin('betterdiscord/libs/zeres')
+  'goosemod/global': '',
+  'powercord/global': await getBuiltin('powercord/global'),
+  'betterdiscord/global': await getBuiltin('betterdiscord/global'),
+  'betterdiscord/libs/zeres': await getBuiltin('betterdiscord/libs/zeres')
 };
 
 const join = (root, p) => root + p.replace('./', '/'); // Add .jsx to empty require paths with no file extension
@@ -225,11 +225,11 @@ const makeChunk = async (root, p) => {
 
   if (p.endsWith('.json') || code.startsWith('{')) code = 'module.exports = ' + code;
 
-  const chunk = `// ${resolved}
+  const chunk = `// ${finalPath}
 let ${id} = {};
-(() => {
+(() => { // MAP_START|${finalPath}
 ` + code.replace('module.exports =', `${id} =`).replace('export default', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`) + `
-})();`;
+})(); // MAP_END`;
 
   return [ id, chunk ];
 };
@@ -502,7 +502,7 @@ const install = async (info, settings = undefined, disabled = false) => {
       if (pend) pend.manifest = manifest;
 
       updatePending(info, 'Bundling...');
-      newCode = await transform(indexUrl, indexCode, info);
+      newCode = await transform(indexUrl, indexCode, mod);
 
       isTheme = false;
     }
@@ -532,7 +532,7 @@ const install = async (info, settings = undefined, disabled = false) => {
       __theme: true
     };
   } else {
-    const execContainer = new Onyx(info, manifest);
+    const execContainer = new Onyx(info, manifest, transformRoot);
     const PluginClass = execContainer.eval(newCode);
 
     if (mod !== 'gm') {
@@ -646,28 +646,35 @@ const replaceLast = (str, from, to) => { // replace only last instance of string
   return str.substring(0, ind) + to + str.substring(ind + from.length);
 };
 
+const fullMod = (mod) => {
+  switch (mod) {
+    case 'pc': return 'powercord';
+    case 'bd': return 'betterdiscord';
+    case 'gm': return 'goosemod';
+  }
+};
+
+const mapifyBuiltin = (builtin) => `// MAP_START|${builtin}
+${builtins[builtin]}
+// MAP_END\n\n`;
+
 let transformRoot;
-const transform = async (path, code, entityID) => {
+const transform = async (path, code, mod) => {
   fetchProgressCurrent = 0;
   fetchProgressTotal = 0;
 
   transformRoot = path.split('/').slice(0, -1).join('/');
 
   code = await includeRequires(path, code);
-  code = Object.values(chunks).join('\n\n') + '\n\n' + code;
+  code = Object.values(chunks).join('\n\n') + `\n// MAP_START|${'.' + path.replace(transformRoot, '')}
+${code}
+// MAP_END`;
 
-  let global = path.endsWith('.plugin.js') ? globals.betterdiscord : globals.powercord;
+  code = mapifyBuiltin(fullMod(mod) + '/global') +
+    ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? mapifyBuiltin('betterdiscord/libs/zeres') : '') +
+    code;
 
-  // BD: add our own micro-implementations of popular 3rd party plugin libraries
-  if (code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) global = global + '\n\n' + globals.bd_zeres;
-
-  code = global + '\n\n' + code;
-
-  // replace last as some builders use module.exports internally, last one = actual export (probably)
-  /* code = replaceLast(code, 'module.exports =', 'return');
-  code = replaceLast(code, 'export default', 'return'); */
-
-  code = replaceLast(code, 'export default', 'module.exports =');
+  code = replaceLast(code, 'export default', 'module.exports ='); // esm -> cjs export
 
   console.log({ code });
 
@@ -801,7 +808,9 @@ window.topaz = {
       plugins[entityID].__settings = { render, props };
     },
 
-    plugins
+    plugins,
+    fetchCache,
+    builtins
   },
 
   reloadTopaz: async () => {
@@ -840,7 +849,7 @@ const startSnippet = async (file, content) => {
 
     activeSnippets[file] = () => cssEl.remove();
   } else if (file.includes('.js')) {
-    code = await transform('https://discord.com/channels/@me', content, 'snippet_' + file);
+    code = await transform('https://discord.com/channels/@me', content, 'pc');
 
     activeSnippets[file] = () => {}; // no way to stop?
   }

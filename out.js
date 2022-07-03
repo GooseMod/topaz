@@ -1,5 +1,5 @@
 (async () => {
-const topazVersion = 203; // Auto increments on build
+const topazVersion = 205; // Auto increments on build
 
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
@@ -730,7 +730,7 @@ const permissionsModal = async (manifest, neededPerms) => {
 
 
 // we have to use function instead of class because classes force strict mode which disables with
-const Onyx = function (entityID, manifest) {
+const Onyx = function (entityID, manifest, transformRoot) {
   const context = {};
 
   // todo: don't allow localStorage, use custom storage api internally
@@ -800,7 +800,8 @@ const Onyx = function (entityID, manifest) {
 
   let predictedPerms = [];
   this.eval = function (_code) {
-    const code = _code + \`\\n\\n;module.exports //# sourceURL=\${makeSourceURL(this.manifest.name)}\`; // return module.exports
+    let code = _code + \`\\n\\n;module.exports\\n //# sourceURL=\${makeSourceURL(this.manifest.name)}\\n\`;
+    code += this.MapGen(code, transformRoot, this.manifest.name);
 
     // basic static code analysis for predicting needed permissions
     // const objectPredictBlacklist = [ 'clyde' ];
@@ -925,6 +926,82 @@ const manager = {
 manager.add();
 
 manager`);
+const MapGen = eval(`const tokens = {
+  start: 'MAP_START|',
+  end: 'MAP_END'
+};
+
+const B64Map = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'];
+const encode = (x) => { // base64 vlq
+  let encoded = '';
+
+  let vlq = x < 0 ? ((-x << 1) + 1) : (x << 1);
+
+  do {
+    let digit = vlq & 31;
+
+    vlq = vlq >> 5;
+    if (vlq > 0) digit = digit | 32;
+
+    encoded += B64Map[digit];
+  } while (vlq > 0);
+
+  return encoded;
+};
+
+let makeMap = (output, root, name) => {
+  const sources = [];
+  const sourcesContent = [];
+  const mappings = [];
+
+  let withinSource, currentLine = 0, lastLine = 0, lastSource;
+  for (const line of output.split('\\n')) {
+    if (line.includes(tokens.end)) withinSource = undefined;
+
+    if (withinSource) { // map line
+      let nowSource = sources.length - 1;
+
+      mappings.push([ 0, nowSource - lastSource, currentLine - lastLine, 0 ]);
+
+      lastLine = currentLine;
+      currentLine++;
+
+      lastSource = nowSource;
+    } else mappings.push([]); // skip line
+
+    const ind = line.indexOf(tokens.start);
+    if (ind !== -1) {
+      const source = line.slice(ind + tokens.start.length);
+      // if (!source.startsWith('./')) continue;
+      sources.push(source.startsWith('./') ? source.slice(2) : 'topaz://Topaz/' + source + '.js');
+      sourcesContent.push(source.startsWith('./') ? topaz.internal.fetchCache.get(root + '/' + source.slice(2)) : topaz.internal.builtins[source]);
+
+      withinSource = source;
+
+      lastSource = sources.length - 2;
+      if (lastSource === -1) lastSource = 0; // don't bump source id at start
+
+      currentLine = 0;
+    }
+  }
+
+  const map = {
+    version: 3,
+    file: \`topaz_plugin.js\`,
+    sourceRoot: \`topaz://Topaz/Plugin\${sources.length === 1 ? '' : \`/\${name}\`}\`, // don't use plugin subdir when only one source (eg: BD .plugin.js)
+    sources,
+    names: [],
+    mappings: mappings.map(x => x.map(encode).join('')).join(';'), // encode maps into expected
+    sourcesContent
+  };
+
+  topaz.log('mapgen', 'mapped!', map);
+
+  return \`//# sourceMappingURL=data:application/json;charset=utf-8;base64,\` + btoa(JSON.stringify(map)); // inline with b64
+};
+
+makeMap`);
+Onyx.prototype.MapGen = MapGen; // import mapgen into onyx
 
 const Editor = { // defer loading until editor is wanted
   get Component() {
@@ -1993,11 +2070,10 @@ module.exports = {
   'request': `module.exports = {};`,
   'querystring': `module.exports = {
   stringify: x => new URLSearchParams(x).toString()
-};`
-};
+};`,
 
-const globals = {
-  powercord: `let powercord;
+  'goosemod/global': '',
+  'powercord/global': `let powercord;
 
 (() => {
 const { React, Flux, FluxDispatcher } = goosemod.webpackModules.common;
@@ -2207,7 +2283,6 @@ powercord = {
 
         topaz.internal.registerSettings(__entityID, { render, props: { ...settingStore } });
 
-
         settingsUnpatch[id] = goosemod.patcher.patch(SettingsView.prototype, 'getPredicateSections', (_, sections) => {
           const logout = sections.find((c) => c.section === 'logout');
           if (!logout || !topaz.settings.pluginSettingsSidebar) return sections;
@@ -2284,7 +2359,7 @@ powercord = {
 
 
 })();`,
-  betterdiscord: `let BdApi;
+  'betterdiscord/global': `let BdApi;
 let global = window;
 
 (() => {
@@ -2456,8 +2531,7 @@ BdApi = {
   ReactDOM: Webpack.common.ReactDOM
 };
 })();`,
-
-  bd_zeres: `let ZeresPluginLibrary, ZLibrary;
+  'betterdiscord/libs/zeres': `let ZeresPluginLibrary, ZLibrary;
 
 (() => {
 const WebpackModules = {
@@ -2971,11 +3045,11 @@ const makeChunk = async (root, p) => {
 
   if (p.endsWith('.json') || code.startsWith('{')) code = 'module.exports = ' + code;
 
-  const chunk = `// ${resolved}
+  const chunk = `// ${finalPath}
 let ${id} = {};
-(() => {
+(() => { // MAP_START|${finalPath}
 ` + code.replace('module.exports =', `${id} =`).replace('export default', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`) + `
-})();`;
+})(); // MAP_END`;
 
   return [ id, chunk ];
 };
@@ -3248,7 +3322,7 @@ const install = async (info, settings = undefined, disabled = false) => {
       if (pend) pend.manifest = manifest;
 
       updatePending(info, 'Bundling...');
-      newCode = await transform(indexUrl, indexCode, info);
+      newCode = await transform(indexUrl, indexCode, mod);
 
       isTheme = false;
     }
@@ -3278,7 +3352,7 @@ const install = async (info, settings = undefined, disabled = false) => {
       __theme: true
     };
   } else {
-    const execContainer = new Onyx(info, manifest);
+    const execContainer = new Onyx(info, manifest, transformRoot);
     const PluginClass = execContainer.eval(newCode);
 
     if (mod !== 'gm') {
@@ -3392,28 +3466,35 @@ const replaceLast = (str, from, to) => { // replace only last instance of string
   return str.substring(0, ind) + to + str.substring(ind + from.length);
 };
 
+const fullMod = (mod) => {
+  switch (mod) {
+    case 'pc': return 'powercord';
+    case 'bd': return 'betterdiscord';
+    case 'gm': return 'goosemod';
+  }
+};
+
+const mapifyBuiltin = (builtin) => `// MAP_START|${builtin}
+${builtins[builtin]}
+// MAP_END\n\n`;
+
 let transformRoot;
-const transform = async (path, code, entityID) => {
+const transform = async (path, code, mod) => {
   fetchProgressCurrent = 0;
   fetchProgressTotal = 0;
 
   transformRoot = path.split('/').slice(0, -1).join('/');
 
   code = await includeRequires(path, code);
-  code = Object.values(chunks).join('\n\n') + '\n\n' + code;
+  code = Object.values(chunks).join('\n\n') + `\n// MAP_START|${'.' + path.replace(transformRoot, '')}
+${code}
+// MAP_END`;
 
-  let global = path.endsWith('.plugin.js') ? globals.betterdiscord : globals.powercord;
+  code = mapifyBuiltin(fullMod(mod) + '/global') +
+    ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? mapifyBuiltin('betterdiscord/libs/zeres') : '') +
+    code;
 
-  // BD: add our own micro-implementations of popular 3rd party plugin libraries
-  if (code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) global = global + '\n\n' + globals.bd_zeres;
-
-  code = global + '\n\n' + code;
-
-  // replace last as some builders use module.exports internally, last one = actual export (probably)
-  /* code = replaceLast(code, 'module.exports =', 'return');
-  code = replaceLast(code, 'export default', 'return'); */
-
-  code = replaceLast(code, 'export default', 'module.exports =');
+  code = replaceLast(code, 'export default', 'module.exports ='); // esm -> cjs export
 
   console.log({ code });
 
@@ -3547,7 +3628,9 @@ window.topaz = {
       plugins[entityID].__settings = { render, props };
     },
 
-    plugins
+    plugins,
+    fetchCache,
+    builtins
   },
 
   reloadTopaz: async () => {
@@ -3586,7 +3669,7 @@ const startSnippet = async (file, content) => {
 
     activeSnippets[file] = () => cssEl.remove();
   } else if (file.includes('.js')) {
-    code = await transform('https://discord.com/channels/@me', content, 'snippet_' + file);
+    code = await transform('https://discord.com/channels/@me', content, 'pc');
 
     activeSnippets[file] = () => {}; // no way to stop?
   }

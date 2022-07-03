@@ -210,7 +210,7 @@ const permissionsModal = async (manifest, neededPerms) => {
 
 
 // we have to use function instead of class because classes force strict mode which disables with
-const Onyx = function (entityID, manifest) {
+const Onyx = function (entityID, manifest, transformRoot) {
   const context = {};
 
   // todo: don't allow localStorage, use custom storage api internally
@@ -280,7 +280,8 @@ const Onyx = function (entityID, manifest) {
 
   let predictedPerms = [];
   this.eval = function (_code) {
-    const code = _code + `\n\n;module.exports //# sourceURL=${makeSourceURL(this.manifest.name)}`; // return module.exports
+    let code = _code + `\n\n;module.exports\n //# sourceURL=${makeSourceURL(this.manifest.name)}\n`;
+    code += this.MapGen(code, transformRoot, this.manifest.name);
 
     // basic static code analysis for predicting needed permissions
     // const objectPredictBlacklist = [ 'clyde' ];
