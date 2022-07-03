@@ -138,7 +138,6 @@ return function Editor(props) {
     // editorRef.current.focus();
   }, [ openFile ]);
 
-
   return React.createElement('div', {
     className: 'topaz-editor'
   },
@@ -224,7 +223,9 @@ return function Editor(props) {
           const name = '';
 
           files[name] = '';
-          setOpenFile(name);
+          if (openFile === name) forceUpdate();
+            else setOpenFile(name);
+
           setTimeout(() => document.querySelector('#inptab-').focus(), 100);
 
           props.onNew?.(name);
