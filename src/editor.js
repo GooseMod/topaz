@@ -48,8 +48,9 @@ patchAppend('body');
 patchAppend('head');
 
 if (window.monaco && !window.monaco_react) {
-  delete window.monaco;
-  delete window.define;
+  window.monaco = undefined;
+  window.MonacoEnvironment = undefined;
+  window.define = undefined;
 }
 
 if (!window.monaco) { // only load once, or errors
