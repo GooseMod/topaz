@@ -986,7 +986,7 @@ let makeMap = (output, root, name) => {
   const map = {
     version: 3,
     file: \`topaz_plugin.js\`,
-    sourceRoot: \`topaz://Topaz/Plugin\${sources.length === 1 ? '' : \`/\${name}\`}\`, // don't use plugin subdir when only one source (eg: BD .plugin.js)
+    sourceRoot: \`topaz://Topaz/Plugin\${sources.filter(x => !x.startsWith('topaz://')).length === 1 ? '' : \`/\${name}\`}\`, // don't use plugin subdir when only one source (eg: BD .plugin.js)
     sources,
     names: [],
     mappings: mappings.map(x => x.map(encode).join('')).join(';'), // encode maps into expected
