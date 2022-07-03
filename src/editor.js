@@ -47,12 +47,6 @@ const patchAppend = (which) => { // sorry
 patchAppend('body');
 patchAppend('head');
 
-if (window.monaco && !window.monaco_react) {
-  window.monaco = undefined;
-  window.MonacoEnvironment = undefined;
-  window.define = undefined;
-}
-
 if (!window.monaco) { // only load once, or errors
   // monaco loader and react dependencies
   await imp('https://unpkg.com/prop-types@15.7.2/prop-types.js');
