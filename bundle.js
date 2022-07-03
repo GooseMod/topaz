@@ -2,10 +2,6 @@ const fs = require('fs');
 
 let code = fs.readFileSync('src/index.js', 'utf8');
 
-code = code.replace(/const topazVersion = ([0-9]+);/, (_, v) => `const topazVersion = ${parseInt(v) + 1};`);
-
-fs.writeFileSync('src/index.js', code);
-
 const read = (path) => ('`' + fs.readFileSync('src/' + path + (!path.includes('.') ? '.js' : ''), 'utf8').replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$') + '`');
 
 code = code.replace(/await getBuiltin\(['"`](.*?)['"`]\)/g, (_, path) => read('builtins/' + path));

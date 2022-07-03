@@ -1,6 +1,4 @@
 (async () => {
-const topazVersion = 205; // Auto increments on build
-
 let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
 if (window.topaz) { // live reload handling
   topaz.__reloading = true;
@@ -4474,7 +4472,7 @@ class Settings extends React.PureComponent {
       }, 'Topaz',
         React.createElement('span', {
           className: 'description-30xx7u topaz-version'
-        }, 'v' + topazVersion),
+        }, 'alpha 3.1'),
 
         React.createElement(HeaderBarContainer.Divider),
 
