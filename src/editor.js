@@ -49,6 +49,7 @@ patchAppend('head');
 
 if (window.monaco && !window.monaco_react) {
   delete window.monaco;
+  delete window.define;
 }
 
 if (!window.monaco) { // only load once, or errors
