@@ -1055,14 +1055,15 @@ patchAppend('body');
 patchAppend('head');
 
 
-if (!window.monaco_react) { // only load once, or errors
+if (!window.monaco) { // only load once, or errors
   // monaco loader and react dependencies
   await imp('https://unpkg.com/prop-types@15.7.2/prop-types.js');
   await imp('https://unpkg.com/state-local@1.0.7/lib/umd/state-local.min.js');
 
   await imp('https://unpkg.com/@monaco-editor/loader@1.3.2/lib/umd/monaco-loader.min.js'); // monaco loader
-  await imp('https://unpkg.com/@monaco-editor/react@4.4.5/lib/umd/monaco-react.min.js'); // monaco react
 }
+if (!window.monaco_react) await imp('https://unpkg.com/@monaco-editor/react@4.4.5/lib/umd/monaco-react.min.js'); // monaco react
+
 
 const MonacoEditor = monaco_react.default;
 
@@ -1136,7 +1137,6 @@ return function Editor(props) {
   const openExt = openFile.split('.').pop();
 
   React.useEffect(() => {
-    console.log('ref', editorRef);
     if (!editorRef.current) return;
 
     editorRef.current.revealLine(0);
@@ -1187,7 +1187,6 @@ return function Editor(props) {
 
             props.onRename?.(x, val);
 
-            console.log(openFile, x, openFile === x, val);
             if (openFile === x) setOpenFile(val);
           }
         }),
@@ -1210,8 +1209,6 @@ return function Editor(props) {
             if (openFile === x) {
               let newOpenIndex = originalIndex - 1;
               if (newOpenIndex < 0) newOpenIndex = 0;
-
-              console.log(openFile, Object.keys(files)[newOpenIndex]);
 
               setOpenFile(Object.keys(files)[newOpenIndex] ?? '');
             } else forceUpdate();
@@ -4313,8 +4310,6 @@ class Snippets extends React.PureComponent {
       stopSnippet(file);
       if (snippetsToggled[file] && content) startSnippet(file, content);
     };
-
-    console.log([activeSnippet, snippets[activeSnippet]]);
 
     return React.createElement('div', {
       className: 'topaz-snippets'
