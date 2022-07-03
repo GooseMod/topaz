@@ -3635,7 +3635,6 @@ window.topaz = {
   log
 };
 
-console.clear();
 log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)}ms`);
 
 (async () => {
