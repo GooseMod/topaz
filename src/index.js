@@ -1493,8 +1493,6 @@ class Snippets extends React.PureComponent {
       if (snippetsToggled[file] && content) startSnippet(file, content);
     };
 
-    console.log([activeSnippet, snippets[activeSnippet]]);
-
     return React.createElement('div', {
       className: 'topaz-snippets'
     },
