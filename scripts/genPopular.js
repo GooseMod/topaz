@@ -2,7 +2,7 @@
 const { writeFileSync } = require('fs');
 const { join } = require('path');
 
-const [ GITHUB_TOKEN, DISCORD_TOKEN ] = process.argv.slice(1);
+const [ GITHUB_TOKEN, DISCORD_TOKEN ] = process.argv.slice(2);
 
 const pc = {
   plugins: [
@@ -29,6 +29,7 @@ const pc = {
     'FifiTheBulldog/token',
     'CanadaHonk/message-translate', // fork as waiting for PR to merge
     'katlyn/pronoundb-powercord', // fork as waiting for PR to merge
+    'PandaDriver156/Custom-Volume-Range',
   ],
 
   themes: [
