@@ -995,7 +995,7 @@ let makeMap = (output, root, name) => {
 
   topaz.log('mapgen', 'mapped!', map);
 
-  return \`//# sourceMappingURL=data:application/json;charset=utf-8;base64,\` + btoa(JSON.stringify(map)); // inline with b64
+  return \`//# sourceMappingURL=data:application/json;charset=utf-8,\` + encodeURIComponent(JSON.stringify(map)); // inline with encoded
 };
 
 makeMap`);
