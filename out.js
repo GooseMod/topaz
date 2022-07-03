@@ -1054,14 +1054,16 @@ const patchAppend = (which) => { // sorry
 patchAppend('body');
 patchAppend('head');
 
-
-if (!window.monaco) { // only load once, or errors
-  await imp('https://unpkg.com/state-local@1.0.7/lib/umd/state-local.min.js'); // dependency
-  await imp('https://unpkg.com/@monaco-editor/loader@1.3.2/lib/umd/monaco-loader.min.js'); // monaco loader
+if (window.monaco && !window.monaco_react) {
+  delete window.monaco;
 }
 
-if (!window.monaco_react) {
-  await imp('https://unpkg.com/prop-types@15.7.2/prop-types.js'); // dependency
+if (!window.monaco) { // only load once, or errors
+  // monaco loader and react dependencies
+  await imp('https://unpkg.com/prop-types@15.7.2/prop-types.js');
+  await imp('https://unpkg.com/state-local@1.0.7/lib/umd/state-local.min.js');
+
+  await imp('https://unpkg.com/@monaco-editor/loader@1.3.2/lib/umd/monaco-loader.min.js'); // monaco loader
   await imp('https://unpkg.com/@monaco-editor/react@4.4.5/lib/umd/monaco-react.min.js'); // monaco react
 }
 
