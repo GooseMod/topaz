@@ -1,5 +1,3 @@
-const { getModule } = require("../webpack");
-
 const { React } = goosemod.webpackModules.common;
 
 class AsyncComponent extends React.PureComponent {
@@ -43,7 +41,7 @@ class AsyncComponent extends React.PureComponent {
   }
 
   static fromModuleProp (filter, key, fallback) {
-    return AsyncComponent.from((async () => (await getModule(filter))[key])(), fallback);
+    return AsyncComponent.from((async () => (await goosemod.webpackModules.find(filter))[key])(), fallback);
   }
 }
 

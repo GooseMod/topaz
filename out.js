@@ -1454,6 +1454,10 @@ const builtins = {
     console.error(this.entityID, ...args);
   }
 
+  log(...args) {
+    console.log(this.entityID, ...args);
+  }
+
   get settings() {
     return powercord.api.settings.store;
   }
@@ -1476,25 +1480,13 @@ module.exports = {
   Plugin
 };`,
   'powercord/webpack': `const makeFinalFilter = (filter) => {
-  if (Array.isArray(filter)) {
-    const subs = filter;
-    filter = (mod) => subs.every((s) => mod[s] || (mod.__proto__ && mod.__proto__[s]));
-  }
-
+  if (Array.isArray(filter)) return (mod) => filter.every(p => (mod[p] ?? (mod.__proto__ && mod.__proto__[p])) !== undefined);
   return filter;
 };
 
-const Flux = goosemod.webpackModules.findByProps('Store', 'connectStores');
-const AsyncComponent = powercord.__topaz.AsyncComponent;
-
-// jank Flux addition because yes
-Flux.connectStoresAsync = (stores, callback) => comp => AsyncComponent.from((async () => {
-  const ret = await Promise.all(stores);
-  return Flux.connectStores(ret, p => callback(ret, p))(comp);
-})());
 
 module.exports = {
-  getModule: (filter, retry, _forever) => { // Ignoring retry and forever arguments for basic implementation
+  getModule: (filter, retry = true, _forever = false) => { // Ignoring retry and forever arguments for basic implementation
     filter = makeFinalFilter(filter);
 
     const result = goosemod.webpackModules.find(filter);
@@ -1645,7 +1637,7 @@ module.exports = {
   AdvancedScrollerAuto: goosemod.webpackModules.findByProps('AdvancedScrollerAuto').AdvancedScrollerAuto,
   AdvancedScrollerNone: goosemod.webpackModules.findByProps('AdvancedScrollerNone').AdvancedScrollerNone,
 
-  AsyncComponent: powercord.__topaz.AsyncComponent,
+  AsyncComponent: require('powercord/components/AsyncComponent'),
   settings: require('powercord/components/settings')
 };`,
   'powercord/components/settings': `const { React } = goosemod.webpackModules.common;
@@ -1865,6 +1857,63 @@ module.exports = {
   Modal,
   Confirm: goosemod.webpackModules.findByDisplayName('ConfirmModal')
 };`,
+  'powercord/components/AsyncComponent': `const { React } = goosemod.webpackModules.common;
+
+class AsyncComponent extends React.PureComponent {
+  constructor (props) {
+    super(props);
+    this.state = {};
+  }
+
+  async componentDidMount () {
+    this.setState({
+      comp: await this.props._provider()
+    });
+  }
+
+  render () {
+    const { comp } = this.state;
+    if (comp) return React.createElement(comp, {
+      ...this.props,
+      ...this.props._pass
+    });
+
+    return this.props._fallback ?? null;
+  }
+
+  static from (prov, _fallback) {
+    return React.memo(
+      props => React.createElement(AsyncComponent, {
+        _provider: () => prov,
+        _fallback,
+        ...props
+      })
+    );
+  }
+
+  static fromDisplayName (name, fallback) {
+    return AsyncComponent.from(goosemod.webpackModules.findByDisplayName(name), fallback);
+  }
+
+  static fromModule (filter, fallback) {
+    return AsyncComponent.from(goosemod.webpackModules.find(filter), fallback);
+  }
+
+  static fromModuleProp (filter, key, fallback) {
+    return AsyncComponent.from((async () => (await goosemod.webpackModules.find(filter))[key])(), fallback);
+  }
+}
+
+
+const Flux = goosemod.webpackModules.findByProps('Store', 'connectStores');
+
+// jank Flux addition because yes
+Flux.connectStoresAsync = (stores, callback) => comp => AsyncComponent.from((async () => {
+  const ret = await Promise.all(stores);
+  return Flux.connectStores(ret, p => callback(ret, p))(comp);
+})());
+
+module.exports = AsyncComponent;`,
   'powercord/modal': `const modalManager = goosemod.webpackModules.findByProps('openModal', 'updateModal');
 const Modal = goosemod.webpackModules.findByProps('ModalRoot');
 
@@ -2174,50 +2223,6 @@ const updateOpenSettings = async () => {
   } catch (_e) { }
 };
 
-class AsyncComponent extends React.PureComponent {
-  constructor (props) {
-    super(props);
-    this.state = {};
-  }
-
-  async componentDidMount () {
-    this.setState({
-      comp: await this.props._provider()
-    });
-  }
-
-  render () {
-    const { comp } = this.state;
-    if (comp) return React.createElement(comp, {
-      ...this.props,
-      ...this.props._pass
-    });
-
-    return this.props._fallback ?? null;
-  }
-
-  static from (prov, _fallback) {
-    return React.memo(
-      props => React.createElement(AsyncComponent, {
-        _provider: () => prov,
-        _fallback,
-        ...props
-      })
-    );
-  }
-
-  static fromDisplayName (name, fallback) {
-    return AsyncComponent.from(goosemod.webpackModules.findByDisplayName(name), fallback);
-  }
-
-  static fromModule (filter, fallback) {
-    return AsyncComponent.from(goosemod.webpackModules.find(filter), fallback);
-  }
-
-  static fromModuleProp (filter, key, fallback) {
-    return AsyncComponent.from((async () => (await getModule(filter))[key])(), fallback);
-  }
-}
 
 powercord = {
   api: {
@@ -2345,10 +2350,6 @@ powercord = {
         return undefined;
       }
     }
-  },
-
-  __topaz: {
-    AsyncComponent
   }
 };
 

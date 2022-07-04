@@ -1,9 +1,5 @@
 const makeFinalFilter = (filter) => {
-  if (Array.isArray(filter)) {
-    const subs = filter;
-    filter = (mod) => subs.every((s) => mod[s] || (mod.__proto__ && mod.__proto__[s]));
-  }
-
+  if (Array.isArray(filter)) return (mod) => filter.every(p => (mod[p] ?? (mod.__proto__ && mod.__proto__[p])) !== undefined);
   return filter;
 };
 
