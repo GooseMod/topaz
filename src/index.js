@@ -435,7 +435,7 @@ const install = async (info, settings = undefined, disabled = false) => {
 
     const indexFile = await resolveFileFromTree('index');
 
-    const indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/${subdir ? (subdir + '/') : ''}index.js`;
+    const indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/${subdir ? (subdir + '/') : ''}${indexFile ? indexFile.slice(2) : 'index.js'}`;
     let root = getDir(indexUrl);
 
     chunks = {}; // reset chunks
