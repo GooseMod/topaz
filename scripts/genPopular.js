@@ -30,6 +30,8 @@ const pc = {
     'CanadaHonk/message-translate', // fork as waiting for PR to merge
     'katlyn/pronoundb-powercord', // fork as waiting for PR to merge
     'PandaDriver156/Custom-Volume-Range',
+    'NurMarvin/guild-profile',
+    'GriefMoDz/better-status-indicators',
   ],
 
   themes: [
@@ -105,7 +107,7 @@ const getGithubInfo = async (repo) => {
     }
   })).json();
 
-  if (info.stargazers_count === undefined) console.log('GH', info);
+  if (info.stargazers_count === undefined) console.log('GH', repo, info);
 
   return githubCache[repo] = info;
 };
@@ -180,7 +182,7 @@ const getManifest_bd = async (place, theme) => { // .plugin.js url
   plugins = await Promise.all(plugins);
   themes = await Promise.all(themes);
 
-  const sortThings = async (things) => (await Promise.all(things.map(async x => [ x[0], x[1], await getGithubInfo(x[1].includes('http') ? x[1].split('/').slice(3, 5).join('/') : x[1])]))).sort((a, b) =>
+  const sortThings = async (things) => (await Promise.all(things.map(async x => [ x[0], x[1], await getGithubInfo(x[1].includes('http') ? x[1].split('/').slice(3, 5).join('/') : x[1].split('@')[0])]))).sort((a, b) =>
     b[2].stargazers_count - a[2].stargazers_count
   ).map(x => [ x[0], x[1] ]);
 
