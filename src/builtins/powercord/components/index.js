@@ -62,5 +62,6 @@ module.exports = {
   AdvancedScrollerNone: goosemod.webpackModules.findByProps('AdvancedScrollerNone').AdvancedScrollerNone,
 
   AsyncComponent: require('powercord/components/AsyncComponent'),
-  settings: require('powercord/components/settings')
+  settings: require('powercord/components/settings'),
+  modal: require('powercord/components/modal')
 };
