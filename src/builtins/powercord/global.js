@@ -41,21 +41,23 @@ class SettingsStore extends Flux.Store {
   delete = this.deleteSetting
 
   // not flux but yes
-  connectStore = (comp) => class ConnectWrap extends React.PureComponent {
-    render() {
-      const props = this.props;
-      delete props.children;
-
-      return React.createElement(comp, {
-        ...props,
-        getSetting: settingStore.getSetting,
-        updateSetting: settingStore.updateSetting,
-        toggleSetting: settingStore.toggleSetting,
-        deleteSetting: settingStore.deleteSetting,
-      }, this.props.children)
-    }
-  }
+  connectStore = connectStore
 }
+
+const connectStore = (comp) => class ConnectWrap extends React.PureComponent {
+  render() {
+    const props = this.props;
+    delete props.children;
+
+    return React.createElement(comp, {
+      ...props,
+      getSetting: settingStore.getSetting,
+      updateSetting: settingStore.updateSetting,
+      toggleSetting: settingStore.toggleSetting,
+      deleteSetting: settingStore.deleteSetting,
+    }, this.props.children)
+  }
+};
 
 const settingStore = new SettingsStore(FluxDispatcher, {
   POWERCORD_SETTINGS_UPDATE: ({ category, settings }) => updateSettings(category, settings),
@@ -206,7 +208,8 @@ powercord = {
         getSetting: (key, defaultValue) => settingStore.getSetting(key, defaultValue),
         updateSetting: (key, value) => settingStore.updateSetting(key, value),
         toggleSetting: (key, defaultValue) => settingStore.toggleSetting(key, defaultValue)
-      })
+      }),
+      connectStores: (_id) => connectStore
     },
 
     notices: {
