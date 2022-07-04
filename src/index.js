@@ -616,6 +616,7 @@ const install = async (info, settings = undefined, disabled = false) => {
   plugins[info] = plugin;
 
   if (!plugin.entityID) plugin.entityID = info; // Re-set metadata for themes and assurance
+  plugin.__entityID = info;
   plugin.manifest = manifest;
 
   plugin.__enabled = !disabled;
@@ -1743,9 +1744,9 @@ class Settings extends React.PureComponent {
 
         React.createElement(Divider),
 
-        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ __enabled, manifest, entityID, __settings, __mod, __theme }) => React.createElement(Plugin, {
+        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ __enabled, manifest, __entityID, __settings, __mod, __theme }) => React.createElement(Plugin, {
           manifest,
-          entityID,
+          entityID: __entityID,
           enabled: __enabled,
           settings: __settings,
           mod: __mod,
