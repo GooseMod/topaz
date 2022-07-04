@@ -17,6 +17,10 @@ class Plugin {
     console.error(this.entityID, ...args);
   }
 
+  log(...args) {
+    console.log(this.entityID, ...args);
+  }
+
   get settings() {
     return powercord.api.settings.store;
   }
