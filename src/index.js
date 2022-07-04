@@ -554,7 +554,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     const PluginClass = execContainer.eval(newCode);
 
     if (mod !== 'gm') {
-      PluginClass.prototype.entityID = info; // Setup internal metadata
+      PluginClass.prototype.entityID = PluginClass.name ?? info; // Setup internal metadata
       PluginClass.prototype.manifest = manifest;
 
       plugin = new PluginClass();
@@ -615,7 +615,7 @@ const install = async (info, settings = undefined, disabled = false) => {
 
   plugins[info] = plugin;
 
-  plugin.entityID = info; // Re-set metadata for themes and assurance
+  if (!plugin.entityID) plugin.entityID = info; // Re-set metadata for themes and assurance
   plugin.manifest = manifest;
 
   plugin.__enabled = !disabled;
