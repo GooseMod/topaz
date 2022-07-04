@@ -254,6 +254,25 @@ const includeRequires = async (path, code) => {
 
   // log('bundling', 'file', path.replace(indexRoot, ''));
 
+  if (code.includes('exports[moduleName] = require(`${__dirname}/${filename}`)')) { // CJS export all jank fix hack
+    const base = getDir(path.replace(transformRoot + '/', '').replace('./', ''));
+    const files = tree.filter(x => x.type === 'blob' && x.path.toLowerCase().startsWith(base.toLowerCase()) && !x.path.endsWith('/index.js'));
+    console.log('export all', files);
+
+    code = `module.exports = {
+${(await Promise.all(files.map(async x => {
+  const file = x.path.replace(base + '/', '');
+
+  const [ chunkId, code ] = await makeChunk(root, file);
+  if (!chunks[chunkId]) chunks[chunkId] = code;
+
+  return `  ${file.split('.').slice(0, -1).join('.')}: ${chunkId}`;
+}))).join(',\n')}
+};`;
+
+    console.log(code);
+  }
+
   code = await replaceAsync(code, /require\(["'`](.*?)["'`]\)/g, async (_, p) => {
     // console.log('within replace', join(root, p), chunks);
     const [ chunkId, code ] = await makeChunk(root, p);
@@ -276,11 +295,11 @@ const includeRequires = async (path, code) => {
     return `this.loadStylesheet(\`${css}\`)`;
   });
 
-  code = await replaceAsync(code, /powercord\.api\.i18n\.loadAllStrings\(.*?\)/g, async (_, p) => { // todo: actual pc i18n
+  /* code = await replaceAsync(code, /powercord\.api\.i18n\.loadAllStrings\(.*?\)/g, async (_, p) => { // todo: actual pc i18n
     const english = (await getCode(transformRoot, './i18n/en-US.json')).replace(/\\/g, '\\\\').replace(/\`/g, '\`');
 
     return `powercord.api.i18n.loadAllStrings({ 'en-US': JSON.parse(\`${english}\`) })`;
-  });
+  }); */
 
   fetchProgressCurrent++;
   updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
