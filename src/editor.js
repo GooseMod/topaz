@@ -93,15 +93,32 @@ const setTheme = async (x) => {
   monaco.editor.setTheme(x);
   editorSettings.theme = x;
 };
-setTheme(editorSettings.theme);
+setTimeout(() => setTheme(editorSettings.theme), 100);
 
 const focus_enlarge = () => document.body.classList.add('topaz-editor-focus');
 const focus_revert = () => document.body.classList.remove('topaz-editor-focus');
+
+
+const selections = {};
 
 let ignoreNextSelect = false;
 return function Editor(props) {
   let { files, defaultFile, plugin, toggled } = props;
   defaultFile = defaultFile ?? Object.keys(files)[0] ?? '';
+
+  const loadPreviousSelection = (file) => {
+    setTimeout(() => {
+      const ref = editorRef.current;
+      console.log(ref);
+
+      if (selections[plugin.entityID + file]) {
+        ref.setSelection(selections[plugin.entityID + file]);
+        ref.revealLineInCenter(selections[plugin.entityID + file].startLineNumber);
+      } else ref.revealLine(0);
+
+      ref.focus();
+    }, editorRef.current ? 20 : 200);
+  };
 
   const editorRef = React.useRef(null);
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
@@ -110,6 +127,8 @@ return function Editor(props) {
   if (lastPlugin !== plugin.entityID) { // dispose models to clean up
     lastPlugin = plugin.entityID;
     if (window.monaco) monaco.editor.getModels().forEach(x => x.dispose());
+
+    loadPreviousSelection(openFile);
   }
 
 
@@ -128,15 +147,6 @@ return function Editor(props) {
 
   const openExt = openFile.split('.').pop();
 
-  React.useEffect(() => {
-    if (!editorRef.current) return;
-
-    editorRef.current.revealLine(0);
-
-    // editorRef.current.setSelection(new monaco.Selection(0, 0, 0, 0));
-    // editorRef.current.focus();
-  }, [ openFile ]);
-
   return React.createElement('div', {
     className: 'topaz-editor'
   },
@@ -151,8 +161,12 @@ return function Editor(props) {
         if (x.startsWith('#')) return;
         if (ignoreNextSelect) return ignoreNextSelect = false;
 
+        selections[plugin.entityID + openFile] = editorRef.current.getSelection();
+
         setOpenFile(x);
         props.onOpen?.(x);
+
+        if (openFile !== x) loadPreviousSelection(x);
       }
     },
       ...Object.keys(files).map(x => React.createElement(TabBar.Item, {
@@ -324,7 +338,7 @@ return function Editor(props) {
         icon: goosemod.webpackModules.findByDisplayName('Retry'),
         tooltipText: 'Reload Plugin',
         onClick: async () => {
-          topaz.reload(plugin.entityID);
+          topaz.reload(plugin.__entityID);
           goosemod.webpackModules.findByProps('showToast').showToast(goosemod.webpackModules.findByProps('createToast').createToast('Reloaded ' + plugin.manifest.name, 0, { duration: 5000, position: 1 }));
         }
       }))
