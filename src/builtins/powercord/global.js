@@ -104,50 +104,6 @@ const updateOpenSettings = async () => {
   } catch (_e) { }
 };
 
-class AsyncComponent extends React.PureComponent {
-  constructor (props) {
-    super(props);
-    this.state = {};
-  }
-
-  async componentDidMount () {
-    this.setState({
-      comp: await this.props._provider()
-    });
-  }
-
-  render () {
-    const { comp } = this.state;
-    if (comp) return React.createElement(comp, {
-      ...this.props,
-      ...this.props._pass
-    });
-
-    return this.props._fallback ?? null;
-  }
-
-  static from (prov, _fallback) {
-    return React.memo(
-      props => React.createElement(AsyncComponent, {
-        _provider: () => prov,
-        _fallback,
-        ...props
-      })
-    );
-  }
-
-  static fromDisplayName (name, fallback) {
-    return AsyncComponent.from(goosemod.webpackModules.findByDisplayName(name), fallback);
-  }
-
-  static fromModule (filter, fallback) {
-    return AsyncComponent.from(goosemod.webpackModules.find(filter), fallback);
-  }
-
-  static fromModuleProp (filter, key, fallback) {
-    return AsyncComponent.from((async () => (await getModule(filter))[key])(), fallback);
-  }
-}
 
 powercord = {
   api: {
@@ -275,10 +231,6 @@ powercord = {
         return undefined;
       }
     }
-  },
-
-  __topaz: {
-    AsyncComponent
   }
 };
 

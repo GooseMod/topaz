@@ -61,6 +61,6 @@ module.exports = {
   AdvancedScrollerAuto: goosemod.webpackModules.findByProps('AdvancedScrollerAuto').AdvancedScrollerAuto,
   AdvancedScrollerNone: goosemod.webpackModules.findByProps('AdvancedScrollerNone').AdvancedScrollerNone,
 
-  AsyncComponent: powercord.__topaz.AsyncComponent,
+  AsyncComponent: require('powercord/components/AsyncComponent'),
   settings: require('powercord/components/settings')
 };

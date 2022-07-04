@@ -101,6 +101,7 @@ const builtins = {
   'powercord/components': await getBuiltin('powercord/components/index'),
   'powercord/components/settings': await getBuiltin('powercord/components/settings'),
   'powercord/components/modal': await getBuiltin('powercord/components/modal'),
+  'powercord/components/AsyncComponent': await getBuiltin('powercord/components/AsyncComponent'),
   'powercord/modal': await getBuiltin('powercord/modal'),
   'powercord/http': await getBuiltin('powercord/http'),
   'powercord/constants': await getBuiltin('powercord/constants'),
