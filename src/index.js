@@ -1670,7 +1670,7 @@ class Settings extends React.PureComponent {
       }, 'Topaz',
         React.createElement('span', {
           className: 'description-30xx7u topaz-version'
-        }, 'alpha 3.1'),
+        }, 'alpha 4'),
 
         React.createElement(HeaderBarContainer.Divider),
 

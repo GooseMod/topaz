@@ -733,7 +733,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
 
   // todo: don't allow localStorage, use custom storage api internally
   // todo: filter elements for personal info?
-  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'fetch' ];
+  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'performance', 'fetch' ];
 
   // nullify (delete) all keys in window to start except allowlist
   for (const k of Object.keys(window)) { // for (const k of Reflect.ownKeys(window)) {
@@ -746,6 +746,19 @@ const Onyx = function (entityID, manifest, transformRoot) {
 
     context[k] = null;
   }
+
+  if (!context.DiscordNative) context.DiscordNative = { // basic polyfill
+    crashReporter: {
+      getMetadata: () => ({
+        user_id: goosemod.webpackModules.findByProps('getCurrentUser').getCurrentUser().id
+      })
+    },
+
+    gpuSettings: {
+      getEnableHardwareAcceleration: () => true,
+      setEnableHardwareAcceleration: () => {},
+    }
+  };
 
   // wrap webpack in our safety wrapper
   context.goosemod = {
@@ -1100,15 +1113,32 @@ const setTheme = async (x) => {
   monaco.editor.setTheme(x);
   editorSettings.theme = x;
 };
-setTheme(editorSettings.theme);
+setTimeout(() => setTheme(editorSettings.theme), 100);
 
 const focus_enlarge = () => document.body.classList.add('topaz-editor-focus');
 const focus_revert = () => document.body.classList.remove('topaz-editor-focus');
+
+
+const selections = {};
 
 let ignoreNextSelect = false;
 return function Editor(props) {
   let { files, defaultFile, plugin, toggled } = props;
   defaultFile = defaultFile ?? Object.keys(files)[0] ?? '';
+
+  const loadPreviousSelection = (file) => {
+    setTimeout(() => {
+      const ref = editorRef.current;
+      console.log(ref);
+
+      if (selections[plugin.entityID + file]) {
+        ref.setSelection(selections[plugin.entityID + file]);
+        ref.revealLineInCenter(selections[plugin.entityID + file].startLineNumber);
+      } else ref.revealLine(0);
+
+      ref.focus();
+    }, editorRef.current ? 20 : 200);
+  };
 
   const editorRef = React.useRef(null);
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
@@ -1117,6 +1147,8 @@ return function Editor(props) {
   if (lastPlugin !== plugin.entityID) { // dispose models to clean up
     lastPlugin = plugin.entityID;
     if (window.monaco) monaco.editor.getModels().forEach(x => x.dispose());
+
+    loadPreviousSelection(openFile);
   }
 
 
@@ -1135,15 +1167,6 @@ return function Editor(props) {
 
   const openExt = openFile.split('.').pop();
 
-  React.useEffect(() => {
-    if (!editorRef.current) return;
-
-    editorRef.current.revealLine(0);
-
-    // editorRef.current.setSelection(new monaco.Selection(0, 0, 0, 0));
-    // editorRef.current.focus();
-  }, [ openFile ]);
-
   return React.createElement('div', {
     className: 'topaz-editor'
   },
@@ -1158,8 +1181,12 @@ return function Editor(props) {
         if (x.startsWith('#')) return;
         if (ignoreNextSelect) return ignoreNextSelect = false;
 
+        selections[plugin.entityID + openFile] = editorRef.current.getSelection();
+
         setOpenFile(x);
         props.onOpen?.(x);
+
+        if (openFile !== x) loadPreviousSelection(x);
       }
     },
       ...Object.keys(files).map(x => React.createElement(TabBar.Item, {
@@ -1331,7 +1358,7 @@ return function Editor(props) {
         icon: goosemod.webpackModules.findByDisplayName('Retry'),
         tooltipText: 'Reload Plugin',
         onClick: async () => {
-          topaz.reload(plugin.entityID);
+          topaz.reload(plugin.__entityID);
           goosemod.webpackModules.findByProps('showToast').showToast(goosemod.webpackModules.findByProps('createToast').createToast('Reloaded ' + plugin.manifest.name, 0, { duration: 5000, position: 1 }));
         }
       }))
@@ -1572,6 +1599,40 @@ module.exports = {
 
   },
 
+  wrapInHooks: method => (...args) => {
+    const { React } = goosemod.webpackModules.common;
+
+    const { current } = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentDispatcher;
+
+    const useMemo = current.useMemo;
+    const useState = current.useState;
+    const useReducer = current.useReducer;
+    const useEffect = current.useEffect;
+    const useLayoutEffect = current.useLayoutEffect;
+    const useRef = current.useRef;
+    const useCallback = current.useCallback;
+
+    current.useMemo = method => method();
+    current.useState = val => [ val, () => null ];
+    current.useReducer = val => [ val, () => null ];
+    current.useEffect = () => null;
+    current.useLayoutEffect = () => null;
+    current.useRef = () => ({});
+    current.useCallback = cb => cb;
+
+    const res = method(...args);
+
+    current.useMemo = useMemo;
+    current.useState = useState;
+    current.useReducer = useReducer;
+    current.useEffect = useEffect;
+    current.useLayoutEffect = useLayoutEffect;
+    current.useRef = useRef;
+    current.useCallback = useCallback;
+
+    return res;
+  },
+
   ...goosemod.reactUtils // Export GooseMod React utils
 };`,
   'powercord/components': `const { React } = goosemod.webpackModules.common;
@@ -1638,7 +1699,8 @@ module.exports = {
   AdvancedScrollerNone: goosemod.webpackModules.findByProps('AdvancedScrollerNone').AdvancedScrollerNone,
 
   AsyncComponent: require('powercord/components/AsyncComponent'),
-  settings: require('powercord/components/settings')
+  settings: require('powercord/components/settings'),
+  modal: require('powercord/components/modal')
 };`,
   'powercord/components/settings': `const { React } = goosemod.webpackModules.common;
 const OriginalSwitchItem = goosemod.webpackModules.findByDisplayName('SwitchItem');
@@ -2160,21 +2222,23 @@ class SettingsStore extends Flux.Store {
   delete = this.deleteSetting
 
   // not flux but yes
-  connectStore = (comp) => class ConnectWrap extends React.PureComponent {
-    render() {
-      const props = this.props;
-      delete props.children;
-
-      return React.createElement(comp, {
-        ...props,
-        getSetting: settingStore.getSetting,
-        updateSetting: settingStore.updateSetting,
-        toggleSetting: settingStore.toggleSetting,
-        deleteSetting: settingStore.deleteSetting,
-      }, this.props.children)
-    }
-  }
+  connectStore = connectStore
 }
+
+const connectStore = (comp) => class ConnectWrap extends React.PureComponent {
+  render() {
+    const props = this.props;
+    delete props.children;
+
+    return React.createElement(comp, {
+      ...props,
+      getSetting: settingStore.getSetting,
+      updateSetting: settingStore.updateSetting,
+      toggleSetting: settingStore.toggleSetting,
+      deleteSetting: settingStore.deleteSetting,
+    }, this.props.children)
+  }
+};
 
 const settingStore = new SettingsStore(FluxDispatcher, {
   POWERCORD_SETTINGS_UPDATE: ({ category, settings }) => updateSettings(category, settings),
@@ -2325,7 +2389,8 @@ powercord = {
         getSetting: (key, defaultValue) => settingStore.getSetting(key, defaultValue),
         updateSetting: (key, value) => settingStore.updateSetting(key, value),
         toggleSetting: (key, defaultValue) => settingStore.toggleSetting(key, defaultValue)
-      })
+      }),
+      connectStores: (_id) => connectStore
     },
 
     notices: {
@@ -3071,6 +3136,25 @@ const includeRequires = async (path, code) => {
 
   // log('bundling', 'file', path.replace(indexRoot, ''));
 
+  if (code.includes('exports[moduleName] = require(`${__dirname}/${filename}`)')) { // CJS export all jank fix hack
+    const base = getDir(path.replace(transformRoot + '/', '').replace('./', ''));
+    const files = tree.filter(x => x.type === 'blob' && x.path.toLowerCase().startsWith(base.toLowerCase()) && !x.path.endsWith('/index.js'));
+    console.log('export all', files);
+
+    code = `module.exports = {
+${(await Promise.all(files.map(async x => {
+  const file = x.path.replace(base + '/', '');
+
+  const [ chunkId, code ] = await makeChunk(root, file);
+  if (!chunks[chunkId]) chunks[chunkId] = code;
+
+  return `  ${file.split('.').slice(0, -1).join('.')}: ${chunkId}`;
+}))).join(',\n')}
+};`;
+
+    console.log(code);
+  }
+
   code = await replaceAsync(code, /require\(["'`](.*?)["'`]\)/g, async (_, p) => {
     // console.log('within replace', join(root, p), chunks);
     const [ chunkId, code ] = await makeChunk(root, p);
@@ -3093,11 +3177,11 @@ const includeRequires = async (path, code) => {
     return `this.loadStylesheet(\`${css}\`)`;
   });
 
-  code = await replaceAsync(code, /powercord\.api\.i18n\.loadAllStrings\(.*?\)/g, async (_, p) => { // todo: actual pc i18n
+  /* code = await replaceAsync(code, /powercord\.api\.i18n\.loadAllStrings\(.*?\)/g, async (_, p) => { // todo: actual pc i18n
     const english = (await getCode(transformRoot, './i18n/en-US.json')).replace(/\\/g, '\\\\').replace(/\`/g, '\`');
 
     return `powercord.api.i18n.loadAllStrings({ 'en-US': JSON.parse(\`${english}\`) })`;
-  });
+  }); */
 
   fetchProgressCurrent++;
   updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
@@ -3252,7 +3336,7 @@ const install = async (info, settings = undefined, disabled = false) => {
 
     const indexFile = await resolveFileFromTree('index');
 
-    const indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/${subdir ? (subdir + '/') : ''}index.js`;
+    const indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/${subdir ? (subdir + '/') : ''}${indexFile ? indexFile.slice(2) : 'index.js'}`;
     let root = getDir(indexUrl);
 
     chunks = {}; // reset chunks
@@ -3352,7 +3436,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     const PluginClass = execContainer.eval(newCode);
 
     if (mod !== 'gm') {
-      PluginClass.prototype.entityID = info; // Setup internal metadata
+      PluginClass.prototype.entityID = PluginClass.name ?? info; // Setup internal metadata
       PluginClass.prototype.manifest = manifest;
 
       plugin = new PluginClass();
@@ -3413,7 +3497,8 @@ const install = async (info, settings = undefined, disabled = false) => {
 
   plugins[info] = plugin;
 
-  plugin.entityID = info; // Re-set metadata for themes and assurance
+  if (!plugin.entityID) plugin.entityID = info; // Re-set metadata for themes and assurance
+  plugin.__entityID = info;
   plugin.manifest = manifest;
 
   plugin.__enabled = !disabled;
@@ -4467,7 +4552,7 @@ class Settings extends React.PureComponent {
       }, 'Topaz',
         React.createElement('span', {
           className: 'description-30xx7u topaz-version'
-        }, 'alpha 3.1'),
+        }, 'alpha 4'),
 
         React.createElement(HeaderBarContainer.Divider),
 
@@ -4541,9 +4626,9 @@ class Settings extends React.PureComponent {
 
         React.createElement(Divider),
 
-        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ __enabled, manifest, entityID, __settings, __mod, __theme }) => React.createElement(Plugin, {
+        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ __enabled, manifest, __entityID, __settings, __mod, __theme }) => React.createElement(Plugin, {
           manifest,
-          entityID,
+          entityID: __entityID,
           enabled: __enabled,
           settings: __settings,
           mod: __mod,
