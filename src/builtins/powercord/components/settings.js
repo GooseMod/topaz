@@ -53,6 +53,9 @@ class FormItem extends React.PureComponent {
 module.exports = {
   SwitchItem: class SwitchItemContainer extends React.PureComponent {
     render() {
+      const title = this.props.children;
+      delete this.props.children;
+
       return React.createElement(OriginalSwitchItem, {
         ...this.props,
         onChange: (e) => {
@@ -61,7 +64,7 @@ module.exports = {
           this.props.value = e;
           this.forceUpdate();
         }
-      });
+      }, title);
     }
   },
 
