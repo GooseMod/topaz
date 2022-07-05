@@ -4629,7 +4629,7 @@ class Settings extends React.PureComponent {
 
         React.createElement(Divider),
 
-        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ __enabled, manifest, __entityID, __settings, __mod, __theme }) => React.createElement(Plugin, {
+        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ entityID, __enabled, manifest, __entityID, __settings, __mod, __theme }) => React.createElement(Plugin, {
           manifest,
           entityID: __entityID,
           enabled: __enabled,
@@ -4637,10 +4637,10 @@ class Settings extends React.PureComponent {
           mod: __mod,
           isTheme: !!__theme,
           onUninstall: async () => {
-            const rmPending = addPending({ repo: entityID, state: 'Uninstalling...' });
+            const rmPending = addPending({ repo: __entityID, state: 'Uninstalling...' });
             this.forceUpdate();
 
-            await topaz.uninstall(entityID);
+            await topaz.uninstall(__entityID);
             rmPending();
 
             this.forceUpdate();
