@@ -215,7 +215,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
 
   // todo: don't allow localStorage, use custom storage api internally
   // todo: filter elements for personal info?
-  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'performance', 'fetch', 'clearTimeout' ];
+  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'performance', 'fetch', 'clearTimeout', 'setImmediate' ];
 
   // nullify (delete) all keys in window to start except allowlist
   for (const k of Object.keys(window)) { // for (const k of Reflect.ownKeys(window)) {
@@ -270,7 +270,9 @@ const Onyx = function (entityID, manifest, transformRoot) {
 
   // mock node
   context.global = context;
-  context.module = {};
+  context.module = {
+    exports: {}
+  };
   context.__dirname = '/home/topaz/plugin';
   context.process = {
     versions: {
@@ -301,9 +303,12 @@ const Onyx = function (entityID, manifest, transformRoot) {
     // predictedPerms = Object.keys(permissions).filter(x => permissions[x].some(y => [...code.matchAll(new RegExp(`([^. 	]*?)\\.${y}`, 'g'))].some(z => z && !objectPredictBlacklist.includes(z[1].toLowerCase()))));
     // topaz.log('onyx', 'predicted perms for', this.manifest.name, predictedPerms);
 
+    let exported;
     with (this.context) {
-      return eval(code);
+      exported = eval(code);
     }
+
+    return exported;
   };
 
   let accessedPermissions = {};
