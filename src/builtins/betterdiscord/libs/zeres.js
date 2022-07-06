@@ -387,16 +387,18 @@ const api = {
     return [
       class Plugin {
         constructor() {
-          this.defaultSettings = config.defaultConfig.reduce((acc, x) => {
-            if (x.type === 'category') {
-              acc[x.id] = {};
-              x.settings.forEach(y => acc[x.id][y.id] = y.value);
-            } else acc[x.id] = x.value;
+          if (this.defaultSettings) {
+            this.defaultSettings = config.defaultConfig.reduce((acc, x) => {
+              if (x.type === 'category') {
+                acc[x.id] = {};
+                x.settings.forEach(y => acc[x.id][y.id] = y.value);
+              } else acc[x.id] = x.value;
 
-            return acc;
-          }, {});
+              return acc;
+            }, {});
 
-          this.settings = _.cloneDeep(this.defaultSettings);
+            this.settings = _.cloneDeep(this.defaultSettings);
+          }
         }
 
         start() {
