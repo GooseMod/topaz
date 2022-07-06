@@ -733,7 +733,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
 
   // todo: don't allow localStorage, use custom storage api internally
   // todo: filter elements for personal info?
-  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'performance', 'fetch', 'clearTimeout' ];
+  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'performance', 'fetch', 'clearTimeout', 'setImmediate' ];
 
   // nullify (delete) all keys in window to start except allowlist
   for (const k of Object.keys(window)) { // for (const k of Reflect.ownKeys(window)) {
@@ -788,7 +788,9 @@ const Onyx = function (entityID, manifest, transformRoot) {
 
   // mock node
   context.global = context;
-  context.module = {};
+  context.module = {
+    exports: {}
+  };
   context.__dirname = '/home/topaz/plugin';
   context.process = {
     versions: {
@@ -819,9 +821,12 @@ const Onyx = function (entityID, manifest, transformRoot) {
     // predictedPerms = Object.keys(permissions).filter(x => permissions[x].some(y => [...code.matchAll(new RegExp(\`([^. 	]*?)\\\\.\${y}\`, 'g'))].some(z => z && !objectPredictBlacklist.includes(z[1].toLowerCase()))));
     // topaz.log('onyx', 'predicted perms for', this.manifest.name, predictedPerms);
 
+    let exported;
     with (this.context) {
-      return eval(code);
+      exported = eval(code);
     }
+
+    return exported;
   };
 
   let accessedPermissions = {};
@@ -2479,15 +2484,17 @@ const makeAddonAPI = (id) => ({
   disable: (x) => {},
   toggle: (x) => {},
   reload: (x) => {},
-  get: (x) => ({
-    version: '',
-    exports: { // temporary. sigh. https://github.com/programmer2514/BetterDiscord-CollapsibleUI/blob/main/CollapsibleUI.plugin.js#L481
-      Logger: {}
-    },
-    instance: {
-      
+  get: (x) => {
+    switch (x) {
+      case 'ZeresPluginLibrary': return { // temporary https://github.com/programmer2514/BetterDiscord-CollapsibleUI/blob/main/CollapsibleUI.plugin.js#L481
+        version: '',
+        exports: ZeresPluginLibrary,
+        instance: {}
+      };
     }
-  }),
+
+    return undefined;
+  },
   getAll: () => ([])
 });
 
@@ -2684,6 +2691,11 @@ const observe = (selector, callback) => {
     if (_observerHooks.length === 0) Observer.disconnect(); // no hooks, disconnect
   }
 };
+
+const { React } = goosemod.webpackModules.common;
+const Context = goosemod.webpackModules.findByProps("MenuRadioItem", "MenuItem");
+const ContextActions = goosemod.webpackModules.findByProps("openContextMenu");
+
 
 const api = {
   WebpackModules,
@@ -3010,6 +3022,74 @@ const api = {
     static int2rgba(color, alpha) { return this._discordModule.int2rgba(color, alpha); }
   },
 
+  ContextMenu: class ContextMenu {
+    static getDiscordMenu(filter) {
+      if (typeof filter === 'string') {
+        const name = filter;
+        filter = x => x.displayName === name;
+      }
+
+      const initial = goosemod.webpackModules.find(filter);
+      return initial ? Promise.resolve(initial) : new Promise(res => {
+        const int = setInterval(() => {
+          const match = goosemod.webpackModules.find(filter);
+          if (!match) return;
+
+          res(match);
+          clearInterval(int);
+        }, 100);
+      });
+    }
+
+    static buildMenuItem(props) {
+      if (props.type === 'separator') return React.createElement(Context.MenuSeparator);
+
+      let comp = Context.MenuItem;
+      if (props.type === 'submenu' && !props.children) props.children = this.buildMenuChildren(props.render ?? props.items);
+
+      switch (props.type) {
+        case 'toggle':
+          comp = Context.MenuCheckboxItem;
+          break;
+
+        case 'radio':
+          comp = Context.MenuRadioItem;
+          break;
+
+        case 'control':
+          comp = Context.MenuControlItem;
+          break;
+      }
+
+      props.id = props.id ?? props.label.replace(/ /g, '-');
+      if (props.danger) props.color = 'colorDanger';
+      if (props.onClick && !props.action) props.action = props.onClick;
+      props.extended = true;
+
+      return React.createElement(comp, props);
+    }
+
+    static buildMenuChildren(children) {
+      const make = x => {
+        if (x.type === 'group') return React.createElement(ContextMenu.MenuGroup, {}, x.items.map(make).filter(y => y));
+        return this.buildMenuItem(x);
+      };
+
+      return children.map(make).filter(x => x);
+    }
+
+    static buildMenu(children) {
+      return (props) => React.createElement(Context.default, props, this.buildMenuChildren(children))
+    }
+
+    static openContextMenu(event, comp, children) {
+      return ContextActions.openContextMenu(event, (e) => React.createElement(comp, {
+        ...e,
+        onClose: ContextActions.closeContextMenu
+      }), children);
+    }
+  },
+
   buildPlugin: (config) => {
     const meta = config.info;
     const id = meta.name;
@@ -3017,16 +3097,18 @@ const api = {
     return [
       class Plugin {
         constructor() {
-          this.defaultSettings = config.defaultConfig.reduce((acc, x) => {
-            if (x.type === 'category') {
-              acc[x.id] = {};
-              x.settings.forEach(y => acc[x.id][y.id] = y.value);
-            } else acc[x.id] = x.value;
+          if (this.defaultSettings) {
+            this.defaultSettings = config.defaultConfig.reduce((acc, x) => {
+              if (x.type === 'category') {
+                acc[x.id] = {};
+                x.settings.forEach(y => acc[x.id][y.id] = y.value);
+              } else acc[x.id] = x.value;
 
-            return acc;
-          }, {});
+              return acc;
+            }, {});
 
-          this.settings = _.cloneDeep(this.defaultSettings);
+            this.settings = _.cloneDeep(this.defaultSettings);
+          }
         }
 
         start() {
