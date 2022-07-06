@@ -392,7 +392,9 @@ const api = {
               acc[x.id] = {};
               x.settings.forEach(y => acc[x.id][y.id] = y.value);
             } else acc[x.id] = x.value;
-          });
+
+            return acc;
+          }, {});
 
           this.settings = _.cloneDeep(this.defaultSettings);
         }
