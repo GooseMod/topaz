@@ -1724,6 +1724,9 @@ const SelectTempWrapper = goosemod.webpackModules.findByDisplayName('SelectTempW
 
 const OriginalRadioGroup = goosemod.webpackModules.findByDisplayName('RadioGroup');
 
+const Tooltip = goosemod.webpackModules.findByDisplayName('Tooltip');
+const Button = goosemod.webpackModules.findByProps('DropdownSizes');
+
 class Divider extends React.PureComponent {
   render() {
     return React.createElement(FormDivider, {
@@ -1845,6 +1848,36 @@ module.exports = {
         React.createElement(OriginalRadioGroup, {
           ...this.props
         })
+      );
+    }
+  },
+
+  ButtonItem: class ButtonItem extends React.PureComponent {
+    render() {
+      const title = this.props.children;
+      delete this.props.children;
+
+      return React.createElement(FormItem, {
+        title
+      },
+        this.props.note && React.createElement(OriginalFormText, { // note here so it's before button
+          className: FormClasses.description
+        }, this.props.note),
+
+        React.createElement(Tooltip, {
+          text: this.props.tooltipText,
+          position: this.props.tooltipPosition,
+          shouldShow: this.props.tooltipText !== undefined
+        },
+          () => React.createElement(Button, {
+            color: this.props.success ? Button.Colors.GREEN : (this.props.color ?? Button.Colors.BRAND),
+            disabled: this.props.disabled,
+            onClick: () => this.props.onClick(),
+            style: {
+              marginLeft: 5
+            }
+          }, this.props.button)
+        )
       );
     }
   },
