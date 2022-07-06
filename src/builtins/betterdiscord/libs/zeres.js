@@ -55,6 +55,11 @@ const observe = (selector, callback) => {
   }
 };
 
+const { React } = goosemod.webpackModules.common;
+const Context = goosemod.webpackModules.findByProps("MenuRadioItem", "MenuItem");
+const ContextActions = goosemod.webpackModules.findByProps("openContextMenu");
+
+
 const api = {
   WebpackModules,
 
@@ -378,6 +383,74 @@ const api = {
     static hex2rgb(color) { return this._discordModule.hex2rgb(color); }
     static int2hex(color) { return this._discordModule.int2hex(color); }
     static int2rgba(color, alpha) { return this._discordModule.int2rgba(color, alpha); }
+  },
+
+  ContextMenu: class ContextMenu {
+    static getDiscordMenu(filter) {
+      if (typeof filter === 'string') {
+        const name = filter;
+        filter = x => x.displayName === name;
+      }
+
+      const initial = goosemod.webpackModules.find(filter);
+      return initial ? Promise.resolve(initial) : new Promise(res => {
+        const int = setInterval(() => {
+          const match = goosemod.webpackModules.find(filter);
+          if (!match) return;
+
+          res(match);
+          clearInterval(int);
+        }, 100);
+      });
+    }
+
+    static buildMenuItem(props) {
+      if (props.type === 'separator') return React.createElement(Context.MenuSeparator);
+
+      let comp = Context.MenuItem;
+      if (props.type === 'submenu' && !props.children) props.children = this.buildMenuChildren(props.render ?? props.items);
+
+      switch (props.type) {
+        case 'toggle':
+          comp = Context.MenuCheckboxItem;
+          break;
+
+        case 'radio':
+          comp = Context.MenuRadioItem;
+          break;
+
+        case 'control':
+          comp = Context.MenuControlItem;
+          break;
+      }
+
+      props.id = props.id ?? props.label.replace(/ /g, '-');
+      if (props.danger) props.color = 'colorDanger';
+      if (props.onClick && !props.action) props.action = props.onClick;
+      props.extended = true;
+
+      return React.createElement(comp, props);
+    }
+
+    static buildMenuChildren(children) {
+      const make = x => {
+        if (x.type === 'group') return React.createElement(ContextMenu.MenuGroup, {}, x.items.map(make).filter(y => y));
+        return this.buildMenuItem(x);
+      };
+
+      return children.map(make).filter(x => x);
+    }
+
+    static buildMenu(children) {
+      return (props) => React.createElement(Context.default, props, this.buildMenuChildren(children))
+    }
+
+    static openContextMenu(event, comp, children) {
+      return ContextActions.openContextMenu(event, (e) => React.createElement(comp, {
+        ...e,
+        onClose: ContextActions.closeContextMenu
+      }), children);
+    }
   },
 
   buildPlugin: (config) => {
