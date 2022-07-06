@@ -21,15 +21,17 @@ const makeAddonAPI = (id) => ({
   disable: (x) => {},
   toggle: (x) => {},
   reload: (x) => {},
-  get: (x) => ({
-    version: '',
-    exports: { // temporary. sigh. https://github.com/programmer2514/BetterDiscord-CollapsibleUI/blob/main/CollapsibleUI.plugin.js#L481
-      Logger: {}
-    },
-    instance: {
-      
+  get: (x) => {
+    switch (x) {
+      case 'ZeresPluginLibrary': return { // temporary https://github.com/programmer2514/BetterDiscord-CollapsibleUI/blob/main/CollapsibleUI.plugin.js#L481
+        version: '',
+        exports: ZeresPluginLibrary,
+        instance: {}
+      };
     }
-  }),
+
+    return undefined;
+  },
   getAll: () => ([])
 });
 
