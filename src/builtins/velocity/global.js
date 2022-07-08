@@ -9,12 +9,11 @@ const unpatches = {};
 const Webpack = goosemod.webpackModules;
 
 const dataLSId = (id) => 'topaz_vel_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
-const bindPatch = (func, unpatch) => func.bind({ unpatch }); // Overriding props in original this, better way?
 
 const Patcher = (id, parent, key, patch) => {
   if (!unpatches[id]) unpatches[id] = [];
 
-  const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return bindPatch(patch, unpatch)(this, args, ret); }, false);
+  const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return patch(args, ret); }, false);
 
   unpatches[id].push(unpatch);
   return unpatch;
@@ -24,7 +23,7 @@ Patcher.after = Patcher;
 Patcher.instead = (id, parent, key, patch) => {
   if (!unpatches[id]) unpatches[id] = [];
 
-  const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return bindPatch(patch, unpatch)(this, args, original); }, false, true);
+  const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return patch(args, original, this); }, false, true);
 
   unpatches[id].push(unpatch);
   return unpatch;
@@ -32,7 +31,7 @@ Patcher.instead = (id, parent, key, patch) => {
 Patcher.before = (id, parent, key, patch) => {
   if (!unpatches[id]) unpatches[id] = [];
 
-  const unpatch = goosemod.patcher.patch(parent, key, function (args) { return bindPatch(patch, unpatch)(this, args); }, true);
+  const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(args, this); }, true);
 
   unpatches[id].push(unpatch);
   return unpatch;
