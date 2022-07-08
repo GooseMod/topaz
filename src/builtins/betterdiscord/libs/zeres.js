@@ -400,7 +400,7 @@ const api = {
 
           res(match);
           clearInterval(int);
-        }, 100);
+        }, 1000);
       });
     }
 
