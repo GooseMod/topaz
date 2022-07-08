@@ -3239,7 +3239,7 @@ VApi = {
   WebpackModules: {
     find: (filter) => {
       switch (typeof filter) {
-        case 'string': return goosemod.webpackModules.findByDisplayName(filter);
+        case 'string': return goosemod.webpackModules.find(x => x.displayName === filter || x.default.displayName === filter);
         case 'number': return goosemod.webpackModules.findByModuleId(filter);
       }
 
