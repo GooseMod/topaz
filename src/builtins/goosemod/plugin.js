@@ -21,7 +21,7 @@ module.exports = class Plugin {
     el.appendChild(document.createTextNode(css)); // Load the stylesheet via style element w/ CSS text
 
     document.head.appendChild(el);
-  
+
     this.stylesheets.push(el); // Push to internal array so we can remove the elements on unload
   }
 
@@ -31,7 +31,7 @@ module.exports = class Plugin {
       ...options
     });
   }
-  
+
   goosemodHandlers = {
     onImport: () => {
       this.onImport();
@@ -42,7 +42,7 @@ module.exports = class Plugin {
       this.stylesheets.forEach((x) => x.remove());
       this.commands.forEach((x) => commands.remove(x));
 
-      this.onRemove();
+      this.onRemove?.();
     }
   }
 }
