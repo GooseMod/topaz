@@ -22,6 +22,8 @@ const encode = (x) => { // base64 vlq
 };
 
 let makeMap = (output, root, name) => {
+  const startTime = performance.now();
+
   const sources = [];
   const sourcesContent = [];
   const mappings = [];
@@ -67,7 +69,7 @@ let makeMap = (output, root, name) => {
     sourcesContent
   };
 
-  topaz.log('mapgen', 'mapped!', map);
+  topaz.log('mapgen', `mapped ${name} in ${(performance.now() - startTime).toFixed(2)}ms`, map);
 
   return `//# sourceMappingURL=data:application/json;charset=utf-8,` + encodeURIComponent(JSON.stringify(map)); // inline with encoded
 };
