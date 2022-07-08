@@ -966,6 +966,8 @@ const encode = (x) => { // base64 vlq
 };
 
 let makeMap = (output, root, name) => {
+  const startTime = performance.now();
+
   const sources = [];
   const sourcesContent = [];
   const mappings = [];
@@ -1004,14 +1006,14 @@ let makeMap = (output, root, name) => {
   const map = {
     version: 3,
     file: \`topaz_plugin.js\`,
-    sourceRoot: \`topaz://Topaz/Plugin\${sources.filter(x => !x.startsWith('topaz://')).length === 1 ? '' : \`/\${name}\`}\`, // don't use plugin subdir when only one source (eg: BD .plugin.js)
+    sourceRoot: \`topaz://Topaz/Plugin\${sources.filter(x => !x.startsWith('topaz://') && x.endsWith('.plugin.js')).length === 1 ? '' : \`/\${name}\`}\`, // don't use plugin subdir when only one source (eg: BD .plugin.js)
     sources,
     names: [],
     mappings: mappings.map(x => x.map(encode).join('')).join(';'), // encode maps into expected
     sourcesContent
   };
 
-  topaz.log('mapgen', 'mapped!', map);
+  topaz.log('mapgen', \`mapped \${name} in \${(performance.now() - startTime).toFixed(2)}ms\`, map);
 
   return \`//# sourceMappingURL=data:application/json;charset=utf-8,\` + encodeURIComponent(JSON.stringify(map)); // inline with encoded
 };
@@ -1429,7 +1431,7 @@ const includeImports = async (root, code, updateProgress) => {
         code = await req.text();
       }
     } else {
-      const relativePath =  resolvePath('.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
+      const relativePath = resolvePath('.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
       console.log(root, '|', basePath, relativePath, '|', '.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
 
       resolved = await resolveFileFromTree(relativePath) ?? await resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/'));
@@ -2122,104 +2124,6 @@ module.exports = [ 'get', 'post', 'put', 'del', 'head' ].reduce((acc, x) => { ac
   GUILD_ID: '756146058320674998',
   SpecialChannels: [ 'KNOWN_ISSUES', 'SUPPORT_INSTALLATION', 'SUPPORT_PLUGINS', 'SUPPORT_MISC', 'STORE_PLUGINS', 'STORE_THEMES', 'CSS_SNIPPETS', 'JS_SNIPPETS' ].reduce((acc, x) => { acc[x] = '944004406536466462'; return acc; }, {})
 };`,
-
-  '@goosemod/patcher': `module.exports = goosemod.patcher;`,
-  '@goosemod/webpack': `module.exports = goosemod.webpackModules;`,
-  '@goosemod/webpack/common': `module.exports = goosemod.webpackModules.common;`,
-  '@goosemod/logger': `module.exports = goosemod.logger;`,
-  '@goosemod/reactUtils': `module.exports = goosemod.reactUtils;`,
-  '@goosemod/toast': `module.exports = goosemod.showToast;`,
-  '@goosemod/settings': `module.exports = goosemod.settings;`,
-  '@goosemod/plugin': `module.exports = class Plugin {
-  constructor() {
-    this.patches = [];
-    this.commands = [];
-    this.stylesheets = [];
-  }
-
-  command(...args) {
-    this.commands.push(args[0]);
-
-    goosemod.patcher.commands.add(...args);
-  }
-
-  enqueueUnpatch(unpatch) {
-    this.patches.push(unpatch);
-  }
-
-  addCss(css) {
-    const el = document.createElement('style');
-
-    el.appendChild(document.createTextNode(css)); // Load the stylesheet via style element w/ CSS text
-
-    document.head.appendChild(el);
-  
-    this.stylesheets.push(el); // Push to internal array so we can remove the elements on unload
-  }
-
-  toast(content, options) {
-    goosemod.showToast(content, {
-      subtext: this.name,
-      ...options
-    });
-  }
-  
-  goosemodHandlers = {
-    onImport: () => {
-      this.onImport();
-    },
-
-    onRemove: () => {
-      this.patches.forEach((x) => x());
-      this.stylesheets.forEach((x) => x.remove());
-      this.commands.forEach((x) => commands.remove(x));
-
-      this.onRemove();
-    }
-  }
-}`,
-
-  'electron': `const { copy } = goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy'); // Use Webpack module for Web support (instead of DiscordNative)
-
-module.exports = {
-  clipboard: {
-    writeText: (text) => copy(text),
-    readText: () => window.DiscordNative ? DiscordNative.clipboard.read() : 'clipboard' // await navigator.clipboard.readText()
-  },
-
-  shell: {
-    openExternal: (url) => window.open(url)
-  }
-};`,
-  'path': `const resolve = (x) => {
-  let ind;
-  if (x.startsWith('./')) x = x.substring(2);
-  x = x.replaceAll('./', '/').replaceAll('//', '/'); // example/./test -> example/test
-
-  while (ind = x.indexOf('../') !== -1) x = x.slice(0, ind) + x.slice(ind + 3); // example/test/../sub -> example/sub
-
-  return x;
-};
-
-module.exports = {
-  join: (...parts) => resolve(parts.join('/')),
-  resolve: (...parts) => resolve(parts.join('/')) // todo: implement resolve properly (root / overwrite)
-};`,
-  'fs': `module.exports = {
-  readdirSync: path => []
-};`,
-  'process': `module.exports = {
-  platform: 'linux',
-  env: {
-    HOME: '/home/topaz'
-  }
-};`,
-  'request': `module.exports = {};`,
-  'querystring': `module.exports = {
-  stringify: x => new URLSearchParams(x).toString()
-};`,
-
-  'goosemod/global': '',
   'powercord/global': `let powercord;
 
 (() => {
@@ -2461,8 +2365,65 @@ powercord = {
 
 
 })();`,
+
+  '@goosemod/patcher': `module.exports = goosemod.patcher;`,
+  '@goosemod/webpack': `module.exports = goosemod.webpackModules;`,
+  '@goosemod/webpack/common': `module.exports = goosemod.webpackModules.common;`,
+  '@goosemod/logger': `module.exports = goosemod.logger;`,
+  '@goosemod/reactUtils': `module.exports = goosemod.reactUtils;`,
+  '@goosemod/toast': `module.exports = goosemod.showToast;`,
+  '@goosemod/settings': `module.exports = goosemod.settings;`,
+  '@goosemod/plugin': `module.exports = class Plugin {
+  constructor() {
+    this.patches = [];
+    this.commands = [];
+    this.stylesheets = [];
+  }
+
+  command(...args) {
+    this.commands.push(args[0]);
+
+    goosemod.patcher.commands.add(...args);
+  }
+
+  enqueueUnpatch(unpatch) {
+    this.patches.push(unpatch);
+  }
+
+  addCss(css) {
+    const el = document.createElement('style');
+
+    el.appendChild(document.createTextNode(css)); // Load the stylesheet via style element w/ CSS text
+
+    document.head.appendChild(el);
+
+    this.stylesheets.push(el); // Push to internal array so we can remove the elements on unload
+  }
+
+  toast(content, options) {
+    goosemod.showToast(content, {
+      subtext: this.name,
+      ...options
+    });
+  }
+
+  goosemodHandlers = {
+    onImport: () => {
+      this.onImport();
+    },
+
+    onRemove: () => {
+      this.patches.forEach((x) => x());
+      this.stylesheets.forEach((x) => x.remove());
+      this.commands.forEach((x) => commands.remove(x));
+
+      this.onRemove?.();
+    }
+  }
+}`,
+  'goosemod/global': '',
+
   'betterdiscord/global': `let BdApi;
-let global = window;
 
 (() => {
 const cssEls = {};
@@ -3037,7 +2998,7 @@ const api = {
 
           res(match);
           clearInterval(int);
-        }, 100);
+        }, 1000);
       });
     }
 
@@ -3138,7 +3099,616 @@ ZLibrary = ZeresPluginLibrary = api;
 // some plugins require it in global
 global.ZeresPluginLibrary = window.ZeresPluginLibrary = ZeresPluginLibrary;
 global.ZLibrary = window.ZLibrary = ZLibrary;
-})();`
+})();`,
+
+  'drdiscord/global': `let DrApi;
+
+(() => {
+const unpatches = {};
+
+const dataLSId = (id) => 'topaz_bd_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
+
+
+DrApi = {
+  webpack: {
+    getModuleByProps: goosemod.webpackModules.findByProps
+  },
+
+  storage: {
+    loadData: (id, key) => JSON.parse(localStorage.getItem(dataLSId(id)) ?? '{}')[key],
+    getData: (...args) => BdApi.loadData(...args), // alias
+
+    saveData: (id, key, value) => {
+      const lsId = dataLSId(id);
+      const data = JSON.parse(localStorage.getItem(lsId) ?? '{}');
+
+      data[key] = value;
+
+      localStorage.setItem(lsId, JSON.stringify(data));
+
+      return data[key];
+    },
+    setData: (...args) => BdApi.saveData(...args), // alias
+
+    deleteData: (id, key) => {
+      const lsId = dataLSId(id);
+      const data = JSON.parse(localStorage.getItem(lsId) ?? '{}');
+
+      data[key] = undefined;
+      delete data[key];
+
+      localStorage.setItem(lsId, JSON.stringify(data));
+
+      return data[key];
+    },
+  },
+
+  Patcher: {
+    instead: (id, parent, key, patch) => {
+      if (!unpatches[id]) unpatches[id] = [];
+
+      const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return patch(args, original, this); }, false, true);
+
+      unpatches[id].push(unpatch);
+      return unpatch;
+    },
+
+    before: (id, parent, key, patch) => {
+      if (!unpatches[id]) unpatches[id] = [];
+
+      const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(args, this); }, true);
+
+      unpatches[id].push(unpatch);
+      return unpatch;
+    },
+
+    after: (id, parent, key, patch) => {
+      if (!unpatches[id]) unpatches[id] = [];
+
+      const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return patch(args, ret, this); }, false);
+
+      unpatches[id].push(unpatch);
+      return unpatch;
+    },
+
+    unpatchAll: (id) => {
+      let arr = id;
+      if (typeof id === 'string') arr = unpatches[id] ?? [];
+
+      arr.forEach(x => x());
+      if (typeof id === 'string') unpatches[id] = [];
+    }
+  },
+
+  plugins: {
+    isEnabled: (name) => {
+      const plugin = Object.values(topaz.internal.plugins).find(x => x.__mod === 'dr' && x.constructor.name === name);
+      return plugin ? plugin.__enabled : false;
+    }
+  }
+};
+})();`,
+
+  'velocity/global': `const SettingComps = require('powercord/components/settings');
+
+let VApi;
+
+(() => {
+const cssEls = {};
+const unpatches = {};
+
+const Webpack = goosemod.webpackModules;
+
+const dataLSId = (id) => 'topaz_vel_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
+const bindPatch = (func, unpatch) => func.bind({ unpatch }); // Overriding props in original this, better way?
+
+const Patcher = (id, parent, key, patch) => {
+  if (!unpatches[id]) unpatches[id] = [];
+
+  const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return bindPatch(patch, unpatch)(this, args, ret); }, false);
+
+  unpatches[id].push(unpatch);
+  return unpatch;
+};
+
+Patcher.after = Patcher;
+Patcher.instead = (id, parent, key, patch) => {
+  if (!unpatches[id]) unpatches[id] = [];
+
+  const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return bindPatch(patch, unpatch)(this, args, original); }, false, true);
+
+  unpatches[id].push(unpatch);
+  return unpatch;
+};
+Patcher.before = (id, parent, key, patch) => {
+  if (!unpatches[id]) unpatches[id] = [];
+
+  const unpatch = goosemod.patcher.patch(parent, key, function (args) { return bindPatch(patch, unpatch)(this, args); }, true);
+
+  unpatches[id].push(unpatch);
+  return unpatch;
+};
+Patcher.unpatchAll = (id) => {
+  let arr = id;
+  if (typeof id === 'string') arr = unpatches[id] ?? [];
+
+  arr.forEach(x => x());
+  if (typeof id === 'string') unpatches[id] = [];
+};
+
+VApi = {
+  WebpackModules: {
+    find: (filter) => {
+      switch (typeof filter) {
+        case 'string': return goosemod.webpackModules.findByDisplayName(filter);
+        case 'number': return goosemod.webpackModules.findByModuleId(filter);
+      }
+
+      if (Array.isArray(filter)) return goosemod.webpackModules.findByProps(...filter);
+
+      return goosemod.webpackModules.find(filter);
+    }
+  },
+
+  Styling: {
+    injectCSS: (id, css) => {
+      const el = document.createElement('style');
+
+      el.appendChild(document.createTextNode(css)); // Load the stylesheet via style element w/ CSS text
+
+      document.head.appendChild(el);
+
+      cssEls[id] = el;
+    },
+
+    clearCSS: (id) => {
+      if (!cssEls[id]) return;
+
+      cssEls[id].remove();
+
+      cssEls[id] = undefined;
+      delete cssEls[id];
+    },
+  },
+
+  Patcher,
+
+  Logger: {
+
+  },
+
+  VelocityElements: {
+    head: document.head
+  },
+
+  showToast: (header, content, props) => {
+    goosemod.showToast(content, {
+      subtext: header,
+      ...props
+    });
+  },
+
+
+  React: Webpack.common.React,
+  ReactDOM: Webpack.common.ReactDOM
+};
+
+setTimeout(() => {
+  const lsId = dataLSId(__entityID);
+  const saveSettings = () => {
+    localStorage.setItem(lsId, JSON.stringify(module.exports.Plugin.settings ?? {}));
+  };
+
+  if (module.exports.Plugin.getSettingsPanel) module.exports.Plugin.__settings = {
+    render: class VelocitySettingsWrapper extends React.PureComponent {
+      constructor(props) {
+        super(props);
+
+        this.ret = module.exports.Plugin.getSettingsPanel();
+      }
+
+      render() {
+        return React.createElement('div', {
+
+        },
+          ...this.ret.map(x => {
+            switch (x.type) {
+              case 'input':
+                return React.createElement(SettingComps.TextInput, {
+                  note: x.note,
+                  defaultValue: module.exports.Plugin.settings[x.setting] ?? x.placeholder,
+                  required: true,
+                  onChange: val => {
+                    x.action(val);
+
+                    module.exports.Plugin.settings[x.setting] = val;
+                    saveSettings();
+                  }
+                }, x.name);
+            }
+          })
+        );
+      }
+    }
+  };
+
+  module.exports.Plugin.settings = JSON.parse(localStorage.getItem(lsId) ?? '{}');
+}, 1);
+})();`,
+
+  '@entities/plugin': `const { React, Flux, FluxDispatcher } = goosemod.webpackModules.common;
+const Patcher = require('@patcher');
+
+class SettingsStore extends Flux.Store {
+  constructor (Dispatcher, handlers) {
+    super(Dispatcher, handlers);
+    this.store = {};
+  }
+
+  getSetting = (key, def) => {
+    return this.store[key] ?? def;
+  }
+
+  updateSetting = (key, value) => {
+    if (value === undefined) return this.deleteSetting(key);
+
+    this.store[key] = value;
+
+    this.onChange?.();
+
+    return this.store[key];
+  }
+
+  toggleSetting = (key, def) => {
+    return this.updateSetting(key, !(this.store[key] ?? def));
+  }
+
+  deleteSetting = (key) => {
+    delete this.store[key];
+
+    this.onChange?.();
+  }
+
+  getKeys = () => Object.keys(this.store)
+
+  // alt names for other parts
+  get = this.getSetting
+  set = this.updateSetting
+  toggle = this.toggleSetting
+  delete = this.deleteSetting
+}
+
+
+module.exports = class Plugin {
+  constructor() {
+    this.settings = new SettingsStore(FluxDispatcher, {
+      POWERCORD_SETTINGS_UPDATE: ({ category, settings }) => updateSettings(category, settings),
+      POWERCORD_SETTING_TOGGLE: ({ category, setting, defaultValue }) => toggleSetting(category, setting, defaultValue),
+      POWERCORD_SETTING_UPDATE: ({ category, setting, value }) => updateSetting(category, setting, value),
+      POWERCORD_SETTING_DELETE: ({ category, setting }) => deleteSetting(category, setting)
+    });
+  }
+
+  get patcher() {
+    return Patcher.create(this.data.id);
+  }
+
+  _topaz_start() {
+    this.start.bind(this)();
+  }
+
+  _topaz_stop() {
+    this.stop.bind(this)();
+  }
+}`,
+  '@structures/plugin': `const { React, Flux, FluxDispatcher } = goosemod.webpackModules.common;
+const Patcher = require('@patcher');
+
+class SettingsStore extends Flux.Store {
+  constructor (Dispatcher, handlers) {
+    super(Dispatcher, handlers);
+    this.store = {};
+  }
+
+  getSetting = (key, def) => {
+    return this.store[key] ?? def;
+  }
+
+  updateSetting = (key, value) => {
+    if (value === undefined) return this.deleteSetting(key);
+
+    this.store[key] = value;
+
+    this.onChange?.();
+
+    return this.store[key];
+  }
+
+  toggleSetting = (key, def) => {
+    return this.updateSetting(key, !(this.store[key] ?? def));
+  }
+
+  deleteSetting = (key) => {
+    delete this.store[key];
+
+    this.onChange?.();
+  }
+
+  getKeys = () => Object.keys(this.store)
+
+  // alt names for other parts
+  get = this.getSetting
+  set = this.updateSetting
+  toggle = this.toggleSetting
+  delete = this.deleteSetting
+}
+
+
+module.exports = class Plugin {
+  constructor() {
+    this.settings = new SettingsStore(FluxDispatcher, {
+      POWERCORD_SETTINGS_UPDATE: ({ category, settings }) => updateSettings(category, settings),
+      POWERCORD_SETTING_TOGGLE: ({ category, setting, defaultValue }) => toggleSetting(category, setting, defaultValue),
+      POWERCORD_SETTING_UPDATE: ({ category, setting, value }) => updateSetting(category, setting, value),
+      POWERCORD_SETTING_DELETE: ({ category, setting }) => deleteSetting(category, setting)
+    });
+  }
+
+  get patcher() {
+    return Patcher.create(this.data.id);
+  }
+
+  _topaz_start() {
+    this.start.bind(this)();
+  }
+
+  _topaz_stop() {
+    this.stop.bind(this)();
+  }
+}`,
+  '@patcher': `const unpatches = {};
+
+module.exports = {
+  create: (id) => {
+    unpatches[id] = [];
+
+    return {
+      instead: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return patch(this, args, original); }, false, true);
+
+        unpatches[id].push(unpatch);
+        return unpatch;
+      },
+
+      before: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(this, args); }, true);
+
+        unpatches[id].push(unpatch);
+        return unpatch;
+      },
+
+      after: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return patch(this, args, ret); }, false);
+
+        unpatches[id].push(unpatch);
+        return unpatch;
+      },
+
+      unpatchAll: () => {
+        unpatches[id].forEach(x => x());
+      }
+    };
+  },
+
+  // todo: temporary as astra and unbound use same import names
+  instead: (id, parent, key, patch) => {
+    const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return patch(this, original, args); }, false, true);
+
+    if (!unpatches[id]) unpatches[id] = [];
+    unpatches[id].push(unpatch);
+
+    return unpatch;
+  },
+
+  before: (id, parent, key, patch) => {
+    const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(this, args); }, true);
+
+    if (!unpatches[id]) unpatches[id] = [];
+    unpatches[id].push(unpatch);
+
+    return unpatch;
+  },
+
+  after: (id, parent, key, patch) => {
+    const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return patch(this, ret, args); }, false);
+
+    if (!unpatches[id]) unpatches[id] = [];
+    unpatches[id].push(unpatch);
+
+    return unpatch;
+  },
+
+  unpatchAll: (id) => {
+    if (!unpatches[id]) return;
+
+    unpatches[id].forEach(x => x());
+  }
+};`,
+  '@webpack': `const bulkify = (original) => (...args) => {
+  const opts = args[args.length - 1];
+  if (opts.bulk) return args.slice(0, -1).map(x => original(...x));
+
+  return original(...args);
+}
+
+module.exports = {
+  findByProps: bulkify(goosemod.webpackModules.findByProps),
+
+  bulk: (...filters) => filters.map(x => goosemod.webpackModules.find(x, false)),
+  findLazy: (filter) => new Promise(res => {
+    const check = () => {
+      const ret = goosemod.webpackModules.find(filter);
+      if (!ret) return;
+
+      res(ret);
+      clearInterval(int);
+    };
+
+    const int = setInterval(check, 1000);
+    check();
+  }),
+
+  filters: {
+    byProps: (...props) => (x) => props.every(y => x.hasOwnProperty(y) || (x.__proto__?.hasOwnProperty?.(y))),
+    byDisplayName: (name, exportDefault = false) => (x) => {
+      if (x.displayName === name) return x;
+      if (x.default?.displayName === name) return exportDefault ? x.default : x;
+    }
+  },
+
+  // todo: temporary as astra and unbound use same import names
+  getByProps: goosemod.webpackModules.findByProps,
+  getByDisplayName: (name, opts) => {
+    const ret = goosemod.webpackModules.find(x => x.displayName === name || x.default?.displayName === name, false);
+
+    return opts.ret === 'exports' ? ret : ret[name];
+  },
+
+  MessageActions: goosemod.webpackModules.findByProps('sendMessage')
+};`,
+  '@webpack/common': `module.exports = {
+  ContextMenu: goosemod.webpackModules.findByProps('openContextMenu', 'closeContextMenu'),
+  Modals: goosemod.webpackModules.findByProps('openModal', 'closeAllModals'),
+  Dispatcher: goosemod.webpackModules.common.FluxDispatcher,
+  React: goosemod.webpackModules.common.React
+};`,
+  '@webpack/stores': `module.exports = {
+  Guilds: goosemod.webpackModules.findByProps('getGuilds', 'getGuild'),
+  Users: goosemod.webpackModules.findByProps('getUser', 'getCurrentUser'),
+  Channels: goosemod.webpackModules.findByProps('getMutablePrivateChannels')
+};`,
+  '@utilities': `module.exports = {
+  DOM: {
+    appendStyle: (id, css) => {
+      const el = document.createElement('style');
+      el.appendChild(document.createTextNode(css));
+      document.body.appendChild(el);
+
+      return el;
+    }
+  },
+
+  bind: function (target, key, descriptor) {
+    descriptor.value = descriptor.value.bind(target);
+  },
+
+  ...goosemod.reactUtils
+};`,
+  '@utilities/dom': `module.exports = require('@utilities').DOM;`,
+  '@components': `const { React } = goosemod.webpackModules.common;
+
+module.exports = {
+  Icon: (props) => React.createElement(goosemod.webpackModules.findByDisplayName(props.name), { ...props })
+};`,
+  '@components/discord': `module.exports = {
+  Menu: goosemod.webpackModules.findByProps("MenuRadioItem", "MenuItem"),
+  Modal: goosemod.webpackModules.findByProps('ModalRoot'),
+  FormText: goosemod.webpackModules.findByDisplayName('FormText'),
+  FormTitle: goosemod.webpackModules.findByDisplayName('FormTitle'),
+};`,
+  '@components/settings': `const { React } = goosemod.webpackModules.common;
+const OriginalSwitchItem = goosemod.webpackModules.findByDisplayName('SwitchItem');
+
+module.exports = {
+  Switch: class SwitchItemContainer extends React.PureComponent {
+    render() {
+      return React.createElement(OriginalSwitchItem, {
+        value: this.props.checked,
+        note: this.props.description,
+        onChange: (e) => {
+          this.props.onChange(e);
+
+          this.props.value = e;
+          this.forceUpdate();
+        }
+      }, this.props.title);
+    }
+  },
+};`,
+  '@api/toasts': `module.exports = {
+  open: (opts) => goosemod.showToast(opts.content, { subtext: opts.title })
+};`,
+  'unbound/global': '',
+
+  '@classes': `module.exports = {
+  UPlugin: class UPlugin {
+    constructor() {
+
+    }
+
+    _topaz_start() {
+      this.start.bind(this)();
+    }
+
+    _topaz_stop() {
+      this.stop.bind(this)();
+    }
+  }
+};`,
+  '@util': `module.exports = {
+  suppressErrors: (func) => (...args) => {
+    try {
+      func(...args);
+    } catch (e) {
+      console.error('Suppressed error for', label, e);
+    }
+  }
+};`,
+  'astra/global': '',
+
+
+  'react': 'module.exports = goosemod.webpackModules.common.React;',
+  'lodash': 'module.exports = window._;',
+
+  'electron': `const { copy } = goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy'); // Use Webpack module for Web support (instead of DiscordNative)
+
+module.exports = {
+  clipboard: {
+    writeText: (text) => copy(text),
+    readText: () => window.DiscordNative ? DiscordNative.clipboard.read() : 'clipboard' // await navigator.clipboard.readText()
+  },
+
+  shell: {
+    openExternal: (url) => window.open(url)
+  }
+};`,
+  'path': `const resolve = (x) => {
+  let ind;
+  if (x.startsWith('./')) x = x.substring(2);
+  x = x.replaceAll('./', '/').replaceAll('//', '/'); // example/./test -> example/test
+
+  while (ind = x.indexOf('../') !== -1) x = x.slice(0, ind) + x.slice(ind + 3); // example/test/../sub -> example/sub
+
+  return x;
+};
+
+module.exports = {
+  join: (...parts) => resolve(parts.join('/')),
+  resolve: (...parts) => resolve(parts.join('/')) // todo: implement resolve properly (root / overwrite)
+};`,
+  'fs': `module.exports = {
+  readdirSync: path => []
+};`,
+  'process': `module.exports = {
+  platform: 'linux',
+  env: {
+    HOME: '/home/topaz'
+  }
+};`,
+  'request': `module.exports = {};`,
+  'querystring': `module.exports = {
+  stringify: x => new URLSearchParams(x).toString()
+};`,
 };
 
 const join = (root, p) => root + p.replace('./', '/'); // Add .jsx to empty require paths with no file extension
@@ -3240,7 +3810,7 @@ const makeChunk = async (root, p) => {
   const chunk = `// ${finalPath}
 let ${id} = {};
 (() => { // MAP_START|${finalPath}
-` + code.replace('module.exports =', `${id} =`).replace('export default', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`) + `
+` + code.replace('module.exports =', `${id} =`).replace('export default', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`).replaceAll(/export const (.*?)=/g, (_, key) => `${id}.${key}=`) + `
 })(); // MAP_END`;
 
   return [ id, chunk ];
@@ -3279,12 +3849,14 @@ ${(await Promise.all(files.map(async x => {
   const [ chunkId, code ] = await makeChunk(root, file);
   if (!chunks[chunkId]) chunks[chunkId] = code;
 
-  return `  ${file.split('.').slice(0, -1).join('.')}: ${chunkId}`;
+  return `  '${file.split('.').slice(0, -1).join('.')}': ${chunkId}`;
 }))).join(',\n')}
 };`;
 
     console.log(code);
   }
+
+  code = code.replaceAll(/^import type .*$/gm, '');
 
   code = await replaceAsync(code, /require\(["'`](.*?)["'`]\)/g, async (_, p) => {
     // console.log('within replace', join(root, p), chunks);
@@ -3422,6 +3994,8 @@ const resolveFileFromTree = async (path) => {
 };
 
 const install = async (info, settings = undefined, disabled = false) => {
+  const installStartTime = performance.now();
+
   lastError = '';
 
   let mod;
@@ -3435,19 +4009,19 @@ const install = async (info, settings = undefined, disabled = false) => {
   let [ repo, branch ] = info.split('@');
   if (!branch) branch = 'HEAD'; // default to HEAD
 
+  let isGitHub = !info.startsWith('http');
+
   let subdir;
-  if (!mod !== 'bd') {
+  if (isGitHub) { // todo: check
     const spl = info.split('/');
     if (spl.length > 2) { // Not just repo
       repo = spl.slice(0, 2).join('/');
       subdir = spl.slice(4).join('/');
       branch = spl[3] ?? 'HEAD';
 
-      console.log('SUBDIR', repo, subdir);
+      console.log('SUBDIR', repo, branch, subdir);
     }
   }
-
-  let isGitHub = !info.startsWith('http');
 
   // disable final cache for now as currently no way to make it update after changes
   // let [ newCode, manifest, isTheme ] = finalCache.get(info) ?? [];
@@ -3461,24 +4035,26 @@ const install = async (info, settings = undefined, disabled = false) => {
       tree = (await (await fetch(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`)).json()).tree;
 
       if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
+
+      console.log('tree', tree);
     }
 
     updatePending(info, 'Fetching index...');
 
-    const indexFile = await resolveFileFromTree('index');
-
-    const indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/${subdir ? (subdir + '/') : ''}${indexFile ? indexFile.slice(2) : 'index.js'}`;
+    let indexFile = await resolveFileFromTree('index');
+    let indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/${subdir ? (subdir + '/') : ''}${indexFile ? indexFile.slice(2) : 'index.js'}`;
     let root = getDir(indexUrl);
 
     chunks = {}; // reset chunks
 
     if (!mod) {
+      if (await resolveFileFromTree('velocity_manifest.json')) mod = 'vel';
       if (await resolveFileFromTree('manifest.json')) mod = 'pc';
       if (await resolveFileFromTree('goosemodModule.json')) mod = 'gm';
     }
 
     let indexCode;
-    if (isGitHub && !indexFile) {
+    if (isGitHub && !indexFile && (!mod || mod === 'bd') && !info.endsWith('.js')) {
       isTheme = true;
       let skipTransform = false;
 
@@ -3511,11 +4087,32 @@ const install = async (info, settings = undefined, disabled = false) => {
       updatePending(info, 'Bundling...');
       newCode = await transformCSS(root, indexCode, skipTransform, true);
     } else {
-      indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
-
       switch (mod) {
         case 'pc':
           manifest = await (await fetch(join(root, './manifest.json'))).json();
+
+          if (manifest.id && manifest.authors && manifest.main) {
+            mod = 'un';
+
+            manifest.author = manifest.authors.map(x => x.name).join(', ');
+
+            const main = await resolveFileFromTree('src/index');
+            indexFile = './' + main.split('/').pop();
+            indexUrl = join(root, main);
+            root = getDir(indexUrl);
+
+            subdir = getDir(main).slice(2);
+            tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
+          }
+
+          if (typeof manifest.author === 'object') manifest.author = manifest.author.name;
+
+          indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
+
+          if (indexCode.includes('extends UPlugin')) {
+            mod = 'ast';
+          }
+
           break;
 
         case 'gm':
@@ -3525,9 +4122,26 @@ const install = async (info, settings = undefined, disabled = false) => {
           break;
 
         case 'bd': // read from comment in code
+          indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
+
           manifest = [...indexCode.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
+
+          if (indexCode.includes('DrApi')) mod = 'dr';
+
+          break;
+
+        case 'vel':
+          manifest = await (await fetch(join(root, './velocity_manifest.json'))).json();
+
+          const main = './' + manifest.main.replace('./', '');
+          indexFile = './' + main.split('/').pop();
+          indexUrl = join(root, './' + main);
+          root = getDir(indexUrl);
+
           break;
       }
+
+      if (!indexCode) indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
 
       const pend = pending.find(x => x.repo === info);
       if (pend) pend.manifest = manifest;
@@ -3564,15 +4178,21 @@ const install = async (info, settings = undefined, disabled = false) => {
     };
   } else {
     const execContainer = new Onyx(info, manifest, transformRoot);
-    const PluginClass = execContainer.eval(newCode);
+    let PluginClass = execContainer.eval(newCode);
 
-    if (mod !== 'gm') {
-      PluginClass.prototype.entityID = PluginClass.name ?? info; // Setup internal metadata
-      PluginClass.prototype.manifest = manifest;
+    switch (mod) {
+      case 'vel':
+      case 'gm':
+        plugin = PluginClass;
+        if (mod === 'vel') plugin = plugin.Plugin;
+        break;
 
-      plugin = new PluginClass();
-    } else {
-      plugin = PluginClass;
+      default:
+        PluginClass.prototype.entityID = PluginClass.name ?? info; // Setup internal metadata
+        PluginClass.prototype.manifest = manifest;
+        PluginClass.prototype.data = manifest;
+
+        plugin = new PluginClass();
     }
 
     switch (mod) {
@@ -3622,6 +4242,58 @@ const install = async (info, settings = undefined, disabled = false) => {
         };
 
         plugin._topaz_stop = () => plugin.goosemodHandlers.onRemove?.();
+
+        if (settings) plugin.goosemodHandlers.loadSettings?.(settings);
+
+        if (plugin.goosemodHandlers.getSettings) {
+          plugin.settings = {
+            get store() {
+              return plugin.goosemodHandlers.getSettings() ?? {};
+            }
+          };
+
+          let lastSettings = plugin.settings.store;
+          setTimeout(() => {
+            const newSettings = plugin.settings.store;
+            if (newSettings !== lastSettings) {
+              lastSettings = newSettings;
+              savePlugins();
+            }
+          }, 5000);
+        }
+
+        break;
+
+      case 'pc':
+        if (settings) plugin.settings.store = settings;
+        plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
+
+        break;
+
+      case 'un':
+        if (settings) plugin.settings.store = settings;
+        plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
+
+        if (plugin.getSettingsPanel) plugin.__settings = {
+          render: plugin.getSettingsPanel(),
+          props: {
+            settings: plugin.settings
+          }
+        };
+
+        break;
+
+      case 'vel':
+        plugin._topaz_start = () => plugin.onStart();
+        plugin._topaz_stop = () => plugin.onStop();
+        break;
+
+      case 'dr':
+        plugin._topaz_start = plugin.onStart;
+        plugin._topaz_stop = plugin.onStop;
+
+        plugin.onLoad();
+
         break;
     }
   }
@@ -3636,37 +4308,9 @@ const install = async (info, settings = undefined, disabled = false) => {
   plugin.__mod = mod;
   plugin.__root = transformRoot;
 
-  if (!isTheme) switch (mod) {
-    case 'pc':
-      if (settings) plugin.settings.store = settings;
-
-      plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
-      break;
-
-    case 'gm':
-      if (settings) plugin.goosemodHandlers.loadSettings?.(settings);
-
-      if (plugin.goosemodHandlers.getSettings) {
-        plugin.settings = {
-          get store() {
-            return plugin.goosemodHandlers.getSettings() ?? {};
-          }
-        };
-
-        let lastSettings = plugin.settings.store;
-        setTimeout(() => {
-          const newSettings = plugin.settings.store;
-          if (newSettings !== lastSettings) {
-            lastSettings = newSettings;
-            savePlugins();
-          }
-        }, 5000);
-      }
-
-      break;
-  }
-
   if (!disabled) plugin._topaz_start();
+
+  log('install', `installed ${info}! took ${(performance.now() - installStartTime).toFixed(2)}ms`);
 
   return [ manifest ];
 };
@@ -3683,11 +4327,27 @@ const fullMod = (mod) => {
     case 'pc': return 'powercord';
     case 'bd': return 'betterdiscord';
     case 'gm': return 'goosemod';
+    case 'vel': return 'velocity';
+    case 'un': return 'unbound';
+    case 'ast': return 'astra';
+    case 'dr': return 'drdiscord';
   }
 };
 
-const mapifyBuiltin = (builtin) => `// MAP_START|${builtin}
-${builtins[builtin]}
+const displayMod = (mod) => {
+  switch (mod) {
+    case 'pc': return 'Powercord';
+    case 'bd': return 'BetterDiscord';
+    case 'gm': return 'GooseMod';
+    case 'vel': return 'Velocity';
+    case 'un': return 'Unbound';
+    case 'ast': return 'Astra';
+    case 'dr': return 'Discord Re-envisioned';
+  }
+};
+
+const mapifyBuiltin = async (builtin) => `// MAP_START|${builtin}
+${await includeRequires('', builtins[builtin])}
 // MAP_END\n\n`;
 
 let transformRoot;
@@ -3697,28 +4357,32 @@ const transform = async (path, code, mod) => {
 
   transformRoot = path.split('/').slice(0, -1).join('/');
 
-  code = await includeRequires(path, code);
-  code = Object.values(chunks).join('\n\n') + `\n// MAP_START|${'.' + path.replace(transformRoot, '')}
+  const indexCode = await includeRequires(path, code);
+  /* code = Object.values(chunks).join('\n\n') + `\n// MAP_START|${'.' + path.replace(transformRoot, '')}
 ${code}
+// MAP_END`; */
+
+  let out = await mapifyBuiltin(fullMod(mod) + '/global') +
+    ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '');
+
+  out = Object.values(chunks).join('\n\n') + '\n\n' + out + `// MAP_START|${'.' + path.replace(transformRoot, '')}
+${indexCode}
 // MAP_END`;
 
-  code = mapifyBuiltin(fullMod(mod) + '/global') +
-    ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? mapifyBuiltin('betterdiscord/libs/zeres') : '') +
-    code;
+  out = replaceLast(out, 'export default', 'module.exports ='); // esm -> cjs export
+  if (mod === 'dr') out = replaceLast(out, 'return class ', 'module.exports = class ');
 
-  code = replaceLast(code, 'export default', 'module.exports ='); // esm -> cjs export
-
-  console.log({ code });
+  console.log({ out });
 
   updatePending(null, 'Transforming...');
 
-  code = sucrase.transform(code, { transforms: [ "typescript", "jsx" ], disableESTransforms: true }).code;
+  out = sucrase.transform(out, { transforms: [ "typescript", "jsx" ], disableESTransforms: true }).code;
 
-  code = `(function () {
-${code}
+  out = `(function () {
+${out}
 })();`;
 
-  return code;
+  return out;
 };
 
 const topazSettings = JSON.parse(localStorage.getItem('topaz_settings') ?? 'null') ?? {
@@ -3761,11 +4425,9 @@ window.topaz = {
   settings: topazSettings,
 
   install: async (info) => {
-    const installStartTime = performance.now();
-
     const [ manifest ] = await install(info);
 
-    log('install', `installed ${info}! took ${(performance.now() - installStartTime).toFixed(2)}ms`);
+    // log('install', `installed ${info}! took ${(performance.now() - installStartTime).toFixed(2)}ms`);
 
     setTimeout(savePlugins, 1000);
   },
@@ -3945,6 +4607,7 @@ const TextInput = goosemod.webpackModules.findByDisplayName('TextInput');
 const Flex = goosemod.webpackModules.findByDisplayName('Flex');
 const Margins = goosemod.webpackModules.findByProps('marginTop20', 'marginBottom20');
 const _Switch = goosemod.webpackModules.findByDisplayName('Switch');
+const Tooltip = goosemod.webpackModules.findByDisplayName('Tooltip');
 
 const Header = goosemod.settings.Items['header'];
 const Subtext = goosemod.settings.Items['subtext'];
@@ -4213,9 +4876,16 @@ class Plugin extends React.PureComponent {
 
     return React.createElement(TextAndChild, {
       text: !manifest ? repo : [
-        !mod ? null : React.createElement('span', {
-          className: 'topaz-tag'
-        }, mod.toUpperCase()),
+        !mod ? null : React.createElement(Tooltip, {
+          text: displayMod(mod),
+          position: 'top'
+        }, ({ onMouseLeave, onMouseEnter }) => React.createElement('span', {
+            className: 'topaz-tag',
+
+            onMouseEnter,
+            onMouseLeave
+          }, mod.toUpperCase()),
+        ),
 
         manifest.name,
 
@@ -4805,7 +5475,7 @@ cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
   position: absolute;
   z-index: 999;
   background: var(--background-floating);
-  max-height: 230px;
+  max-height: 280px;
   overflow: auto;
 }
 

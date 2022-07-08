@@ -56,7 +56,7 @@ const includeImports = async (root, code, updateProgress) => {
         code = await req.text();
       }
     } else {
-      const relativePath =  resolvePath('.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
+      const relativePath = resolvePath('.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
       console.log(root, '|', basePath, relativePath, '|', '.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
 
       resolved = await resolveFileFromTree(relativePath) ?? await resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/'));
@@ -105,6 +105,7 @@ const builtins = {
   'powercord/modal': await getBuiltin('powercord/modal'),
   'powercord/http': await getBuiltin('powercord/http'),
   'powercord/constants': await getBuiltin('powercord/constants'),
+  'powercord/global': await getBuiltin('powercord/global'),
 
   '@goosemod/patcher': await getBuiltin('goosemod/patcher'),
   '@goosemod/webpack': await getBuiltin('goosemod/webpack'),
@@ -114,6 +115,36 @@ const builtins = {
   '@goosemod/toast': await getBuiltin('goosemod/toast'),
   '@goosemod/settings': await getBuiltin('goosemod/settings'),
   '@goosemod/plugin': await getBuiltin('goosemod/plugin'),
+  'goosemod/global': '',
+
+  'betterdiscord/global': await getBuiltin('betterdiscord/global'),
+  'betterdiscord/libs/zeres': await getBuiltin('betterdiscord/libs/zeres'),
+
+  'drdiscord/global': await getBuiltin('drdiscord/global'),
+
+  'velocity/global': await getBuiltin('velocity/global'),
+
+  '@entities/plugin': await getBuiltin('unbound/plugin'),
+  '@structures/plugin': await getBuiltin('unbound/plugin'),
+  '@patcher': await getBuiltin('unbound/patcher'),
+  '@webpack': await getBuiltin('unbound/webpack/webpack'),
+  '@webpack/common': await getBuiltin('unbound/webpack/common'),
+  '@webpack/stores': await getBuiltin('unbound/webpack/stores'),
+  '@utilities': await getBuiltin('unbound/utils'),
+  '@utilities/dom': `module.exports = require('@utilities').DOM;`,
+  '@components': await getBuiltin('unbound/components/components'),
+  '@components/discord': await getBuiltin('unbound/components/discord'),
+  '@components/settings': await getBuiltin('unbound/components/settings'),
+  '@api/toasts': await getBuiltin('unbound/toasts'),
+  'unbound/global': '',
+
+  '@classes': await getBuiltin('astra/classes'),
+  '@util': await getBuiltin('astra/util'),
+  'astra/global': '',
+
+
+  'react': 'module.exports = goosemod.webpackModules.common.React;',
+  'lodash': 'module.exports = window._;',
 
   'electron': await getBuiltin('node/electron'),
   'path': await getBuiltin('node/path'),
@@ -121,11 +152,6 @@ const builtins = {
   'process': await getBuiltin('node/process'),
   'request': await getBuiltin('node/request'),
   'querystring': await getBuiltin('node/querystring'),
-
-  'goosemod/global': '',
-  'powercord/global': await getBuiltin('powercord/global'),
-  'betterdiscord/global': await getBuiltin('betterdiscord/global'),
-  'betterdiscord/libs/zeres': await getBuiltin('betterdiscord/libs/zeres')
 };
 
 const join = (root, p) => root + p.replace('./', '/'); // Add .jsx to empty require paths with no file extension
@@ -227,7 +253,7 @@ const makeChunk = async (root, p) => {
   const chunk = `// ${finalPath}
 let ${id} = {};
 (() => { // MAP_START|${finalPath}
-` + code.replace('module.exports =', `${id} =`).replace('export default', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`) + `
+` + code.replace('module.exports =', `${id} =`).replace('export default', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`).replaceAll(/export const (.*?)=/g, (_, key) => `${id}.${key}=`) + `
 })(); // MAP_END`;
 
   return [ id, chunk ];
@@ -266,12 +292,14 @@ ${(await Promise.all(files.map(async x => {
   const [ chunkId, code ] = await makeChunk(root, file);
   if (!chunks[chunkId]) chunks[chunkId] = code;
 
-  return `  ${file.split('.').slice(0, -1).join('.')}: ${chunkId}`;
+  return `  '${file.split('.').slice(0, -1).join('.')}': ${chunkId}`;
 }))).join(',\n')}
 };`;
 
     console.log(code);
   }
+
+  code = code.replaceAll(/^import type .*$/gm, '');
 
   code = await replaceAsync(code, /require\(["'`](.*?)["'`]\)/g, async (_, p) => {
     // console.log('within replace', join(root, p), chunks);
@@ -409,6 +437,8 @@ const resolveFileFromTree = async (path) => {
 };
 
 const install = async (info, settings = undefined, disabled = false) => {
+  const installStartTime = performance.now();
+
   lastError = '';
 
   let mod;
@@ -422,19 +452,19 @@ const install = async (info, settings = undefined, disabled = false) => {
   let [ repo, branch ] = info.split('@');
   if (!branch) branch = 'HEAD'; // default to HEAD
 
+  let isGitHub = !info.startsWith('http');
+
   let subdir;
-  if (!mod !== 'bd') {
+  if (isGitHub) { // todo: check
     const spl = info.split('/');
     if (spl.length > 2) { // Not just repo
       repo = spl.slice(0, 2).join('/');
       subdir = spl.slice(4).join('/');
       branch = spl[3] ?? 'HEAD';
 
-      console.log('SUBDIR', repo, subdir);
+      console.log('SUBDIR', repo, branch, subdir);
     }
   }
-
-  let isGitHub = !info.startsWith('http');
 
   // disable final cache for now as currently no way to make it update after changes
   // let [ newCode, manifest, isTheme ] = finalCache.get(info) ?? [];
@@ -448,24 +478,26 @@ const install = async (info, settings = undefined, disabled = false) => {
       tree = (await (await fetch(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`)).json()).tree;
 
       if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
+
+      console.log('tree', tree);
     }
 
     updatePending(info, 'Fetching index...');
 
-    const indexFile = await resolveFileFromTree('index');
-
-    const indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/${subdir ? (subdir + '/') : ''}${indexFile ? indexFile.slice(2) : 'index.js'}`;
+    let indexFile = await resolveFileFromTree('index');
+    let indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/${subdir ? (subdir + '/') : ''}${indexFile ? indexFile.slice(2) : 'index.js'}`;
     let root = getDir(indexUrl);
 
     chunks = {}; // reset chunks
 
     if (!mod) {
+      if (await resolveFileFromTree('velocity_manifest.json')) mod = 'vel';
       if (await resolveFileFromTree('manifest.json')) mod = 'pc';
       if (await resolveFileFromTree('goosemodModule.json')) mod = 'gm';
     }
 
     let indexCode;
-    if (isGitHub && !indexFile) {
+    if (isGitHub && !indexFile && (!mod || mod === 'bd') && !info.endsWith('.js')) {
       isTheme = true;
       let skipTransform = false;
 
@@ -498,11 +530,32 @@ const install = async (info, settings = undefined, disabled = false) => {
       updatePending(info, 'Bundling...');
       newCode = await transformCSS(root, indexCode, skipTransform, true);
     } else {
-      indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
-
       switch (mod) {
         case 'pc':
           manifest = await (await fetch(join(root, './manifest.json'))).json();
+
+          if (manifest.id && manifest.authors && manifest.main) {
+            mod = 'un';
+
+            manifest.author = manifest.authors.map(x => x.name).join(', ');
+
+            const main = await resolveFileFromTree('src/index');
+            indexFile = './' + main.split('/').pop();
+            indexUrl = join(root, main);
+            root = getDir(indexUrl);
+
+            subdir = getDir(main).slice(2);
+            tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
+          }
+
+          if (typeof manifest.author === 'object') manifest.author = manifest.author.name;
+
+          indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
+
+          if (indexCode.includes('extends UPlugin')) {
+            mod = 'ast';
+          }
+
           break;
 
         case 'gm':
@@ -512,9 +565,26 @@ const install = async (info, settings = undefined, disabled = false) => {
           break;
 
         case 'bd': // read from comment in code
+          indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
+
           manifest = [...indexCode.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
+
+          if (indexCode.includes('DrApi')) mod = 'dr';
+
+          break;
+
+        case 'vel':
+          manifest = await (await fetch(join(root, './velocity_manifest.json'))).json();
+
+          const main = './' + manifest.main.replace('./', '');
+          indexFile = './' + main.split('/').pop();
+          indexUrl = join(root, './' + main);
+          root = getDir(indexUrl);
+
           break;
       }
+
+      if (!indexCode) indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
 
       const pend = pending.find(x => x.repo === info);
       if (pend) pend.manifest = manifest;
@@ -551,15 +621,21 @@ const install = async (info, settings = undefined, disabled = false) => {
     };
   } else {
     const execContainer = new Onyx(info, manifest, transformRoot);
-    const PluginClass = execContainer.eval(newCode);
+    let PluginClass = execContainer.eval(newCode);
 
-    if (mod !== 'gm') {
-      PluginClass.prototype.entityID = PluginClass.name ?? info; // Setup internal metadata
-      PluginClass.prototype.manifest = manifest;
+    switch (mod) {
+      case 'vel':
+      case 'gm':
+        plugin = PluginClass;
+        if (mod === 'vel') plugin = plugin.Plugin;
+        break;
 
-      plugin = new PluginClass();
-    } else {
-      plugin = PluginClass;
+      default:
+        PluginClass.prototype.entityID = PluginClass.name ?? info; // Setup internal metadata
+        PluginClass.prototype.manifest = manifest;
+        PluginClass.prototype.data = manifest;
+
+        plugin = new PluginClass();
     }
 
     switch (mod) {
@@ -609,6 +685,58 @@ const install = async (info, settings = undefined, disabled = false) => {
         };
 
         plugin._topaz_stop = () => plugin.goosemodHandlers.onRemove?.();
+
+        if (settings) plugin.goosemodHandlers.loadSettings?.(settings);
+
+        if (plugin.goosemodHandlers.getSettings) {
+          plugin.settings = {
+            get store() {
+              return plugin.goosemodHandlers.getSettings() ?? {};
+            }
+          };
+
+          let lastSettings = plugin.settings.store;
+          setTimeout(() => {
+            const newSettings = plugin.settings.store;
+            if (newSettings !== lastSettings) {
+              lastSettings = newSettings;
+              savePlugins();
+            }
+          }, 5000);
+        }
+
+        break;
+
+      case 'pc':
+        if (settings) plugin.settings.store = settings;
+        plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
+
+        break;
+
+      case 'un':
+        if (settings) plugin.settings.store = settings;
+        plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
+
+        if (plugin.getSettingsPanel) plugin.__settings = {
+          render: plugin.getSettingsPanel(),
+          props: {
+            settings: plugin.settings
+          }
+        };
+
+        break;
+
+      case 'vel':
+        plugin._topaz_start = () => plugin.onStart();
+        plugin._topaz_stop = () => plugin.onStop();
+        break;
+
+      case 'dr':
+        plugin._topaz_start = plugin.onStart;
+        plugin._topaz_stop = plugin.onStop;
+
+        plugin.onLoad();
+
         break;
     }
   }
@@ -623,37 +751,9 @@ const install = async (info, settings = undefined, disabled = false) => {
   plugin.__mod = mod;
   plugin.__root = transformRoot;
 
-  if (!isTheme) switch (mod) {
-    case 'pc':
-      if (settings) plugin.settings.store = settings;
-
-      plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
-      break;
-
-    case 'gm':
-      if (settings) plugin.goosemodHandlers.loadSettings?.(settings);
-
-      if (plugin.goosemodHandlers.getSettings) {
-        plugin.settings = {
-          get store() {
-            return plugin.goosemodHandlers.getSettings() ?? {};
-          }
-        };
-
-        let lastSettings = plugin.settings.store;
-        setTimeout(() => {
-          const newSettings = plugin.settings.store;
-          if (newSettings !== lastSettings) {
-            lastSettings = newSettings;
-            savePlugins();
-          }
-        }, 5000);
-      }
-
-      break;
-  }
-
   if (!disabled) plugin._topaz_start();
+
+  log('install', `installed ${info}! took ${(performance.now() - installStartTime).toFixed(2)}ms`);
 
   return [ manifest ];
 };
@@ -670,11 +770,27 @@ const fullMod = (mod) => {
     case 'pc': return 'powercord';
     case 'bd': return 'betterdiscord';
     case 'gm': return 'goosemod';
+    case 'vel': return 'velocity';
+    case 'un': return 'unbound';
+    case 'ast': return 'astra';
+    case 'dr': return 'drdiscord';
   }
 };
 
-const mapifyBuiltin = (builtin) => `// MAP_START|${builtin}
-${builtins[builtin]}
+const displayMod = (mod) => {
+  switch (mod) {
+    case 'pc': return 'Powercord';
+    case 'bd': return 'BetterDiscord';
+    case 'gm': return 'GooseMod';
+    case 'vel': return 'Velocity';
+    case 'un': return 'Unbound';
+    case 'ast': return 'Astra';
+    case 'dr': return 'Discord Re-envisioned';
+  }
+};
+
+const mapifyBuiltin = async (builtin) => `// MAP_START|${builtin}
+${await includeRequires('', builtins[builtin])}
 // MAP_END\n\n`;
 
 let transformRoot;
@@ -684,28 +800,32 @@ const transform = async (path, code, mod) => {
 
   transformRoot = path.split('/').slice(0, -1).join('/');
 
-  code = await includeRequires(path, code);
-  code = Object.values(chunks).join('\n\n') + `\n// MAP_START|${'.' + path.replace(transformRoot, '')}
+  const indexCode = await includeRequires(path, code);
+  /* code = Object.values(chunks).join('\n\n') + `\n// MAP_START|${'.' + path.replace(transformRoot, '')}
 ${code}
+// MAP_END`; */
+
+  let out = await mapifyBuiltin(fullMod(mod) + '/global') +
+    ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '');
+
+  out = Object.values(chunks).join('\n\n') + '\n\n' + out + `// MAP_START|${'.' + path.replace(transformRoot, '')}
+${indexCode}
 // MAP_END`;
 
-  code = mapifyBuiltin(fullMod(mod) + '/global') +
-    ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? mapifyBuiltin('betterdiscord/libs/zeres') : '') +
-    code;
+  out = replaceLast(out, 'export default', 'module.exports ='); // esm -> cjs export
+  if (mod === 'dr') out = replaceLast(out, 'return class ', 'module.exports = class ');
 
-  code = replaceLast(code, 'export default', 'module.exports ='); // esm -> cjs export
-
-  console.log({ code });
+  console.log({ out });
 
   updatePending(null, 'Transforming...');
 
-  code = sucrase.transform(code, { transforms: [ "typescript", "jsx" ], disableESTransforms: true }).code;
+  out = sucrase.transform(out, { transforms: [ "typescript", "jsx" ], disableESTransforms: true }).code;
 
-  code = `(function () {
-${code}
+  out = `(function () {
+${out}
 })();`;
 
-  return code;
+  return out;
 };
 
 const topazSettings = JSON.parse(localStorage.getItem('topaz_settings') ?? 'null') ?? {
@@ -748,11 +868,9 @@ window.topaz = {
   settings: topazSettings,
 
   install: async (info) => {
-    const installStartTime = performance.now();
-
     const [ manifest ] = await install(info);
 
-    log('install', `installed ${info}! took ${(performance.now() - installStartTime).toFixed(2)}ms`);
+    // log('install', `installed ${info}! took ${(performance.now() - installStartTime).toFixed(2)}ms`);
 
     setTimeout(savePlugins, 1000);
   },
@@ -932,6 +1050,7 @@ const TextInput = goosemod.webpackModules.findByDisplayName('TextInput');
 const Flex = goosemod.webpackModules.findByDisplayName('Flex');
 const Margins = goosemod.webpackModules.findByProps('marginTop20', 'marginBottom20');
 const _Switch = goosemod.webpackModules.findByDisplayName('Switch');
+const Tooltip = goosemod.webpackModules.findByDisplayName('Tooltip');
 
 const Header = goosemod.settings.Items['header'];
 const Subtext = goosemod.settings.Items['subtext'];
@@ -1200,9 +1319,16 @@ class Plugin extends React.PureComponent {
 
     return React.createElement(TextAndChild, {
       text: !manifest ? repo : [
-        !mod ? null : React.createElement('span', {
-          className: 'topaz-tag'
-        }, mod.toUpperCase()),
+        !mod ? null : React.createElement(Tooltip, {
+          text: displayMod(mod),
+          position: 'top'
+        }, ({ onMouseLeave, onMouseEnter }) => React.createElement('span', {
+            className: 'topaz-tag',
+
+            onMouseEnter,
+            onMouseLeave
+          }, mod.toUpperCase()),
+        ),
 
         manifest.name,
 

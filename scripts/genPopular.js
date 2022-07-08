@@ -77,6 +77,38 @@ const gm = {
   ]
 };
 
+const vel = {
+  plugins: [
+    'https://github.com/TheCommieAxolotl/Velocity-Plugins/tree/main/BetterSyntax',
+    'https://github.com/TheCommieAxolotl/Velocity-Plugins/tree/main/NoCanaryLinks',
+    'https://github.com/TheCommieAxolotl/Velocity-Plugins/tree/main/NoReplyMention',
+  ]
+};
+
+const un = {
+  plugins: [
+    'https://github.com/unbound-addons/disable-sticker-suggestions/tree/rewrite',
+    'https://github.com/unbound-addons/picture-link/tree/rewrite',
+  ]
+};
+
+const ast = {
+  plugins: [
+    'AlyPlugs/DevMode',
+    'toastythetoaster/DiscordExperiments',
+    'SpoonMcForky/SilentBlock',
+    'toastythetoaster/NoTypingIndicator',
+    'toastythetoaster/SpotifyAntiPause',
+    'SpoonMcForky/replace-timestamps',
+  ]
+};
+
+const dr = {
+  plugins: [
+    'https://github.com/doggybootsy/Dr-Plugins/blob/main/developerMode/developerMode.plugin.js'
+  ]
+};
+
 let lastRequest = 0;
 const userCache = {};
 
@@ -148,6 +180,53 @@ const getManifest_bd = async (place, theme) => { // .plugin.js url
   return [...code.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
 };
 
+const getManifest_vel = async (place) => {
+  console.log(place);
+  return await (await fetch((place + '/velocity_manifest.json').replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
+};
+
+const getManifest_un = async (place) => {
+  const manifestName = 'manifest.json';
+
+  console.log(place);
+
+  const [ repo, branch ] = place.split('@');
+
+  let manifestUrl = repo + '/' + manifestName;
+  if (!place.startsWith('http')) manifestUrl = `https://raw.githubusercontent.com/${repo}/${branch ?? 'HEAD'}/${manifestName}`;
+
+  const manifest = await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
+
+  manifest.author = manifest.authors.map(x => x.name).join(', ');
+
+  return manifest;
+};
+
+const getManifest_ast = async (place) => {
+  const manifestName = 'manifest.json';
+
+  console.log(place);
+
+  const [ repo, branch ] = place.split('@');
+
+  let manifestUrl = repo + '/' + manifestName;
+  if (!place.startsWith('http')) manifestUrl = `https://raw.githubusercontent.com/${repo}/${branch ?? 'HEAD'}/${manifestName}`;
+
+  const manifest = await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
+
+  if (typeof manifest.author === 'object') manifest.author = manifest.author.name;
+
+  return manifest;
+};
+
+const getManifest_dr = async (place, theme) => { // .plugin.js url
+  const code = await (await fetch(place.replace('github.com', 'raw.githubusercontent.com').replace('blob/', ''))).text();
+
+  console.log(place);
+
+  return [...code.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
+};
+
 
 (async () => {
   let plugins = [];
@@ -176,6 +255,30 @@ const getManifest_bd = async (place, theme) => { // .plugin.js url
   for (const place of gm.plugins) {
     plugins.push(getManifest_gm(place, false).then(manifest => {
       return [makeId('GM', manifest), place];
+    }));
+  }
+
+  for (const place of vel.plugins) {
+    plugins.push(getManifest_vel(place, false).then(manifest => {
+      return [makeId('VEL', manifest), place];
+    }));
+  }
+
+  for (const place of un.plugins) {
+    plugins.push(getManifest_un(place, false).then(manifest => {
+      return [makeId('UN', manifest), place];
+    }));
+  }
+
+  for (const place of ast.plugins) {
+    plugins.push(getManifest_ast(place, false).then(manifest => {
+      return [makeId('AST', manifest), place];
+    }));
+  }
+
+  for (const place of dr.plugins) {
+    plugins.push(getManifest_dr(place, false).then(manifest => {
+      return [makeId('DR', manifest), place];
     }));
   }
 

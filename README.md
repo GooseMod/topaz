@@ -4,16 +4,36 @@ A "next-gen" mod bundling client-side in web, designed for wide compat and with 
 > **Warning** |
 > Topaz is in **alpha**, you should not rely on it.
 
-<br>
-
 ## Features
 Core "new" features:
 - Permissions / sandboxing system
-- Compat with most plugins/themes from various mods (PC/BD/GM)
+- "Compat" with most plugins/themes from various mods (see below)
 - Install plugins/themes just via GitHub repo / URL
 - Editing plugin/theme source in client
 - Fully functional in web and desktop
 - Hardened injection / anti-crash
+
+<br>
+
+## Mod Support
+![#97ca00](https://via.placeholder.com/15/97ca00/97ca00.png) **Most**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Most popular ones work
+
+![#dfb317](https://via.placeholder.com/15/dfb317/dfb317.png) **Some**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Some (>5) work, but not more complex ones
+
+![#fe7d37](https://via.placeholder.com/15/fe7d37/fe7d37.png) **Initial**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; A few (1-5) more basic ones work, but not most
+
+![#e05d44](https://via.placeholder.com/15/e05d44/e05d44.png) **Unsupported**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Does not work at all
+
+
+| Mod | Plugins | Themes |
+| --- | ------- | ------ |
+| Powercord | ![](https://img.shields.io/badge/some-yellow?style=for-the-badge) | ![](https://img.shields.io/badge/some-yellow?style=for-the-badge) |
+| BetterDiscord | ![](https://img.shields.io/badge/some-yellow?style=for-the-badge) | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |
+| GooseMod | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |  |
+| Unbound | ![](https://img.shields.io/badge/initial-orange?style=for-the-badge) | ![](https://img.shields.io/badge/unsupported-red?style=for-the-badge) |
+| Astra | ![](https://img.shields.io/badge/some-yellow?style=for-the-badge) |  |
+| Velocity | ![](https://img.shields.io/badge/most-green?style=for-the-badge) | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |
+| Discord Re-envisioned | ![](https://img.shields.io/badge/most-green?style=for-the-badge) | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |
 
 <br>
 
