@@ -2,7 +2,7 @@
   position: absolute;
   z-index: 999;
   background: var(--background-floating);
-  max-height: 230px;
+  max-height: 280px;
   overflow: auto;
 }
 
