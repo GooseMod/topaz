@@ -9,7 +9,7 @@ module.exports = {
     }
 
     get settings() {
-      return powercord.api.settings.store;
+      return vizality.api.settings.store;
     }
   }
 };
