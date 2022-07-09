@@ -7,7 +7,7 @@ A "next-gen" mod bundling client-side in web, designed for wide compat and with 
 ## Features
 Core "new" features:
 - Permissions / sandboxing system
-- "Compat" with most plugins/themes from various mods (see below)
+- Works with a large range plugins/themes from various mods (see below)
 - Install plugins/themes just via GitHub repo / URL
 - Editing plugin/theme source in client
 - Fully functional in web and desktop
