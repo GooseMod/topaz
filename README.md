@@ -5,14 +5,13 @@ A "next-gen" mod bundling client-side in web, designed for wide compat and with 
 > Topaz is in **alpha**, you should not rely on it.
 
 ## Features
-Core "new" features:
 - Permissions / sandboxing system
 - Works with a wide range plugins/themes from various mods (see below)
 - Install plugins/themes just via GitHub repo / URL
 - Editing plugin/theme source in client
 - Fully functional in web and desktop
 - Hardened injection / anti-crash
-- Full built-in support
+- Full built-in support for JSX and TypeScript
 - Easy to use snippets for custom CSS/SCSS/JS/JSX/TS/TSX
 
 <br>
