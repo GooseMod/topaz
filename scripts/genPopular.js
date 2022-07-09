@@ -33,6 +33,11 @@ const pc = {
     'NurMarvin/guild-profile',
     'GriefMoDz/better-status-indicators',
     '12944qwerty/no-admin-abuse',
+    'BenSegal855/powerclock',
+    'jaimeadf/who-reacted',
+    'BluSpring/Spotify-No-Pause',
+    'Rodentman87/stonks',
+    'BenSegal855/webhook-tag',
   ],
 
   themes: [
