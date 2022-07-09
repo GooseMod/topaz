@@ -729,6 +729,52 @@ const install = async (info, settings = undefined, disabled = false) => {
       case 'vel':
         plugin._topaz_start = () => plugin.onStart();
         plugin._topaz_stop = () => plugin.onStop();
+
+        const SettingComps = eval(`module = { exports: {} };\n` + builtins['powercord/components/settings'] + `\nmodule.exports`);
+        const saveVelSettings = (save = true) => {
+          plugin.settings.store = { ...plugin.settings };
+          delete plugin.settings.store.store;
+
+          if (save) savePlugins();
+        };
+
+        plugin.settings = {};
+        if (settings) plugin.settings = settings;
+        saveVelSettings(false);
+
+        if (plugin.getSettingsPanel) plugin.__settings = {
+          render: class VelocitySettingsWrapper extends React.PureComponent {
+            constructor(props) {
+              super(props);
+
+              this.ret = plugin.getSettingsPanel();
+            }
+
+            render() {
+              return React.createElement('div', {
+
+              },
+                ...this.ret.map(x => {
+                  switch (x.type) {
+                    case 'input':
+                      return React.createElement(SettingComps.TextInput, {
+                        note: x.note,
+                        defaultValue: plugin.settings[x.setting] ?? x.placeholder,
+                        required: true,
+                        onChange: val => {
+                          plugin.settings[x.setting] = val;
+                          saveVelSettings();
+
+                          x.action(val);
+                        }
+                      }, x.name);
+                  }
+                })
+              );
+            }
+          }
+        };
+
         break;
 
       case 'dr':
@@ -819,7 +865,12 @@ ${indexCode}
 
   updatePending(null, 'Transforming...');
 
-  out = sucrase.transform(out, { transforms: [ "typescript", "jsx" ], disableESTransforms: true }).code;
+  try {
+    out = sucrase.transform(out, { transforms: [ "typescript", "jsx" ], disableESTransforms: true }).code;
+  } catch (e) {
+    console.error('transform', e.message, out.split('\n')[parseInt(e.message.match(/\(([0-9]+):([0-9]+)\)/)[1])]);
+    throw e;
+  }
 
   out = `(function () {
 ${out}

@@ -1,5 +1,3 @@
-const SettingComps = require('powercord/components/settings');
-
 let VApi;
 
 (() => {
@@ -7,8 +5,6 @@ const cssEls = {};
 const unpatches = {};
 
 const Webpack = goosemod.webpackModules;
-
-const dataLSId = (id) => 'topaz_vel_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
 
 const Patcher = (id, parent, key, patch) => {
   if (!unpatches[id]) unpatches[id] = [];
@@ -100,46 +96,4 @@ VApi = {
   React: Webpack.common.React,
   ReactDOM: Webpack.common.ReactDOM
 };
-
-setTimeout(() => {
-  const lsId = dataLSId(__entityID);
-  const saveSettings = () => {
-    localStorage.setItem(lsId, JSON.stringify(module.exports.Plugin.settings ?? {}));
-  };
-
-  if (module.exports.Plugin.getSettingsPanel) module.exports.Plugin.__settings = {
-    render: class VelocitySettingsWrapper extends React.PureComponent {
-      constructor(props) {
-        super(props);
-
-        this.ret = module.exports.Plugin.getSettingsPanel();
-      }
-
-      render() {
-        return React.createElement('div', {
-
-        },
-          ...this.ret.map(x => {
-            switch (x.type) {
-              case 'input':
-                return React.createElement(SettingComps.TextInput, {
-                  note: x.note,
-                  defaultValue: module.exports.Plugin.settings[x.setting] ?? x.placeholder,
-                  required: true,
-                  onChange: val => {
-                    x.action(val);
-
-                    module.exports.Plugin.settings[x.setting] = val;
-                    saveSettings();
-                  }
-                }, x.name);
-            }
-          })
-        );
-      }
-    }
-  };
-
-  module.exports.Plugin.settings = JSON.parse(localStorage.getItem(lsId) ?? '{}');
-}, 1);
 })();
