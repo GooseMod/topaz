@@ -343,7 +343,7 @@ const getManifest_rk = async (place, theme) => { // just repo or url
 
   const sortThings = async (things) => (await Promise.all(things.map(async x => [ x[0], x[1], await getGithubInfo(x[1].split('|')[1] ?? x[1].includes('http') ? x[1].split('/').slice(3, 5).join('/') : x[1].split('@')[0])]))).sort((a, b) =>
     b[2].stargazers_count - a[2].stargazers_count
-  ).map(x => [ x[0], x[1] ]);
+  ).map(x => [ x[0], x[1].split('|')[0] ]);
 
   plugins = await sortThings(plugins);
   themes = await sortThings(themes);
