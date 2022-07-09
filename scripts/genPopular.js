@@ -27,8 +27,8 @@ const pc = {
     'https://github.com/powercord-org/powercord/blob/HEAD/src/Powercord/plugins/pc-clickableEdits',
     'discord-modifications/show-hidden-channels',
     'FifiTheBulldog/token',
-    'CanadaHonk/message-translate', // fork as waiting for PR to merge
-    'katlyn/pronoundb-powercord', // fork as waiting for PR to merge
+    'CanadaHonk/message-translate|cyyynthia/message-translate', // fork as waiting for PR to merge
+    'katlyn/pronoundb-powercord|cyyynthia/pronoundb-powercord', // fork as waiting for PR to merge
     'PandaDriver156/Custom-Volume-Range',
     'NurMarvin/guild-profile',
     'GriefMoDz/better-status-indicators',
@@ -114,6 +114,12 @@ const cc = {
     'https://github.com/yellowsink/cc-plugins/tree/master/plugins/svg-embeds',
     'https://cumcordplugins.github.io/Condom/cc.c7.pm/Greentext',
     'https://cumcordplugins.github.io/Condom/cc.c7.pm/MessageLogger',
+  ]
+};
+
+const rk = {
+  plugins: [
+    'CanadaHonk/owocord@update|V3L0C1T13S/owocord', // fork as waiting for PR to merge
   ]
 };
 
@@ -248,6 +254,23 @@ const getManifest_cc = async (place, theme) => { // just repo or url
   return await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
 };
 
+const getManifest_rk = async (place, theme) => { // just repo or url
+  const manifestName = 'manifest.json';
+
+  console.log(place);
+
+  const [ repo, branch ] = place.split('@');
+
+  let manifestUrl = repo + '/' + manifestName;
+  if (!place.startsWith('http')) manifestUrl = `https://raw.githubusercontent.com/${repo}/${branch ?? 'HEAD'}/${manifestName}`;
+
+  const manifest = await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
+
+  if (typeof manifest.author === 'object') manifest.author = manifest.author.name;
+
+  return manifest;
+};
+
 
 (async () => {
   let plugins = [];
@@ -256,63 +279,69 @@ const getManifest_cc = async (place, theme) => { // just repo or url
   const makeId = (mod, manifest) => `${mod}%${manifest.name}%${manifest.author}%${manifest.description}`;
 
   for (const place of pc.plugins) {
-    plugins.push(getManifest_pc(place, false).then(manifest => {
+    plugins.push(getManifest_pc(place.split('|')[0], false).then(manifest => {
       return [makeId('PC', manifest), place];
     }));
   }
 
   for (const place of pc.themes) {
-    themes.push(getManifest_pc(place, true).then(manifest => {
+    themes.push(getManifest_pc(place.split('|')[0], true).then(manifest => {
       return [makeId('PC', manifest), place];
     }));
   }
 
   for (const place of bd.plugins) {
-    plugins.push(getManifest_bd(place, false).then(manifest => {
+    plugins.push(getManifest_bd(place.split('|')[0], false).then(manifest => {
       return [makeId('BD', manifest), place];
     }));
   }
 
   for (const place of gm.plugins) {
-    plugins.push(getManifest_gm(place, false).then(manifest => {
+    plugins.push(getManifest_gm(place.split('|')[0], false).then(manifest => {
       return [makeId('GM', manifest), place];
     }));
   }
 
   for (const place of vel.plugins) {
-    plugins.push(getManifest_vel(place, false).then(manifest => {
+    plugins.push(getManifest_vel(place.split('|')[0], false).then(manifest => {
       return [makeId('VEL', manifest), place];
     }));
   }
 
   for (const place of un.plugins) {
-    plugins.push(getManifest_un(place, false).then(manifest => {
+    plugins.push(getManifest_un(place.split('|')[0], false).then(manifest => {
       return [makeId('UN', manifest), place];
     }));
   }
 
   for (const place of ast.plugins) {
-    plugins.push(getManifest_ast(place, false).then(manifest => {
+    plugins.push(getManifest_ast(place.split('|')[0], false).then(manifest => {
       return [makeId('AST', manifest), place];
     }));
   }
 
   for (const place of dr.plugins) {
-    plugins.push(getManifest_dr(place, false).then(manifest => {
+    plugins.push(getManifest_dr(place.split('|')[0], false).then(manifest => {
       return [makeId('DR', manifest), place];
     }));
   }
 
   for (const place of cc.plugins) {
-    plugins.push(getManifest_cc(place, false).then(manifest => {
+    plugins.push(getManifest_cc(place.split('|')[0], false).then(manifest => {
       return [makeId('CC', manifest), place];
+    }));
+  }
+
+  for (const place of rk.plugins) {
+    plugins.push(getManifest_rk(place.split('|')[0], false).then(manifest => {
+      return [makeId('RK', manifest), place];
     }));
   }
 
   plugins = await Promise.all(plugins);
   themes = await Promise.all(themes);
 
-  const sortThings = async (things) => (await Promise.all(things.map(async x => [ x[0], x[1], await getGithubInfo(x[1].includes('http') ? x[1].split('/').slice(3, 5).join('/') : x[1].split('@')[0])]))).sort((a, b) =>
+  const sortThings = async (things) => (await Promise.all(things.map(async x => [ x[0], x[1], await getGithubInfo(x[1].split('|')[1] ?? x[1].includes('http') ? x[1].split('/').slice(3, 5).join('/') : x[1].split('@')[0])]))).sort((a, b) =>
     b[2].stargazers_count - a[2].stargazers_count
   ).map(x => [ x[0], x[1] ]);
 
