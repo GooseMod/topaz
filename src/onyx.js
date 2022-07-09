@@ -229,11 +229,16 @@ const Onyx = function (entityID, manifest, transformRoot) {
     context[k] = null;
   }
 
+  const { copy } = goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy');
   if (!context.DiscordNative) context.DiscordNative = { // basic polyfill
     crashReporter: {
       getMetadata: () => ({
         user_id: goosemod.webpackModules.findByProps('getCurrentUser').getCurrentUser().id
       })
+    },
+
+    clipboard: {
+      copy
     },
 
     gpuSettings: {
