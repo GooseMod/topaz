@@ -4430,9 +4430,9 @@ ${code}
 ${indexCode}
 // MAP_END`; */
 
-  let out = Object.values(chunks).join('\n\n') + '\n\n' +
-    await mapifyBuiltin(fullMod(mod) + '/global') +
-    ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '') +
+  let out = await mapifyBuiltin(fullMod(mod) + '/global') +
+  ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '') +
+  Object.values(chunks).join('\n\n') + '\n\n' +
     `// MAP_START|${'.' + path.replace(transformRoot, '')}
 ${indexCode}
 // MAP_END`;
