@@ -975,39 +975,39 @@ const encode = (x) => { // base64 vlq
   return encoded;
 };
 
-let makeMap = (output, root, name) => {
+const makeMap = (output, root, name) => {
   const startTime = performance.now();
 
   const sources = [];
   const sourcesContent = [];
   const mappings = [];
 
-  let withinSource, currentLine = 0, lastLine = 0, lastSource;
+  let withinSource, currentLine = 0, lastLine = 0, bumpSource = 0;
   for (const line of output.split('\\n')) {
-    if (line.includes(tokens.end)) withinSource = undefined;
+    if (line.includes(tokens.end)) {
+      withinSource = false;
+      continue;
+    }
 
     if (withinSource) { // map line
-      let nowSource = sources.length - 1;
+      mappings.push([ 0, bumpSource ? bumpSource-- : 0, currentLine - lastLine, 0 ]);
 
-      mappings.push([ 0, nowSource - lastSource, currentLine - lastLine, 0 ]);
+      lastLine = currentLine++;
 
-      lastLine = currentLine;
-      currentLine++;
-
-      lastSource = nowSource;
+      continue;
     } else mappings.push([]); // skip line
 
     const ind = line.indexOf(tokens.start);
     if (ind !== -1) {
       const source = line.slice(ind + tokens.start.length);
       // if (!source.startsWith('./')) continue;
-      sources.push(source.startsWith('./') ? source.slice(2) : 'topaz://Topaz/' + source + '.js');
-      sourcesContent.push(source.startsWith('./') ? topaz.internal.fetchCache.get(root + '/' + source.slice(2)) : topaz.internal.builtins[source]);
 
-      withinSource = source;
+      const local = source.startsWith('./');
+      sources.push(local ? source.slice(2) : 'topaz://Topaz/' + source + '.js');
+      sourcesContent.push(local ? topaz.internal.fetchCache.get(root + '/' + source.slice(2)) : topaz.internal.builtins[source]);
 
-      lastSource = sources.length - 2;
-      if (lastSource === -1) lastSource = 0; // don't bump source id at start
+      withinSource = true;
+      if (sources.length > 1) bumpSource = 1;
 
       currentLine = 0;
     }
