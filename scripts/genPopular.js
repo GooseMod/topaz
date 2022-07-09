@@ -32,6 +32,7 @@ const pc = {
     'PandaDriver156/Custom-Volume-Range',
     'NurMarvin/guild-profile',
     'GriefMoDz/better-status-indicators',
+    '12944qwerty/no-admin-abuse',
   ],
 
   themes: [
