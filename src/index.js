@@ -142,6 +142,10 @@ const builtins = {
   '@util': await getBuiltin('astra/util'),
   'astra/global': '',
 
+  '@cumcord/modules/webpack': `module.exports = cumcord.modules.webpack;`,
+  '@cumcord/patcher': `module.exports = cumcord.patcher;`,
+  'cumcord/global': await getBuiltin('cumcord/global'),
+
 
   'react': 'module.exports = goosemod.webpackModules.common.React;',
   'lodash': 'module.exports = window._;',
@@ -447,6 +451,11 @@ const install = async (info, settings = undefined, disabled = false) => {
     if (info.includes('github.com/')) info = info.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '');
   }
 
+  if (info.includes('/Condom/')) {
+    info += (info.endsWith('/') ? '' : '/') + 'plugin.js';
+    mod = 'cc';
+  }
+
   info = info.replace('https://github.com/', '');
 
   let [ repo, branch ] = info.split('@');
@@ -494,6 +503,7 @@ const install = async (info, settings = undefined, disabled = false) => {
       if (await resolveFileFromTree('velocity_manifest.json')) mod = 'vel';
       if (await resolveFileFromTree('manifest.json')) mod = 'pc';
       if (await resolveFileFromTree('goosemodModule.json')) mod = 'gm';
+      if (await resolveFileFromTree('cumcord_manifest.json')) mod = 'cc';
     }
 
     let indexCode;
@@ -573,7 +583,7 @@ const install = async (info, settings = undefined, disabled = false) => {
 
           break;
 
-        case 'vel':
+        case 'vel': {
           manifest = await (await fetch(join(root, './velocity_manifest.json'))).json();
 
           const main = './' + manifest.main.replace('./', '');
@@ -582,6 +592,25 @@ const install = async (info, settings = undefined, disabled = false) => {
           root = getDir(indexUrl);
 
           break;
+        }
+
+        case 'cc': {
+          if (info.endsWith('/plugin.js')) {
+            manifest = await (await fetch(join(root, './plugin.json'))).json();
+
+            indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
+            indexCode = 'module.exports = ' + indexCode;
+          } else {
+            manifest = await (await fetch(join(root, './cumcord_manifest.json'))).json();
+
+            const main = './' + manifest.file.replace('./', '');
+            indexFile = './' + main.split('/').pop();
+            indexUrl = join(root, './' + main);
+            root = getDir(indexUrl);
+
+            break;
+          }
+        }
       }
 
       if (!indexCode) indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
@@ -626,6 +655,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     switch (mod) {
       case 'vel':
       case 'gm':
+      case 'cc':
         plugin = PluginClass;
         if (mod === 'vel') plugin = plugin.Plugin;
         break;
@@ -784,6 +814,12 @@ const install = async (info, settings = undefined, disabled = false) => {
         plugin.onLoad();
 
         break;
+
+      case 'cc':
+        plugin._topaz_start = () => plugin.onLoad?.();
+        plugin._topaz_stop = () => plugin.onUnload?.();
+
+        break;
     }
   }
 
@@ -820,6 +856,7 @@ const fullMod = (mod) => {
     case 'un': return 'unbound';
     case 'ast': return 'astra';
     case 'dr': return 'drdiscord';
+    case 'cc': return 'cumcord';
   }
 };
 
@@ -832,6 +869,7 @@ const displayMod = (mod) => {
     case 'un': return 'Unbound';
     case 'ast': return 'Astra';
     case 'dr': return 'Discord Re-envisioned';
+    case 'cc': return 'Cumcord';
   }
 };
 
@@ -862,10 +900,9 @@ ${indexCode}
   ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '') +
   Object.values(chunks).join('\n\n') + '\n\n' +
     `// MAP_START|${'.' + path.replace(transformRoot, '')}
-${indexCode}
+${replaceLast(indexCode, 'export default', 'module.exports =').replaceAll(/export const (.*?)=/g, (_, key) => `module.exports.${key}=`)}
 // MAP_END`;
 
-  out = replaceLast(out, 'export default', 'module.exports ='); // esm -> cjs export
   if (mod === 'dr') out = replaceLast(out, 'return class ', 'module.exports = class ');
 
   console.log({ out });
@@ -1390,12 +1427,12 @@ class Plugin extends React.PureComponent {
 
         manifest.name,
 
-        React.createElement('span', {
+        manifest.version ? React.createElement('span', {
           class: 'description-30xx7u',
           style: {
             marginLeft: '4px'
           }
-        }, 'v' + manifest.version),
+        }, 'v' + manifest.version) : null,
 
         React.createElement('span', {
           class: 'description-30xx7u',

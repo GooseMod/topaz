@@ -36,6 +36,7 @@ Core "new" features:
 | Astra | ![](https://img.shields.io/badge/some-yellow?style=for-the-badge) |  |
 | Velocity | ![](https://img.shields.io/badge/most-green?style=for-the-badge) | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |
 | Discord Re-envisioned | ![](https://img.shields.io/badge/most-green?style=for-the-badge) | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |
+| CC | ![](https://img.shields.io/badge/initial-orange?style=for-the-badge) | ![](https://img.shields.io/badge/unsupported-red?style=for-the-badge) |
 
 
 > **Note** |

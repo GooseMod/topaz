@@ -109,6 +109,14 @@ const dr = {
   ]
 };
 
+const cc = {
+  plugins: [
+    'https://github.com/yellowsink/cc-plugins/tree/master/plugins/svg-embeds',
+    'https://cumcordplugins.github.io/Condom/cc.c7.pm/Greentext',
+    'https://cumcordplugins.github.io/Condom/cc.c7.pm/MessageLogger',
+  ]
+};
+
 let lastRequest = 0;
 const userCache = {};
 
@@ -227,6 +235,19 @@ const getManifest_dr = async (place, theme) => { // .plugin.js url
   return [...code.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
 };
 
+const getManifest_cc = async (place, theme) => { // just repo or url
+  const manifestName = place.includes('/Condom/') ? 'plugin.json' : 'cumcord_manifest.json';
+
+  console.log(place);
+
+  const [ repo, branch ] = place.split('@');
+
+  let manifestUrl = repo + '/' + manifestName;
+  if (!place.startsWith('http')) manifestUrl = `https://raw.githubusercontent.com/${repo}/${branch ?? 'HEAD'}/${manifestName}`;
+
+  return await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
+};
+
 
 (async () => {
   let plugins = [];
@@ -279,6 +300,12 @@ const getManifest_dr = async (place, theme) => { // .plugin.js url
   for (const place of dr.plugins) {
     plugins.push(getManifest_dr(place, false).then(manifest => {
       return [makeId('DR', manifest), place];
+    }));
+  }
+
+  for (const place of cc.plugins) {
+    plugins.push(getManifest_cc(place, false).then(manifest => {
+      return [makeId('CC', manifest), place];
     }));
   }
 
