@@ -1,5 +1,4 @@
 const { React, Flux, FluxDispatcher } = goosemod.webpackModules.common;
-const Patcher = require('@patcher');
 
 class SettingsStore extends Flux.Store {
   constructor (Dispatcher, handlers) {
@@ -49,10 +48,37 @@ module.exports = class Plugin {
       POWERCORD_SETTING_UPDATE: ({ category, setting, value }) => updateSetting(category, setting, value),
       POWERCORD_SETTING_DELETE: ({ category, setting }) => deleteSetting(category, setting)
     });
+
+    this.unpatches = [];
   }
 
   get patcher() {
-    return Patcher.create(this.data.id);
+    return {
+      instead: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return patch(this, args, original); }, false, true);
+
+        this.unpatches.push(unpatch);
+        return unpatch;
+      },
+
+      before: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(this, args); }, true);
+
+        this.unpatches.push(unpatch);
+        return unpatch;
+      },
+
+      after: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return patch(this, args, ret); }, false);
+
+        this.unpatches.push(unpatch);
+        return unpatch;
+      },
+
+      unpatchAll: () => {
+        this.unpatches.forEach(x => x());
+      }
+    }
   }
 
   _topaz_start() {

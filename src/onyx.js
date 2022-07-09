@@ -243,7 +243,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
     },
 
     clipboard: {
-      copy: x => this.safeWebpack(goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy')).copy(x);
+      copy: x => this.safeWebpack(goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy')).copy(x)
     },
 
     gpuSettings: {
