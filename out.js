@@ -952,10 +952,8 @@ const manager = {
 manager.add();
 
 manager`);
-const MapGen = eval(`const tokens = {
-  start: 'MAP_START|',
-  end: 'MAP_END'
-};
+const MapGen = eval(`const MAP_START = 'MAP_START|';
+const MAP_END = 'MAP_END';
 
 const B64Map = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'];
 const encode = (x) => { // base64 vlq
@@ -984,7 +982,7 @@ const makeMap = (output, root, name) => {
 
   let withinSource, currentLine = 0, lastLine = 0, bumpSource = 0;
   for (const line of output.split('\\n')) {
-    if (line.includes(tokens.end)) {
+    if (line.includes(MAP_END)) {
       withinSource = false;
       continue;
     }
@@ -997,9 +995,9 @@ const makeMap = (output, root, name) => {
       continue;
     } else mappings.push([]); // skip line
 
-    const ind = line.indexOf(tokens.start);
+    const ind = line.indexOf(MAP_START);
     if (ind !== -1) {
-      const source = line.slice(ind + tokens.start.length);
+      const source = line.slice(ind + MAP_START.length);
       // if (!source.startsWith('./')) continue;
 
       const local = source.startsWith('./');
@@ -1007,9 +1005,9 @@ const makeMap = (output, root, name) => {
       sourcesContent.push(local ? topaz.internal.fetchCache.get(root + '/' + source.slice(2)) : topaz.internal.builtins[source]);
 
       withinSource = true;
-      if (sources.length > 1) bumpSource = 1;
+      if (sources.length > 1) bumpSource = 1; // don't bump for first source
 
-      currentLine = 0;
+      currentLine = 0; // reset line to 0
     }
   }
 
