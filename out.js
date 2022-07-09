@@ -536,7 +536,9 @@ const permissions = {
   // friends_check_friend: [ 'isFriend' ],
   // friends_check_blocked: [ 'isBlocked' ],
   status_readstatus: [ 'getStatus', 'isMobileOnline' ],
-  status_readactivities: [ 'findActivity', 'getActivities', 'getActivityMetadata', 'getAllApplicationActivities', 'getApplicationActivity', 'getPrimaryActivity' ]
+  status_readactivities: [ 'findActivity', 'getActivities', 'getActivityMetadata', 'getAllApplicationActivities', 'getApplicationActivity', 'getPrimaryActivity' ],
+  clipboard_write: [],
+  clipboard_read: [ 'copy', 'writeText' ]
 };
 
 const complexMap = Object.keys(permissions).reduce((acc, x) => acc.concat(permissions[x].filter(y => y.includes('@')).map(y => [ x, ...y.split('@') ])), []);
@@ -589,6 +591,10 @@ const perms = {
   'Status': {
     'See status of users': 'status_readstatus',
     'See activities of users': 'status_readactivities'
+  },
+  'Clipboard': {
+    'Write to your clipboard': 'clipboard_write',
+    'Read from your clipboard': 'clipboard_read'
   }
 };
 
@@ -750,8 +756,12 @@ const Onyx = function (entityID, manifest, transformRoot) {
   if (!context.DiscordNative) context.DiscordNative = { // basic polyfill
     crashReporter: {
       getMetadata: () => ({
-        user_id: goosemod.webpackModules.findByProps('getCurrentUser').getCurrentUser().id
+        user_id: this.safeWebpack(goosemod.webpackModules.findByProps('getCurrentUser')).getCurrentUser().id
       })
+    },
+
+    clipboard: {
+      copy: x => this.safeWebpack(goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy')).copy(x)
     },
 
     gpuSettings: {
@@ -2262,7 +2272,7 @@ powercord = {
 
             // When send is true, we send it as a message via sendMessage
 
-            goosemod.webpackModules.findByProps('sendMessage', 'receiveMessage').sendMessage(getChannelId(), {
+            goosemod.webpackModules.findByProps('sendMessage', 'receiveMessage')['sendMessage'](getChannelId(), {
               content: out.result,
 
               tts: false,
@@ -3189,17 +3199,13 @@ DrApi = {
 };
 })();`,
 
-  'velocity/global': `const SettingComps = require('powercord/components/settings');
-
-let VApi;
+  'velocity/global': `let VApi;
 
 (() => {
 const cssEls = {};
 const unpatches = {};
 
 const Webpack = goosemod.webpackModules;
-
-const dataLSId = (id) => 'topaz_vel_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
 
 const Patcher = (id, parent, key, patch) => {
   if (!unpatches[id]) unpatches[id] = [];
@@ -3291,52 +3297,9 @@ VApi = {
   React: Webpack.common.React,
   ReactDOM: Webpack.common.ReactDOM
 };
-
-setTimeout(() => {
-  const lsId = dataLSId(__entityID);
-  const saveSettings = () => {
-    localStorage.setItem(lsId, JSON.stringify(module.exports.Plugin.settings ?? {}));
-  };
-
-  if (module.exports.Plugin.getSettingsPanel) module.exports.Plugin.__settings = {
-    render: class VelocitySettingsWrapper extends React.PureComponent {
-      constructor(props) {
-        super(props);
-
-        this.ret = module.exports.Plugin.getSettingsPanel();
-      }
-
-      render() {
-        return React.createElement('div', {
-
-        },
-          ...this.ret.map(x => {
-            switch (x.type) {
-              case 'input':
-                return React.createElement(SettingComps.TextInput, {
-                  note: x.note,
-                  defaultValue: module.exports.Plugin.settings[x.setting] ?? x.placeholder,
-                  required: true,
-                  onChange: val => {
-                    x.action(val);
-
-                    module.exports.Plugin.settings[x.setting] = val;
-                    saveSettings();
-                  }
-                }, x.name);
-            }
-          })
-        );
-      }
-    }
-  };
-
-  module.exports.Plugin.settings = JSON.parse(localStorage.getItem(lsId) ?? '{}');
-}, 1);
 })();`,
 
   '@entities/plugin': `const { React, Flux, FluxDispatcher } = goosemod.webpackModules.common;
-const Patcher = require('@patcher');
 
 class SettingsStore extends Flux.Store {
   constructor (Dispatcher, handlers) {
@@ -3386,10 +3349,37 @@ module.exports = class Plugin {
       POWERCORD_SETTING_UPDATE: ({ category, setting, value }) => updateSetting(category, setting, value),
       POWERCORD_SETTING_DELETE: ({ category, setting }) => deleteSetting(category, setting)
     });
+
+    this.unpatches = [];
   }
 
   get patcher() {
-    return Patcher.create(this.data.id);
+    return {
+      instead: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return patch(this, args, original); }, false, true);
+
+        this.unpatches.push(unpatch);
+        return unpatch;
+      },
+
+      before: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(this, args); }, true);
+
+        this.unpatches.push(unpatch);
+        return unpatch;
+      },
+
+      after: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return patch(this, args, ret); }, false);
+
+        this.unpatches.push(unpatch);
+        return unpatch;
+      },
+
+      unpatchAll: () => {
+        this.unpatches.forEach(x => x());
+      }
+    }
   }
 
   _topaz_start() {
@@ -3401,7 +3391,6 @@ module.exports = class Plugin {
   }
 }`,
   '@structures/plugin': `const { React, Flux, FluxDispatcher } = goosemod.webpackModules.common;
-const Patcher = require('@patcher');
 
 class SettingsStore extends Flux.Store {
   constructor (Dispatcher, handlers) {
@@ -3451,10 +3440,37 @@ module.exports = class Plugin {
       POWERCORD_SETTING_UPDATE: ({ category, setting, value }) => updateSetting(category, setting, value),
       POWERCORD_SETTING_DELETE: ({ category, setting }) => deleteSetting(category, setting)
     });
+
+    this.unpatches = [];
   }
 
   get patcher() {
-    return Patcher.create(this.data.id);
+    return {
+      instead: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return patch(this, args, original); }, false, true);
+
+        this.unpatches.push(unpatch);
+        return unpatch;
+      },
+
+      before: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(this, args); }, true);
+
+        this.unpatches.push(unpatch);
+        return unpatch;
+      },
+
+      after: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return patch(this, args, ret); }, false);
+
+        this.unpatches.push(unpatch);
+        return unpatch;
+      },
+
+      unpatchAll: () => {
+        this.unpatches.forEach(x => x());
+      }
+    }
   }
 
   _topaz_start() {
@@ -4285,6 +4301,52 @@ const install = async (info, settings = undefined, disabled = false) => {
       case 'vel':
         plugin._topaz_start = () => plugin.onStart();
         plugin._topaz_stop = () => plugin.onStop();
+
+        const SettingComps = eval(`module = { exports: {} };\n` + builtins['powercord/components/settings'] + `\nmodule.exports`);
+        const saveVelSettings = (save = true) => {
+          plugin.settings.store = { ...plugin.settings };
+          delete plugin.settings.store.store;
+
+          if (save) savePlugins();
+        };
+
+        plugin.settings = {};
+        if (settings) plugin.settings = settings;
+        saveVelSettings(false);
+
+        if (plugin.getSettingsPanel) plugin.__settings = {
+          render: class VelocitySettingsWrapper extends React.PureComponent {
+            constructor(props) {
+              super(props);
+
+              this.ret = plugin.getSettingsPanel();
+            }
+
+            render() {
+              return React.createElement('div', {
+
+              },
+                ...this.ret.map(x => {
+                  switch (x.type) {
+                    case 'input':
+                      return React.createElement(SettingComps.TextInput, {
+                        note: x.note,
+                        defaultValue: plugin.settings[x.setting] ?? x.placeholder,
+                        required: true,
+                        onChange: val => {
+                          plugin.settings[x.setting] = val;
+                          saveVelSettings();
+
+                          x.action(val);
+                        }
+                      }, x.name);
+                  }
+                })
+              );
+            }
+          }
+        };
+
         break;
 
       case 'dr':
@@ -4361,10 +4423,17 @@ const transform = async (path, code, mod) => {
 ${code}
 // MAP_END`; */
 
-  let out = await mapifyBuiltin(fullMod(mod) + '/global') +
+  /* let out = await mapifyBuiltin(fullMod(mod) + '/global') +
     ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '');
 
   out = Object.values(chunks).join('\n\n') + '\n\n' + out + `// MAP_START|${'.' + path.replace(transformRoot, '')}
+${indexCode}
+// MAP_END`; */
+
+  let out = Object.values(chunks).join('\n\n') + '\n\n' +
+    await mapifyBuiltin(fullMod(mod) + '/global') +
+    ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '') +
+    `// MAP_START|${'.' + path.replace(transformRoot, '')}
 ${indexCode}
 // MAP_END`;
 
@@ -4375,7 +4444,12 @@ ${indexCode}
 
   updatePending(null, 'Transforming...');
 
-  out = sucrase.transform(out, { transforms: [ "typescript", "jsx" ], disableESTransforms: true }).code;
+  try {
+    out = sucrase.transform(out, { transforms: [ "typescript", "jsx" ], disableESTransforms: true }).code;
+  } catch (e) {
+    console.error('transform', e.message, out.split('\n')[parseInt(e.message.match(/\(([0-9]+):([0-9]+)\)/)[1])]);
+    throw e;
+  }
 
   out = `(function () {
 ${out}
@@ -5013,6 +5087,10 @@ class Plugin extends React.PureComponent {
               'Status': {
                 'See status of users': 'status_readstatus',
                 'See activities of users': 'status_readactivities'
+              },
+              'Clipboard': {
+                'Write to your clipboard': 'clipboard_write',
+                'Read from your clipboard': 'clipboard_read'
               }
             };
 
@@ -5352,7 +5430,7 @@ class Settings extends React.PureComponent {
       }, 'Topaz',
         React.createElement('span', {
           className: 'description-30xx7u topaz-version'
-        }, 'alpha 4'),
+        }, 'alpha 5'),
 
         React.createElement(HeaderBarContainer.Divider),
 
