@@ -18,7 +18,9 @@ const permissions = {
   // friends_check_friend: [ 'isFriend' ],
   // friends_check_blocked: [ 'isBlocked' ],
   status_readstatus: [ 'getStatus', 'isMobileOnline' ],
-  status_readactivities: [ 'findActivity', 'getActivities', 'getActivityMetadata', 'getAllApplicationActivities', 'getApplicationActivity', 'getPrimaryActivity' ]
+  status_readactivities: [ 'findActivity', 'getActivities', 'getActivityMetadata', 'getAllApplicationActivities', 'getApplicationActivity', 'getPrimaryActivity' ],
+  clipboard_write: [],
+  clipboard_read: [ 'copy', 'writeText' ]
 };
 
 const complexMap = Object.keys(permissions).reduce((acc, x) => acc.concat(permissions[x].filter(y => y.includes('@')).map(y => [ x, ...y.split('@') ])), []);
@@ -71,6 +73,10 @@ const perms = {
   'Status': {
     'See status of users': 'status_readstatus',
     'See activities of users': 'status_readactivities'
+  },
+  'Clipboard': {
+    'Write to your clipboard': 'clipboard_write',
+    'Read from your clipboard': 'clipboard_read'
   }
 };
 
@@ -229,16 +235,15 @@ const Onyx = function (entityID, manifest, transformRoot) {
     context[k] = null;
   }
 
-  const { copy } = goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy');
   if (!context.DiscordNative) context.DiscordNative = { // basic polyfill
     crashReporter: {
       getMetadata: () => ({
-        user_id: goosemod.webpackModules.findByProps('getCurrentUser').getCurrentUser().id
+        user_id: this.safeWebpack(goosemod.webpackModules.findByProps('getCurrentUser')).getCurrentUser().id
       })
     },
 
     clipboard: {
-      copy
+      copy: x => this.safeWebpack(goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy')).copy(x);
     },
 
     gpuSettings: {

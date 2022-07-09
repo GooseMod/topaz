@@ -136,7 +136,7 @@ powercord = {
 
             // When send is true, we send it as a message via sendMessage
 
-            goosemod.webpackModules.findByProps('sendMessage', 'receiveMessage').sendMessage(getChannelId(), {
+            goosemod.webpackModules.findByProps('sendMessage', 'receiveMessage')['sendMessage'](getChannelId(), {
               content: out.result,
 
               tts: false,

@@ -1508,6 +1508,10 @@ class Plugin extends React.PureComponent {
               'Status': {
                 'See status of users': 'status_readstatus',
                 'See activities of users': 'status_readactivities'
+              },
+              'Clipboard': {
+                'Write to your clipboard': 'clipboard_write',
+                'Read from your clipboard': 'clipboard_read'
               }
             };
 
@@ -1847,7 +1851,7 @@ class Settings extends React.PureComponent {
       }, 'Topaz',
         React.createElement('span', {
           className: 'description-30xx7u topaz-version'
-        }, 'alpha 4'),
+        }, 'alpha 5'),
 
         React.createElement(HeaderBarContainer.Divider),
 
