@@ -38,6 +38,8 @@ const pc = {
     'BluSpring/Spotify-No-Pause',
     'Rodentman87/stonks',
     'BenSegal855/webhook-tag',
+    // to fix 'Litleck/DM-Typing-Indicator',
+    'NurMarvin/SnowflakeInfo',
   ],
 
   themes: [
