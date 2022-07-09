@@ -151,6 +151,12 @@ const builtins = {
   '@rikka/API/Utils/strings/owoify': `module.exports = require('@rikka/API/Utils').strings.owoify;`,
   'rikka/global': '',
 
+  '@vizality/webpack': `module.exports = require('powercord/webpack');`,
+  '@vizality/components/settings': `module.exports = require('powercord/components/settings');`,
+  '@vizality/patcher': await getBuiltin('vizality/patcher'),
+  '@vizality/entities': await getBuiltin('vizality/entities'),
+  'vizality/global': await getBuiltin('vizality/global'),
+
   'react': 'module.exports = goosemod.webpackModules.common.React;',
   'lodash': 'module.exports = window._;',
 
@@ -566,13 +572,9 @@ const install = async (info, settings = undefined, disabled = false) => {
 
           indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
 
-          if (indexCode.includes('extends UPlugin')) {
-            mod = 'ast';
-          }
-
-          if (indexCode.includes('@rikka')) {
-            mod = 'rk';
-          }
+          if (indexCode.includes('extends UPlugin')) mod = 'ast';
+          if (indexCode.includes('@rikka')) mod = 'rk';
+          if (indexCode.includes('@vizality')) mod = 'vz';
 
           break;
 
@@ -866,6 +868,7 @@ const fullMod = (mod) => {
     case 'dr': return 'drdiscord';
     case 'cc': return 'cumcord';
     case 'rk': return 'rikka';
+    case 'vz': return 'vizality';
   }
 };
 
@@ -880,6 +883,7 @@ const displayMod = (mod) => {
     case 'dr': return 'Discord Re-envisioned';
     case 'cc': return 'Cumcord';
     case 'rk': return 'Rikka';
+    case 'vz': return 'Vizality';
   }
 };
 
