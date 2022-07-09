@@ -7,11 +7,13 @@ A "next-gen" mod bundling client-side in web, designed for wide compat and with 
 ## Features
 Core "new" features:
 - Permissions / sandboxing system
-- Works with a large range plugins/themes from various mods (see below)
+- Works with a wide range plugins/themes from various mods (see below)
 - Install plugins/themes just via GitHub repo / URL
 - Editing plugin/theme source in client
 - Fully functional in web and desktop
 - Hardened injection / anti-crash
+- Full built-in support
+- Easy to use snippets for custom CSS/SCSS/JS/JSX/TS/TSX
 
 <br>
 
@@ -34,6 +36,10 @@ Core "new" features:
 | Astra | ![](https://img.shields.io/badge/some-yellow?style=for-the-badge) |  |
 | Velocity | ![](https://img.shields.io/badge/most-green?style=for-the-badge) | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |
 | Discord Re-envisioned | ![](https://img.shields.io/badge/most-green?style=for-the-badge) | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |
+
+
+> **Note** |
+> Topaz does not directly have "compat" per se, instead each mod's APIs and formats are mostly reverse engineered from public plugins and made to work in web, with 0 Node/FS/etc.
 
 <br>
 
