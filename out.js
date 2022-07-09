@@ -3715,6 +3715,26 @@ cumcord = {
 };
 })();`,
 
+  '@rikka/Common/entities/Plugin': `module.exports = class RikkaPlugin {
+  _topaz_start() {
+    this.inject.bind(this)();
+  }
+
+  _topaz_stop() {
+
+  }
+}`,
+  '@rikka/API/Utils': `module.exports = {
+  log: (...args) => console.log(...args),
+
+  strings: {
+    owoify: {
+      owoifyText: x => x.replaceAll('r', 'w').replaceAll('l', 'w').replaceAll('R', 'W').replaceAll('L', 'W')
+    }
+  }
+};`,
+  '@rikka/API/Utils/strings/owoify': `module.exports = require('@rikka/API/Utils').strings.owoify;`,
+  'rikka/global': '',
 
   'react': 'module.exports = goosemod.webpackModules.common.React;',
   'lodash': 'module.exports = window._;',
@@ -4168,6 +4188,10 @@ const install = async (info, settings = undefined, disabled = false) => {
             mod = 'ast';
           }
 
+          if (indexCode.includes('@rikka')) {
+            mod = 'rk';
+          }
+
           break;
 
         case 'gm':
@@ -4459,6 +4483,7 @@ const fullMod = (mod) => {
     case 'ast': return 'astra';
     case 'dr': return 'drdiscord';
     case 'cc': return 'cumcord';
+    case 'rk': return 'rikka';
   }
 };
 
@@ -4472,6 +4497,7 @@ const displayMod = (mod) => {
     case 'ast': return 'Astra';
     case 'dr': return 'Discord Re-envisioned';
     case 'cc': return 'Cumcord';
+    case 'rk': return 'Rikka';
   }
 };
 

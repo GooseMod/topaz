@@ -146,6 +146,10 @@ const builtins = {
   '@cumcord/patcher': `module.exports = cumcord.patcher;`,
   'cumcord/global': await getBuiltin('cumcord/global'),
 
+  '@rikka/Common/entities/Plugin': await getBuiltin('rikka/plugin'),
+  '@rikka/API/Utils': await getBuiltin('rikka/utils'),
+  '@rikka/API/Utils/strings/owoify': `module.exports = require('@rikka/API/Utils').strings.owoify;`,
+  'rikka/global': '',
 
   'react': 'module.exports = goosemod.webpackModules.common.React;',
   'lodash': 'module.exports = window._;',
@@ -566,6 +570,10 @@ const install = async (info, settings = undefined, disabled = false) => {
             mod = 'ast';
           }
 
+          if (indexCode.includes('@rikka')) {
+            mod = 'rk';
+          }
+
           break;
 
         case 'gm':
@@ -857,6 +865,7 @@ const fullMod = (mod) => {
     case 'ast': return 'astra';
     case 'dr': return 'drdiscord';
     case 'cc': return 'cumcord';
+    case 'rk': return 'rikka';
   }
 };
 
@@ -870,6 +879,7 @@ const displayMod = (mod) => {
     case 'ast': return 'Astra';
     case 'dr': return 'Discord Re-envisioned';
     case 'cc': return 'Cumcord';
+    case 'rk': return 'Rikka';
   }
 };
 
