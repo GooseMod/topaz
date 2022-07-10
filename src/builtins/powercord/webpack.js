@@ -1,5 +1,5 @@
 const makeFinalFilter = (filter) => {
-  if (Array.isArray(filter)) return (mod) => filter.every(p => (mod[p] ?? (mod.__proto__ && mod.__proto__[p])) !== undefined);
+  if (Array.isArray(filter)) return (mod) => filter.every(p => mod.hasOwnProperty(p) || mod.__proto__?.hasOwnProperty?.(p));
   return filter;
 };
 
