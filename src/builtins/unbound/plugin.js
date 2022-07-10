@@ -43,10 +43,10 @@ class SettingsStore extends Flux.Store {
 module.exports = class Plugin {
   constructor() {
     this.settings = new SettingsStore(FluxDispatcher, {
-      POWERCORD_SETTINGS_UPDATE: ({ category, settings }) => updateSettings(category, settings),
-      POWERCORD_SETTING_TOGGLE: ({ category, setting, defaultValue }) => toggleSetting(category, setting, defaultValue),
-      POWERCORD_SETTING_UPDATE: ({ category, setting, value }) => updateSetting(category, setting, value),
-      POWERCORD_SETTING_DELETE: ({ category, setting }) => deleteSetting(category, setting)
+      UNBOUND_SETTINGS_UPDATE: ({ category, settings }) => updateSettings(category, settings),
+      UNBOUND_SETTING_TOGGLE: ({ category, setting, defaultValue }) => toggleSetting(category, setting, defaultValue),
+      UNBOUND_SETTING_UPDATE: ({ category, setting, value }) => updateSetting(category, setting, value),
+      UNBOUND_SETTING_DELETE: ({ category, setting }) => deleteSetting(category, setting)
     });
 
     this.unpatches = [];
