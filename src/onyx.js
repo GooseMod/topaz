@@ -84,7 +84,7 @@ const perms = {
 const permissionsModal = async (manifest, neededPerms) => {
   const ButtonColors = goosemod.webpackModules.findByProps('button', 'colorRed');
 
-  const Text = goosemod.webpackModules.findByDisplayName("Text");
+  const Text = goosemod.webpackModules.findByDisplayName("LegacyText");
   const Markdown = goosemod.webpackModules.find((x) => x.displayName === 'Markdown' && x.rules);
 
   const Checkbox = goosemod.webpackModules.findByDisplayName('Checkbox');
