@@ -7,6 +7,7 @@ const bulkify = (original) => (...args) => {
 
 module.exports = {
   findByProps: bulkify(goosemod.webpackModules.findByProps),
+  findByDisplayName: (name, opts = {}) => goosemod.webpackModules.find(x => x.displayName === name || x.default?.displayName === name, opts.interop ?? true),
 
   bulk: (...filters) => filters.map(x => goosemod.webpackModules.find(x, false)),
   findLazy: (filter) => new Promise(res => {
