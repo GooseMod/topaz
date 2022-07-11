@@ -107,6 +107,8 @@ const un = {
   plugins: [
     'https://github.com/unbound-addons/disable-sticker-suggestions/tree/rewrite',
     'https://github.com/unbound-addons/picture-link/tree/rewrite',
+    'https://github.com/unbound-addons/hide-dm-buttons/tree/rewrite',
+    'https://github.com/unbound-addons/no-bandwidth-kick/tree/rewrite',
   ]
 };
 
