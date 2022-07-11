@@ -1762,6 +1762,7 @@ class Snippets extends React.PureComponent {
         toggled: snippetsToggled,
         defaultFile: snippets[activeSnippet] ? activeSnippet : undefined,
         plugin: { entityID: 'snippets' },
+        fileIcons: true,
 
         onChange: (file, content) => updateSnippet(file, content),
         onToggle: (file, toggled) => {
@@ -1775,6 +1776,9 @@ class Snippets extends React.PureComponent {
           snippetsToggled[val] = snippetsToggled[old];
           delete snippetsToggled[old];
 
+          if (activeSnippet === old) activeSnippet = val;
+
+          stopSnippet(old);
           updateSnippet(val, snippets[val]);
         },
         onDelete: (file) => {

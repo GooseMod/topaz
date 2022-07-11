@@ -394,7 +394,51 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   display: none;
 }
 
-.topaz-editor > [role="tablist"] > * > :first-child {
+.topaz-editor > [role="tablist"] > * > [aria-haspopup="listbox"] {
+  padding: 0;
+  background: none;
+  border: none;
+
+  margin-left: -6px;
+  margin-right: 4px;
+}
+
+.topaz-editor > [role="tablist"] > * > [aria-haspopup="listbox"] > :last-child {
+  display: none;
+}
+
+
+
+.topaz-file-popout {
+  width: 140px !important;
+  overflow: visible !important;
+  max-height: unset !important;
+}
+
+.topaz-file-popout [aria-selected="true"] {
+  padding-right: 32px;
+}
+
+.topaz-file-popout [aria-selected="true"] > svg {
+  position: absolute;
+  right: 6px;
+}
+
+.topaz-file-popout [data-list-item-id$="-"] {
+  background: var(--background-primary);
+  height: 2px;
+  margin: 10px 12px;
+  padding: 0;
+
+  pointer-events: none;
+}
+
+.topaz-file-popout .option-2eIyOn:focus:not(:hover):not([aria-selected="true"]) { /* Fix first option being highlighted for some reason */
+  background-color: unset;
+  color: var(--interactive-normal);
+}
+
+.topaz-editor > [role="tablist"] > * > input {
   flex-grow: 1;
   text-align: left;
 }

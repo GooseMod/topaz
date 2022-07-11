@@ -602,7 +602,7 @@ const perms = {
 const permissionsModal = async (manifest, neededPerms) => {
   const ButtonColors = goosemod.webpackModules.findByProps('button', 'colorRed');
 
-  const Text = goosemod.webpackModules.findByDisplayName("Text");
+  const Text = goosemod.webpackModules.findByDisplayName("LegacyText");
   const Markdown = goosemod.webpackModules.find((x) => x.displayName === 'Markdown' && x.rules);
 
   const Checkbox = goosemod.webpackModules.findByDisplayName('Checkbox');
@@ -1051,6 +1051,9 @@ const forceWrap = (comp, key) => class extends React.PureComponent {
   }
 };
 
+const SwitchItem = forceWrap(goosemod.webpackModules.findByDisplayName('SwitchItem'), 'value');
+const SingleSelect = forceWrap(goosemod.webpackModules.findByProps('SingleSelect').SingleSelect, 'value');
+
 const debounce = (handler, timeout) => {
   let timer;
   return (...args) => {
@@ -1138,7 +1141,7 @@ const selections = {};
 
 let ignoreNextSelect = false;
 return function Editor(props) {
-  let { files, defaultFile, plugin, toggled } = props;
+  let { files, defaultFile, plugin, toggled, fileIcons } = props;
   defaultFile = defaultFile ?? Object.keys(files)[0] ?? '';
 
   const loadPreviousSelection = (file) => {
@@ -1182,6 +1185,48 @@ return function Editor(props) {
 
   const openExt = openFile.split('.').pop();
 
+  const langToImg = (lang, size = 24) => {
+    let img, props = {};
+
+    switch (lang) {
+      case 'js':
+        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/javascript.svg';
+        break;
+
+      case 'jsx':
+        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/react.svg';
+        props.style = { filter: 'hue-rotate(220deg) brightness(1.5)' }; // HS yellow
+        break;
+
+      case 'ts':
+        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/typescript.svg';
+        break;
+
+      case 'tsx':
+        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/react.svg';
+        props.style = { filter: 'hue-rotate(20deg) brightness(1.5)' }; // TS blue
+        break;
+
+      case 'css':
+        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/css.svg';
+        break;
+
+      case 'scss':
+        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/sass.svg';
+        break;
+    }
+
+    return React.createElement('img', {
+      src: img,
+      ...props,
+
+      width: size,
+      height: size
+    });
+  };
+
+  console.log('render', files, defaultFile, openFile, files[openFile] === undefined, openExt);
+
   return React.createElement('div', {
     className: 'topaz-editor'
   },
@@ -1208,13 +1253,40 @@ return function Editor(props) {
         id: x,
         className: TabBarClasses2.item
       },
+        !fileIcons ? null : React.createElement(SingleSelect, {
+          onChange: y => {
+            const newFile = x.split('.').slice(0, -1).join('.') + '.' + y;
+
+            props.onRename?.(x, newFile);
+            if (openFile === x) {
+              setOpenFile(newFile);
+              forceUpdate(); // sorry :)
+              setImmediate(() => document.querySelector('#inptab-' + newFile.replace(/[^A-Za-z0-9]/g, '_')).parentElement.click());
+            }
+          },
+          options: [ 'css', 'scss', '-', 'js', 'jsx', '-', 'ts', 'tsx' ].map(y => ({
+            label: y,
+            value: y
+          })),
+          value: x.split('.').pop() ?? 'css',
+
+          popoutClassName: 'topaz-file-popout',
+
+          renderOptionValue: ([ { value } ]) => langToImg(value, 24),
+          renderOptionLabel: ({ value }) => value === '-' ? '' : React.createElement(React.Fragment, {},
+            langToImg(value, 24),
+
+            value.toUpperCase()
+          )
+        }),
+
         React.createElement('input', {
           type: 'text',
           autocomplete: 'off',
           spellcheck: 'false',
           autocorrect: 'off',
 
-          value: x,
+          value: fileIcons ? x.split('.').slice(0, -1).join('.') : x,
           id: 'inptab-' + x.replace(/[^A-Za-z0-9]/g, '_'),
 
           style: {
@@ -1222,7 +1294,8 @@ return function Editor(props) {
           },
 
           onChange: (e) => {
-            const val = e.target.value;
+            let val = e.target.value;
+            if (fileIcons) val += '.' + x.split('.').pop();
 
             if (!document.querySelector('.topaz-snippets')) document.querySelector('#inptab-' + x.replace(/[^A-Za-z0-9]/g, '_')).style.width = (val.length * 0.8) + 'ch';
 
@@ -1265,13 +1338,13 @@ return function Editor(props) {
         icon: goosemod.webpackModules.findByDisplayName('PlusAlt'),
         tooltipText: 'New',
         onClick: () => {
-          const name = '';
+          const name = fileIcons ? '.css' : '';
 
           files[name] = '';
           if (openFile === name) forceUpdate();
             else setOpenFile(name);
 
-          setTimeout(() => document.querySelector('#inptab-').focus(), 100);
+          setTimeout(() => document.querySelector('#inptab-' + name.replace(/[^A-Za-z0-9]/g, '_')).focus(), 100);
 
           props.onNew?.(name);
         }
@@ -1291,12 +1364,6 @@ return function Editor(props) {
           const Flex = goosemod.webpackModules.findByDisplayName('Flex');
 
           const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
-          const _SingleSelect = goosemod.webpackModules.findByProps('SingleSelect').SingleSelect;
-
-          const _SwitchItem = goosemod.webpackModules.findByDisplayName('SwitchItem');
-
-          const SwitchItem = forceWrap(_SwitchItem, 'value');
-          const SingleSelect = forceWrap(_SingleSelect, 'value');
 
           const titleCase = (str) => str.split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
@@ -3556,6 +3623,7 @@ module.exports = {
 
 module.exports = {
   findByProps: bulkify(goosemod.webpackModules.findByProps),
+  findByDisplayName: (name, opts = {}) => goosemod.webpackModules.find(x => x.displayName === name || x.default?.displayName === name, opts.interop ?? true),
 
   bulk: (...filters) => filters.map(x => goosemod.webpackModules.find(x, false)),
   findLazy: (filter) => new Promise(res => {
@@ -5637,6 +5705,7 @@ class Snippets extends React.PureComponent {
         toggled: snippetsToggled,
         defaultFile: snippets[activeSnippet] ? activeSnippet : undefined,
         plugin: { entityID: 'snippets' },
+        fileIcons: true,
 
         onChange: (file, content) => updateSnippet(file, content),
         onToggle: (file, toggled) => {
@@ -5650,6 +5719,9 @@ class Snippets extends React.PureComponent {
           snippetsToggled[val] = snippetsToggled[old];
           delete snippetsToggled[old];
 
+          if (activeSnippet === old) activeSnippet = val;
+
+          stopSnippet(old);
           updateSnippet(val, snippets[val]);
         },
         onDelete: (file) => {
@@ -6300,7 +6372,51 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   display: none;
 }
 
-.topaz-editor > [role="tablist"] > * > :first-child {
+.topaz-editor > [role="tablist"] > * > [aria-haspopup="listbox"] {
+  padding: 0;
+  background: none;
+  border: none;
+
+  margin-left: -6px;
+  margin-right: 4px;
+}
+
+.topaz-editor > [role="tablist"] > * > [aria-haspopup="listbox"] > :last-child {
+  display: none;
+}
+
+
+
+.topaz-file-popout {
+  width: 140px !important;
+  overflow: visible !important;
+  max-height: unset !important;
+}
+
+.topaz-file-popout [aria-selected="true"] {
+  padding-right: 32px;
+}
+
+.topaz-file-popout [aria-selected="true"] > svg {
+  position: absolute;
+  right: 6px;
+}
+
+.topaz-file-popout [data-list-item-id\$="-"] {
+  background: var(--background-primary);
+  height: 2px;
+  margin: 10px 12px;
+  padding: 0;
+
+  pointer-events: none;
+}
+
+.topaz-file-popout .option-2eIyOn:focus:not(:hover):not([aria-selected="true"]) { /* Fix first option being highlighted for some reason */
+  background-color: unset;
+  color: var(--interactive-normal);
+}
+
+.topaz-editor > [role="tablist"] > * > input {
   flex-grow: 1;
   text-align: left;
 }

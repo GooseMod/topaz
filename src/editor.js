@@ -16,6 +16,9 @@ const forceWrap = (comp, key) => class extends React.PureComponent {
   }
 };
 
+const SwitchItem = forceWrap(goosemod.webpackModules.findByDisplayName('SwitchItem'), 'value');
+const SingleSelect = forceWrap(goosemod.webpackModules.findByProps('SingleSelect').SingleSelect, 'value');
+
 const debounce = (handler, timeout) => {
   let timer;
   return (...args) => {
@@ -103,7 +106,7 @@ const selections = {};
 
 let ignoreNextSelect = false;
 return function Editor(props) {
-  let { files, defaultFile, plugin, toggled } = props;
+  let { files, defaultFile, plugin, toggled, fileIcons } = props;
   defaultFile = defaultFile ?? Object.keys(files)[0] ?? '';
 
   const loadPreviousSelection = (file) => {
@@ -147,6 +150,48 @@ return function Editor(props) {
 
   const openExt = openFile.split('.').pop();
 
+  const langToImg = (lang, size = 24) => {
+    let img, props = {};
+
+    switch (lang) {
+      case 'js':
+        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/javascript.svg';
+        break;
+
+      case 'jsx':
+        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/react.svg';
+        props.style = { filter: 'hue-rotate(220deg) brightness(1.5)' }; // HS yellow
+        break;
+
+      case 'ts':
+        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/typescript.svg';
+        break;
+
+      case 'tsx':
+        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/react.svg';
+        props.style = { filter: 'hue-rotate(20deg) brightness(1.5)' }; // TS blue
+        break;
+
+      case 'css':
+        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/css.svg';
+        break;
+
+      case 'scss':
+        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/sass.svg';
+        break;
+    }
+
+    return React.createElement('img', {
+      src: img,
+      ...props,
+
+      width: size,
+      height: size
+    });
+  };
+
+  console.log('render', files, defaultFile, openFile, files[openFile] === undefined, openExt);
+
   return React.createElement('div', {
     className: 'topaz-editor'
   },
@@ -173,13 +218,40 @@ return function Editor(props) {
         id: x,
         className: TabBarClasses2.item
       },
+        !fileIcons ? null : React.createElement(SingleSelect, {
+          onChange: y => {
+            const newFile = x.split('.').slice(0, -1).join('.') + '.' + y;
+
+            props.onRename?.(x, newFile);
+            if (openFile === x) {
+              setOpenFile(newFile);
+              forceUpdate(); // sorry :)
+              setImmediate(() => document.querySelector('#inptab-' + newFile.replace(/[^A-Za-z0-9]/g, '_')).parentElement.click());
+            }
+          },
+          options: [ 'css', 'scss', '-', 'js', 'jsx', '-', 'ts', 'tsx' ].map(y => ({
+            label: y,
+            value: y
+          })),
+          value: x.split('.').pop() ?? 'css',
+
+          popoutClassName: 'topaz-file-popout',
+
+          renderOptionValue: ([ { value } ]) => langToImg(value, 24),
+          renderOptionLabel: ({ value }) => value === '-' ? '' : React.createElement(React.Fragment, {},
+            langToImg(value, 24),
+
+            value.toUpperCase()
+          )
+        }),
+
         React.createElement('input', {
           type: 'text',
           autocomplete: 'off',
           spellcheck: 'false',
           autocorrect: 'off',
 
-          value: x,
+          value: fileIcons ? x.split('.').slice(0, -1).join('.') : x,
           id: 'inptab-' + x.replace(/[^A-Za-z0-9]/g, '_'),
 
           style: {
@@ -187,7 +259,8 @@ return function Editor(props) {
           },
 
           onChange: (e) => {
-            const val = e.target.value;
+            let val = e.target.value;
+            if (fileIcons) val += '.' + x.split('.').pop();
 
             if (!document.querySelector('.topaz-snippets')) document.querySelector('#inptab-' + x.replace(/[^A-Za-z0-9]/g, '_')).style.width = (val.length * 0.8) + 'ch';
 
@@ -230,13 +303,13 @@ return function Editor(props) {
         icon: goosemod.webpackModules.findByDisplayName('PlusAlt'),
         tooltipText: 'New',
         onClick: () => {
-          const name = '';
+          const name = fileIcons ? '.css' : '';
 
           files[name] = '';
           if (openFile === name) forceUpdate();
             else setOpenFile(name);
 
-          setTimeout(() => document.querySelector('#inptab-').focus(), 100);
+          setTimeout(() => document.querySelector('#inptab-' + name.replace(/[^A-Za-z0-9]/g, '_')).focus(), 100);
 
           props.onNew?.(name);
         }
@@ -256,12 +329,6 @@ return function Editor(props) {
           const Flex = goosemod.webpackModules.findByDisplayName('Flex');
 
           const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
-          const _SingleSelect = goosemod.webpackModules.findByProps('SingleSelect').SingleSelect;
-
-          const _SwitchItem = goosemod.webpackModules.findByDisplayName('SwitchItem');
-
-          const SwitchItem = forceWrap(_SwitchItem, 'value');
-          const SingleSelect = forceWrap(_SingleSelect, 'value');
 
           const titleCase = (str) => str.split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
