@@ -78,7 +78,7 @@ VApi = {
   Patcher,
 
   Logger: {
-
+    log: (name, ...msg) => console.log(name, ...msg)
   },
 
   VelocityElements: {
