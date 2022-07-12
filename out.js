@@ -2674,12 +2674,17 @@ BdApi = {
   'betterdiscord/libs/zeres': `let ZeresPluginLibrary, ZLibrary;
 
 (() => {
+const listeners = {};
+
 const WebpackModules = {
   getByProps: goosemod.webpackModules.findByProps,
   getAllByProps: goosemod.webpackModules.findByPropsAll,
   getByDisplayName: goosemod.webpackModules.findByDisplayName,
   getModule: goosemod.webpackModules.find,
   getModules: goosemod.webpackModules.findAll,
+  getByIndex: goosemod.webpackModules.findByModuleId,
+  getByPrototypes: protos => goosemod.webpackModules.find(x => protos.every(y => x.prototype.hasOwnProperty(y))),
+  getAllByPrototypes: protos => goosemod.webpackModules.findAll(x => protos.every(y => x.prototype.hasOwnProperty(y))),
 
   find: (filter, first = true) => goosemod.webpackModules[first ? 'find' : 'findAll'](filter),
   findAll: goosemod.webpackModules.findAll,
@@ -2687,13 +2692,19 @@ const WebpackModules = {
   findByDisplayName: goosemod.webpackModules.findByDisplayName,
 
   addListener: (listener) => { // painful jank way of not doing listener
+    const id = Math.random().toString().slice(2);
     const int = setInterval(() => {
       for (const m of goosemod.webpackModules.all()) {
         if (m) listener(m);
       }
     }, 5000);
 
-    return () => clearInterval(int);
+    listener._listenerId = id;
+    return listeners[id] = () => clearInterval(int);
+  },
+
+  removeListener: (listener) => {
+    listeners[listener._listenerId]?.();
   }
 };
 
@@ -4458,7 +4469,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     }
 
     let indexCode;
-    if (isGitHub && !indexFile && (!mod || mod === 'bd') && !info.endsWith('.js')) {
+    if (isGitHub && !indexFile && (!mod || mod === 'bd' || mod === 'pc') && !info.endsWith('.js')) {
       isTheme = true;
       let skipTransform = false;
 

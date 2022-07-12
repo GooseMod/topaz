@@ -517,7 +517,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     }
 
     let indexCode;
-    if (isGitHub && !indexFile && (!mod || mod === 'bd') && !info.endsWith('.js')) {
+    if (isGitHub && !indexFile && (!mod || mod === 'bd' || mod === 'pc') && !info.endsWith('.js')) {
       isTheme = true;
       let skipTransform = false;
 
