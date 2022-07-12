@@ -1,6 +1,6 @@
 module.exports = {
   clipboard: {
-    writeText: (text) => goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy').copy(text),
+    writeText: (text) => goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy')['copy'](text),
     readText: () => window.DiscordNative ? DiscordNative.clipboard.read() : 'clipboard' // await navigator.clipboard.readText()
   },
 
