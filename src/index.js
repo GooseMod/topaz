@@ -462,7 +462,7 @@ const install = async (info, settings = undefined, disabled = false) => {
   }
 
   if (info.includes('/Condom/')) {
-    info += (info.endsWith('/') ? '' : '/') + 'plugin.js';
+    if (!info.endsWith('/plugin.js')) info += (info.endsWith('/') ? '' : '/') + 'plugin.js';
     mod = 'cc';
   }
 
@@ -517,7 +517,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     }
 
     let indexCode;
-    if (isGitHub && !indexFile && (!mod || mod === 'bd' || mod === 'pc') && !info.endsWith('.js')) {
+    if (isGitHub && !indexFile && (!mod || mod === 'bd' || (mod === 'pc' && (await resolveFileFromTree('powercord_manifest.json')))) && !info.endsWith('.js')) {
       isTheme = true;
       let skipTransform = false;
 
@@ -770,7 +770,7 @@ const install = async (info, settings = undefined, disabled = false) => {
         plugin._topaz_start = () => plugin.onStart();
         plugin._topaz_stop = () => plugin.onStop();
 
-        const SettingComps = eval(`module = { exports: {} };\n` + builtins['powercord/components/settings'] + `\nmodule.exports`);
+        const SettingComps = eval(`const module = { exports: {} };\n` + builtins['powercord/components/settings'] + `\nmodule.exports`);
         const saveVelSettings = (save = true) => {
           plugin.settings.store = { ...plugin.settings };
           delete plugin.settings.store.store;
