@@ -4466,7 +4466,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     }
 
     let indexCode;
-    if (isGitHub && !indexFile && (!mod || mod === 'bd' || (mod === 'pc' && (await resolveFileFromTree('powercord_manifest.json')))) && !info.endsWith('.js')) {
+    if (!indexFile && (!mod || mod === 'bd' || (mod === 'pc' && (await resolveFileFromTree('powercord_manifest.json')))) && !info.endsWith('.js')) {
       isTheme = true;
       let skipTransform = false;
 
