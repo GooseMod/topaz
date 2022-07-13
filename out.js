@@ -1085,6 +1085,25 @@ const patchAppend = (which) => { // sorry
 patchAppend('body');
 patchAppend('head');
 
+let orig; // hack for mods who load their own monaco and use Node and stuff
+if (window.monaco && !window.monaco_react) {
+  const toBlock = [ 'global', 'require', 'module', 'process', 'nodeRequire'];
+
+  orig = {};
+  for (const x of toBlock) {
+    orig[x] = window[x];
+    window[x] = undefined;
+  }
+
+  window.monaco = undefined;
+  window.monaco_editor = undefined;
+  window.monaco_loader = undefined;
+  window.MonacoEnvironment = undefined;
+  window.AMDLoader = undefined;
+  window._amdLoaderGlobal = undefined;
+  window.define = undefined;
+}
+
 if (!window.monaco) { // only load once, or errors
   // monaco loader and react dependencies
   await imp('https://unpkg.com/prop-types@15.7.2/prop-types.js');
@@ -1092,6 +1111,8 @@ if (!window.monaco) { // only load once, or errors
 
   await imp('https://unpkg.com/@monaco-editor/loader@1.3.2/lib/umd/monaco-loader.min.js'); // monaco loader
   await imp('https://unpkg.com/@monaco-editor/react@4.4.5/lib/umd/monaco-react.min.js'); // monaco react
+
+  if (orig) setTimeout(() => Object.keys(orig).forEach(x => window[x] = orig[x]), 3000);
 }
 
 
@@ -1131,7 +1152,7 @@ const setTheme = async (x) => {
   monaco.editor.setTheme(x);
   editorSettings.theme = x;
 };
-setTimeout(() => setTheme(editorSettings.theme), 100);
+setTimeout(() => setTheme(editorSettings.theme), 500);
 
 const focus_enlarge = () => document.body.classList.add('topaz-editor-focus');
 const focus_revert = () => document.body.classList.remove('topaz-editor-focus');
@@ -1155,7 +1176,7 @@ return function Editor(props) {
       } else ref.revealLine(0);
 
       ref.focus();
-    }, editorRef.current ? 20 : 200);
+    }, editorRef.current ? 20 : 500);
   };
 
   const editorRef = React.useRef(null);
