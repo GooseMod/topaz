@@ -33,8 +33,8 @@ const includeImports = async (root, code, updateProgress) => {
   }
 
   // remove comments
-  code = code.replaceAll(/\/\*[\s\S]*?\*\//gm, '').replaceAll('/*', '').replaceAll('*/', '');
   code = code.replaceAll(/[^:]\/\/.*$/gm, '');
+  code = code.replaceAll(/\/\*[\s\S]*?\*\//gm, '').replaceAll('/*', '').replaceAll('*/', '');
 
 
   const res = await replaceAsync(code, /@(import|use|forward) (url\()?['"](.*?)['"]\)?;?/g, async (_, _1, _2, path) => {
