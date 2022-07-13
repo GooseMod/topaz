@@ -56,9 +56,6 @@ class FormItem extends React.PureComponent {
 module.exports = {
   SwitchItem: class SwitchItemContainer extends React.PureComponent {
     render() {
-      const title = this.props.children;
-      delete this.props.children;
-
       return React.createElement(OriginalSwitchItem, {
         ...this.props,
         onChange: (e) => {
@@ -67,7 +64,7 @@ module.exports = {
           this.props.value = e;
           this.forceUpdate();
         }
-      }, title);
+      }, this.props.children);
     }
   },
 
@@ -132,17 +129,20 @@ module.exports = {
 
   RadioGroup: class RadioGroup extends React.PureComponent {
     render() {
-      const title = this.props.children;
-      delete this.props.children;
-
       return React.createElement(FormItem, {
-          title,
+          title: this.props.children,
           note: this.props.note,
           required: this.props.required
         },
 
         React.createElement(OriginalRadioGroup, {
-          ...this.props
+          ...this.props,
+          onChange: (e) => {
+            this.props.onChange(e);
+
+            this.props.value = e.value;
+            this.forceUpdate();
+          }
         })
       );
     }
@@ -150,11 +150,8 @@ module.exports = {
 
   ButtonItem: class ButtonItem extends React.PureComponent {
     render() {
-      const title = this.props.children;
-      delete this.props.children;
-
       return React.createElement(FormItem, {
-        title
+        title: this.props.children
       },
         this.props.note && React.createElement(OriginalFormText, { // note here so it's before button
           className: FormClasses.description
