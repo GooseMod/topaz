@@ -123,11 +123,11 @@
   background: var(--background-modifier-hover);
 }
 
-#app-mount .root-g14mjS {
+#app-mount .root-g14mjS:not([class^="carousel"]) {
   background: var(--background-primary);
 }
 
-#app-mount .root-g14mjS .separator-2lLxgC {
+#app-mount .root-g14mjS:not([class^="carousel"]) .separator-2lLxgC {
   box-shadow: unset;
   -webkit-box-shadow: unset;
   border-bottom: thin solid var(--background-modifier-accent);
