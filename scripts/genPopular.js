@@ -50,6 +50,7 @@ const pc = {
     'Captain8771/raw',
     'SammCheese/AFK-on-exit',
     'SammCheese/Do-Not-Slowmode-Me',
+    'Juby210/game-activity-toggle',
   ],
 
   themes: [
@@ -84,7 +85,9 @@ const bd = {
     'https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.js',
     'https://github.com/Puv1s/ColorTooltips/blob/main/ColorTooltips.plugin.js',
     'https://github.com/Farcrada/DiscordPlugins/blob/master/Double-click-to-edit/DoubleClickToEdit.plugin.js',
-    'https://github.com/Strencher/BetterDiscordStuff/blob/master/PlatformIndicators/APlatformIndicators.plugin.js'
+    'https://github.com/Strencher/BetterDiscordStuff/blob/master/PlatformIndicators/APlatformIndicators.plugin.js',
+    'https://github.com/Neodymium7/BetterDiscordStuff/blob/main/VoiceActivity/VoiceActivity.plugin.js',
+    'https://raw.githubusercontent.com/NomadNaomie/BD-Tone-Indicators/main/ToneIndicator.plugin.js',
   ]
 };
 
