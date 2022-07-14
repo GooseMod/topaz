@@ -81,7 +81,10 @@ const transformCSS = async (root, code, skipTransform = false, updateProgress = 
   }
 
   let newCode = await includeImports(root, code, updateProgress);
-  newCode = newCode.replaceAll(/\[.*?\]/g, (_) => _.replaceAll('/', '\\/')); // grass bad, it errors when \'s are in attr selectors
+
+  // hacks for grass bugs / missing support
+  newCode = newCode.replaceAll(/\[.*?\]/g, _ => _.replaceAll('/', '\\/')); // errors when \'s are in attr selectors
+  newCode = newCode.replaceAll(/rgb\(([0-9]+) ([0-9]+) ([0-9]+) \/ ([0-9]+)%\)/g, (_, r, g, b, a) => `rgba(${r}, ${g}, ${b}, 0.${a})`); // rgb(0 0 0 / 20%) -> rgba(0, 0, 0, 0.20)
 
   if (updateProgress) updatePending(null, 'Transforming...');
 
@@ -424,7 +427,7 @@ const resolveFileFromTree = async (path) => {
   let res;
 
   if (path === dirRes) { // just require(dir)
-    res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/index'))?.path;
+    res = tree.find((x) => x.type === 'blob' && (x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/index') || x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/_index')))?.path;
     if (!res) {
       res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/package.json'))?.path;
       if (res) {
@@ -534,11 +537,12 @@ const install = async (info, settings = undefined, disabled = false) => {
 
           manifest = await (await fetch(join(root, './powercord_manifest.json'))).json();
 
-          indexCode = await getCode(root, './' + manifest.theme);
-          root = getDir(join(root, './' + manifest.theme));
-          skipTransform = manifest.theme.endsWith('.css');
+          const main = manifest.theme.replace(/^\.?\//, '');
+          indexCode = await getCode(root, './' + main);
+          root = getDir(join(root, './' + main));
+          skipTransform = main.endsWith('.css');
 
-          const subdir = getDir(manifest.theme);
+          const subdir = getDir(main);
           if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
 
           break;

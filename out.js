@@ -1085,16 +1085,20 @@ const patchAppend = (which) => { // sorry
 patchAppend('body');
 patchAppend('head');
 
-let orig; // hack for mods who load their own monaco and use Node and stuff
-if (window.monaco && !window.monaco_react) {
+// hack for mods who load their own monaco and use Node and stuff
+if (!window.monaco_react && typeof require !== 'undefined') {
   const toBlock = [ 'global', 'require', 'module', 'process', 'nodeRequire'];
 
-  orig = {};
+  const orig = {};
   for (const x of toBlock) {
     orig[x] = window[x];
     window[x] = undefined;
   }
 
+  setTimeout(() => Object.keys(orig).forEach(x => window[x] = orig[x]), 5000);
+}
+
+if (window.monaco && !window.monaco_react) {
   window.monaco = undefined;
   window.monaco_editor = undefined;
   window.monaco_loader = undefined;
@@ -1111,8 +1115,6 @@ if (!window.monaco) { // only load once, or errors
 
   await imp('https://unpkg.com/@monaco-editor/loader@1.3.2/lib/umd/monaco-loader.min.js'); // monaco loader
   await imp('https://unpkg.com/@monaco-editor/react@4.4.5/lib/umd/monaco-react.min.js'); // monaco react
-
-  if (orig) setTimeout(() => Object.keys(orig).forEach(x => window[x] = orig[x]), 3000);
 }
 
 
@@ -1552,7 +1554,10 @@ const transformCSS = async (root, code, skipTransform = false, updateProgress = 
   }
 
   let newCode = await includeImports(root, code, updateProgress);
-  newCode = newCode.replaceAll(/\[.*?\]/g, (_) => _.replaceAll('/', '\\/')); // grass bad, it errors when \'s are in attr selectors
+
+  // hacks for grass bugs / missing support
+  newCode = newCode.replaceAll(/\[.*?\]/g, _ => _.replaceAll('/', '\\/')); // errors when \'s are in attr selectors
+  newCode = newCode.replaceAll(/rgb\(([0-9]+) ([0-9]+) ([0-9]+) \/ ([0-9]+)%\)/g, (_, r, g, b, a) => `rgba(${r}, ${g}, ${b}, 0.${a})`); // rgb(0 0 0 / 20%) -> rgba(0, 0, 0, 0.20)
 
   if (updateProgress) updatePending(null, 'Transforming...');
 
@@ -1777,7 +1782,17 @@ module.exports = {
       return React.createElement('div', {
         className: \`\${styles[style] ? \`fa\${styles[style]}\` : 'fas'} fa-fw fa-\${props.icon.replace(\`-\${style}\`, '')} \${props.className}\`.trim()
       });
-    })
+    }),
+
+    Pin: React.memo(props => React.createElement('svg', {
+      viewBox: "0 0 24 24",
+      ...props
+    },
+      React.createElement('path', {
+        fill: 'currentColor',
+        d: 'M19 3H5V5H7V12H5V14H11V22H13V14H19V12H17V5H19V3Z'
+      })
+    ))
   },
 
 
@@ -4394,7 +4409,7 @@ const resolveFileFromTree = async (path) => {
   let res;
 
   if (path === dirRes) { // just require(dir)
-    res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/index'))?.path;
+    res = tree.find((x) => x.type === 'blob' && (x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/index') || x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/_index')))?.path;
     if (!res) {
       res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/package.json'))?.path;
       if (res) {
@@ -4504,11 +4519,12 @@ const install = async (info, settings = undefined, disabled = false) => {
 
           manifest = await (await fetch(join(root, './powercord_manifest.json'))).json();
 
-          indexCode = await getCode(root, './' + manifest.theme);
-          root = getDir(join(root, './' + manifest.theme));
-          skipTransform = manifest.theme.endsWith('.css');
+          const main = manifest.theme.replace(/^\.?\//, '');
+          indexCode = await getCode(root, './' + main);
+          root = getDir(join(root, './' + main));
+          skipTransform = main.endsWith('.css');
 
-          const subdir = getDir(manifest.theme);
+          const subdir = getDir(main);
           if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
 
           break;
@@ -6128,11 +6144,11 @@ cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
   background: var(--background-modifier-hover);
 }
 
-#app-mount .root-g14mjS {
+#app-mount .root-g14mjS:not([class^="carousel"]) {
   background: var(--background-primary);
 }
 
-#app-mount .root-g14mjS .separator-2lLxgC {
+#app-mount .root-g14mjS:not([class^="carousel"]) .separator-2lLxgC {
   box-shadow: unset;
   -webkit-box-shadow: unset;
   border-bottom: thin solid var(--background-modifier-accent);

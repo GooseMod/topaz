@@ -37,7 +37,17 @@ module.exports = {
       return React.createElement('div', {
         className: `${styles[style] ? `fa${styles[style]}` : 'fas'} fa-fw fa-${props.icon.replace(`-${style}`, '')} ${props.className}`.trim()
       });
-    })
+    }),
+
+    Pin: React.memo(props => React.createElement('svg', {
+      viewBox: "0 0 24 24",
+      ...props
+    },
+      React.createElement('path', {
+        fill: 'currentColor',
+        d: 'M19 3H5V5H7V12H5V14H11V22H13V14H19V12H17V5H19V3Z'
+      })
+    ))
   },
 
 
