@@ -5909,7 +5909,7 @@ class Settings extends React.PureComponent {
       }, 'Topaz',
         React.createElement('span', {
           className: 'description-30xx7u topaz-version'
-        }, 'alpha 5'),
+        }, 'alpha 6'),
 
         React.createElement(HeaderBarContainer.Divider),
 
