@@ -80,15 +80,23 @@ const transformCSS = async (root, code, skipTransform = false, updateProgress = 
     fetchProgressTotal = 0;
   }
 
+  if (updateProgress) updatePending(null, 'Importing...');
+
   let newCode = await includeImports(root, code, updateProgress);
+
+  if (updateProgress) updatePending(null, 'Transforming...');
 
   // hacks for grass bugs / missing support
   newCode = newCode.replaceAll(/\[.*?\]/g, _ => _.replaceAll('/', '\\/')); // errors when \'s are in attr selectors
   newCode = newCode.replaceAll(/rgb\(([0-9]+) ([0-9]+) ([0-9]+) \/ ([0-9]+)%\)/g, (_, r, g, b, a) => `rgba(${r}, ${g}, ${b}, 0.${a})`); // rgb(0 0 0 / 20%) -> rgba(0, 0, 0, 0.20)
 
-  if (updateProgress) updatePending(null, 'Transforming...');
+  // temporarily rename css built-ins
+  const builtins = [ 'hsla', 'hsl', 'rgb', 'rgba' ];
+  for (const x of builtins) newCode = newCode.replaceAll(x, '_' + x);
 
   if (!skipTransform) newCode = grass(newCode, { style: '', quiet: true, load_paths: [''] });
+
+  for (const x of builtins) newCode = newCode.replaceAll('_' + x, x);
 
   return newCode;
 };
