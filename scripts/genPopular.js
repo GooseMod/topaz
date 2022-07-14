@@ -66,6 +66,20 @@ const pc = {
     'LuckFire/amoled-cord',
     'discord-extensions/essence',
     'slowstab/dracula',
+    'CelestialReaver/Synthwave84',
+    'NatesWorld-Projects/Native',
+    'SlippingGitty/surCord',
+    'kawaiizenbo/OptimalTheme',
+    'qube-03/minimaless',
+    'DiscordStyles/Fluent',
+    'CreArts-Community/Mention-Links',
+    'Slddev/SpotiCord',
+    'stickfab/pc-fluenticons',
+    'Captain8771-themes/oneshot-bg',
+    'DavidNyan10/GoogleMaterialIcons',
+    'discord-extensions/bubble-bar',
+    'orblazer/discord-nordic',
+    'CreArts-Community/Settings-Icons',
   ]
 };
 
