@@ -55,13 +55,16 @@ const pc = {
   themes: [
     'leeprky/MaterialYouTheme',
     'eternal404/dark-discord',
-    'NYRI4/Comfy',
+    'Comfy-Themes/Discord',
     'DiscordStyles/Slate@deploy',
     'DiscordStyles/HorizontalServerList',
     'DiscordStyles/RadialStatus@deploy',
     'Lavender-Discord/Lavender',
     'CapnKitten/Material-Discord',
     'catppuccin/discord',
+    'LuckFire/amoled-cord',
+    'discord-extensions/essence',
+    'slowstab/dracula',
   ]
 };
 
