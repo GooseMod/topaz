@@ -3185,7 +3185,7 @@ const api = {
     return [
       class Plugin {
         constructor() {
-          if (this.defaultSettings) {
+          if (config.defaultConfig) {
             this.defaultSettings = config.defaultConfig.reduce((acc, x) => {
               if (x.type === 'category') {
                 acc[x.id] = {};
