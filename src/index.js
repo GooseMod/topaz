@@ -477,7 +477,7 @@ const resolveFileFromTree = async (path) => {
     }
   } else res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
 
-  if (path.startsWith('powercord/') && !builtins[path]) {
+  if (!builtins[path] && (path.startsWith('powercord/') || path.startsWith('@'))) {
     console.warn('Missing builtin', path);
     lastError = `Missing builtin: ${path}`;
   } else if (!res && !builtins[path]) {
