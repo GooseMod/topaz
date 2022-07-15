@@ -80,6 +80,11 @@ const pc = {
     'discord-extensions/bubble-bar',
     'orblazer/discord-nordic',
     'CreArts-Community/Settings-Icons',
+    'solonovamax/ServerColumns-PowercordFix',
+    'DiscordStyles/SoftX@deploy',
+    'PhoenixColors/phoenix-discord',
+    'CreArts-Community/Friends-Grid',
+    'Dedsd/DarkBlue-Ice-for-customdiscord',
   ]
 };
 
