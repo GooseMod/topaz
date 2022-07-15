@@ -119,6 +119,8 @@ const gm = {
     'GooseMod-Modules/StatusInAuthor',
     'GooseMod-Modules/UsernameInAuthor',
     'GooseMod-Modules/User-Backgrounds',
+    'https://github.com/GooseMod/MS2Porter/tree/main/modules/devMode',
+    'https://github.com/GooseMod/MS2Porter/tree/main/modules/discordDebug',
   ]
 };
 
@@ -161,6 +163,9 @@ const cc = {
     'https://github.com/yellowsink/cc-plugins/tree/master/plugins/svg-embeds',
     'https://cumcordplugins.github.io/Condom/cc.c7.pm/Greentext',
     'https://cumcordplugins.github.io/Condom/cc.c7.pm/MessageLogger',
+    'https://cumcordplugins.github.io/Condom/cc.c7.pm/MessageLinkPreview/',
+    'https://cumcordplugins.github.io/Condom/cc.c7.pm/ChannelTypingIndicator/',
+    'https://cumcordplugins.github.io/Condom/cc.c7.pm/RoleColoredMessages/',
   ]
 };
 
@@ -234,6 +239,7 @@ const getManifest_gm = async (place, theme) => { // just repo or url
 
   const manifest = await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
 
+  if (typeof manifest.authors === 'string') manifest.authors = [ manifest.authors.split(' (')[0] ];
   manifest.author = (await Promise.all(manifest.authors.map(async x => x.length === 18 ? (await getDiscordUser(x)).username : x))).join(', ');
 
   return manifest;
