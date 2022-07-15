@@ -945,6 +945,7 @@ let transformRoot;
 const transform = async (path, code, mod) => {
   fetchProgressCurrent = 0;
   fetchProgressTotal = 0;
+  lastError = '';
 
   transformRoot = path.split('/').slice(0, -1).join('/');
 
