@@ -3846,17 +3846,33 @@ cumcord = {
     webpack: {
       ...goosemod.webpackModules,
 
-      findByDisplayName: (name, useDefault = true) => goosemod.webpackModules.find(x => x.displayName === name || x.default.displayName === name, useDefault)
+      findByDisplayName: (name, useDefault = true) => goosemod.webpackModules.find(x => x.displayName === name || x.default.displayName === name, useDefault),
+
+      batchFind: (handler) => {
+        const mods = [];
+        handler(Object.keys(cumcord.modules.webpack).reduce((acc, x) => {
+          acc[x] = (...args) => {
+            const ret = cumcord.modules.webpack[x](...args);
+            mods.push(ret);
+          };
+
+          return acc;
+        }, {}));
+
+        return mods;
+      },
     },
 
     common: {
       ...goosemod.webpackModules.common
-    }
+    },
   },
 
   utils: {
     ...goosemod.reactUtils
-  }
+  },
+
+  pluginData: { persist: { ghost: {} } }
 };
 
 cumcord.modules.webpackModules = cumcord.modules.webpack;
@@ -4690,7 +4706,7 @@ const install = async (info, settings = undefined, disabled = false) => {
       case 'vel':
       case 'gm':
       case 'cc':
-        if (mod === 'cc' && typeof PluginClass === 'function') PluginClass = PluginClass({});
+        if (mod === 'cc' && typeof PluginClass === 'function') PluginClass = PluginClass({ persist: { ghost: {} } });
 
         plugin = PluginClass;
         if (mod === 'vel') plugin = plugin.Plugin;
