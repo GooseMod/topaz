@@ -595,6 +595,7 @@ const install = async (info, settings = undefined, disabled = false) => {
         case 'gm':
           manifest = await (await fetch(join(root, './goosemodModule.json'))).json();
 
+          if (typeof manifest.authors === 'string') manifest.authors = [ manifest.authors.split(' (')[0] ];
           manifest.author = (await Promise.all(manifest.authors.map(x => x.length === 18 ? goosemod.webpackModules.findByProps('getUser', 'fetchCurrentUser').getUser(x) : x))).join(', ');
           break;
 
