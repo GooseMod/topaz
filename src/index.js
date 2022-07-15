@@ -476,6 +476,8 @@ const install = async (info, settings = undefined, disabled = false) => {
 
   if (info.includes('/Condom/')) {
     if (!info.endsWith('/plugin.js')) info += (info.endsWith('/') ? '' : '/') + 'plugin.js';
+    if (info.startsWith('https://github.com/')) info = info.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', '');
+
     mod = 'cc';
   }
 
