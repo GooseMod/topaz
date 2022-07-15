@@ -85,6 +85,8 @@ const pc = {
     'PhoenixColors/phoenix-discord',
     'CreArts-Community/Friends-Grid',
     'Dedsd/DarkBlue-Ice-for-customdiscord',
+    'CreArts-Community/Context-Icons',
+    'CreArts-Community/CreArts-Discord',
   ]
 };
 
