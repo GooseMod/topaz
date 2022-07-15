@@ -680,6 +680,8 @@ const install = async (info, settings = undefined, disabled = false) => {
       case 'vel':
       case 'gm':
       case 'cc':
+        if (mod === 'cc' && typeof PluginClass === 'function') PluginClass = PluginClass({});
+
         plugin = PluginClass;
         if (mod === 'vel') plugin = plugin.Plugin;
         break;
