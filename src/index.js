@@ -283,6 +283,9 @@ const makeChunk = async (root, p) => {
 
   let code = await getCode(transformRoot, finalPath, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
   // if (!builtins[p]) code = await includeRequires(join(transformRoot, finalPath), code);
+
+  if (finalPath.endsWith('sx') && !code.match(/^import .*React[^D].*$/gm)) code = `import React from 'react';\n${code}`; // auto-import react for jsx if not imported
+
   code = await includeRequires(join(transformRoot, finalPath), code);
   const id = genId(resPath);
 
@@ -939,7 +942,10 @@ const transform = async (path, code, mod) => {
 
   transformRoot = path.split('/').slice(0, -1).join('/');
 
-  const indexCode = await includeRequires(path, code);
+  if (path.endsWith('sx') && !code.match(/^import .*React[^D].*$/gm)) code = `import React from 'react';\n${code}`; // auto-import react for jsx if not imported
+
+  let indexCode = await includeRequires(path, code);
+
   /* code = Object.values(chunks).join('\n\n') + `\n// MAP_START|${'.' + path.replace(transformRoot, '')}
 ${code}
 // MAP_END`; */
