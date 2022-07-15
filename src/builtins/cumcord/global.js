@@ -62,7 +62,8 @@ cumcord = {
     },
 
     common: {
-      ...goosemod.webpackModules.common
+      ...goosemod.webpackModules.common,
+      i18n: goosemod.webpackModules.findByPropsAll('Messages')[1]
     },
   },
 
