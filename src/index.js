@@ -284,7 +284,7 @@ const makeChunk = async (root, p) => {
     code = `module.exports = () => {
       const el = document.createElement('style');
 
-      el.textContent = document.createTextNode(\`${(await transformCSS(join(root, finalPath), code)).replaceAll('`', '\\`').replaceAll('\\', '\\\\')}\`);
+      el.textContent = document.createTextNode(\`${code.replaceAll('`', '\\`').replaceAll('\\', '\\\\')}\`);
 
       document.head.appendChild(el);
 
