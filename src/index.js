@@ -351,12 +351,12 @@ ${(await Promise.all(files.map(async x => {
     return chunkId;
   });
 
-  code = await replaceAsync(code, /import (.*) from ['"`](.*)['"`]/g, async (_, what, where) => {
+  code = await replaceAsync(code, /import (.*) from ['"`](.*?)['"`]/g, async (_, what, where) => {
     // console.log('within replace', join(root, p), chunks);
     const [ chunkId, code ] = await makeChunk(root, where);
     if (!chunks[chunkId]) chunks[chunkId] = code;
 
-    return `const ${what.replace('* as ', '')} = ${chunkId}`;
+    return `const ${what.replace('* as ', '').replaceAll(' as ', ':')} = ${chunkId}`;
   });
 
   code = await replaceAsync(code, /this\.loadStylesheet\(['"`](.*?)['"`]\)/g, async (_, p) => {
