@@ -579,7 +579,7 @@ const install = async (info, settings = undefined, disabled = false) => {
           root = getDir(join(root, './' + main));
           skipTransform = main.endsWith('.css');
 
-          const subdir = getDir(main);
+          subdir = getDir(main);
           if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
 
           break;
@@ -643,6 +643,9 @@ const install = async (info, settings = undefined, disabled = false) => {
           indexUrl = join(root, './' + main);
           root = getDir(indexUrl);
 
+          subdir = getDir(main).slice(2);
+          if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
+
           break;
         }
 
@@ -659,6 +662,9 @@ const install = async (info, settings = undefined, disabled = false) => {
             indexFile = './' + main.split('/').pop();
             indexUrl = join(root, main);
             root = getDir(indexUrl);
+
+            subdir = getDir(main).slice(2);
+            if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
 
             break;
           }
