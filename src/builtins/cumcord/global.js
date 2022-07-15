@@ -7,6 +7,25 @@ cumcord = {
     after: (name, parent, handler) => goosemod.patcher.patch(parent, name, handler),
     instead: (name, parent, handler) => goosemod.patcher.patch(parent, name, handler, false, true),
 
+    findAndPatch: (find, handler) => {
+      let unpatch;
+      const tryToFind = () => {
+        const ret = find();
+        if (!ret) return;
+
+        clearInterval(int);
+        unpatch = handler(ret);
+      };
+
+      const int = setInterval(tryToFind, 5000);
+      tryToFind();
+
+      return () => {
+        clearInterval(int);
+        if (unpatch) unpatch();
+      };
+    },
+
     injectCSS: (css) => {
       const el = document.createElement('style');
 
@@ -14,7 +33,7 @@ cumcord = {
 
       document.head.appendChild(el);
 
-      return el;
+      return el.remove;
     }
   },
 
