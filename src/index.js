@@ -635,7 +635,7 @@ const install = async (info, settings = undefined, disabled = false) => {
 
             const main = './' + manifest.file.replace('./', '');
             indexFile = './' + main.split('/').pop();
-            indexUrl = join(root, './' + main);
+            indexUrl = join(root, main);
             root = getDir(indexUrl);
 
             break;
