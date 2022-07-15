@@ -966,7 +966,7 @@ ${replaceLast(indexCode, 'export default', 'module.exports =').replaceAll(/expor
 
   if (mod === 'dr') out = replaceLast(out, 'return class ', 'module.exports = class ');
 
-  console.log({ out });
+  console.log({ pre: out });
 
   updatePending(null, 'Transforming...');
 
@@ -980,6 +980,8 @@ ${replaceLast(indexCode, 'export default', 'module.exports =').replaceAll(/expor
   out = `(function () {
 ${out}
 })();`;
+
+  console.log({ final: out });
 
   return out;
 };
