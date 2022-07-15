@@ -167,7 +167,7 @@ const cc = {
     'https://cumcordplugins.github.io/Condom/cc.c7.pm/ChannelTypingIndicator/',
     'https://cumcordplugins.github.io/Condom/cc.c7.pm/RoleColoredMessages/',
     'https://cumcordplugins.github.io/Condom/cc.c7.pm/TimeBarAllActivities/',
-    'https://cumcordplugins.github.io/Condom/cr3atable.github.io/CumcordPlugins/open-in-app/',
+    'https://github.com/Cr3atable/CumcordPlugins/tree/master/open-in-app',
     'https://cumcordplugins.github.io/Condom/cc.nova-vps.ml/hide-message/',
     'https://cumcordplugins.github.io/Condom/cc.nova-vps.ml/devmode/',
     'https://cumcordplugins.github.io/Condom/cc.nova-vps.ml/hideblockedmessages/',
@@ -177,6 +177,12 @@ const cc = {
     'https://cumcordplugins.github.io/Condom/yellowsink.github.io/cc-plugins/usrbg/',
     'https://cumcordplugins.github.io/Condom/yellowsink.github.io/cc-plugins/show-username/',
     'https://cumcordplugins.github.io/Condom/yellowsink.github.io/cc-plugins/channel-activity/',
+    'https://github.com/E-boi/cumcord-plugins/tree/master/UserVolumeBooster',
+    'https://github.com/E-boi/cumcord-plugins/tree/master/linkchannels',
+    'https://github.com/7ih/ReallyBadPasscodeLockPlugin/tree/master',
+    'https://github.com/E-boi/cumcord-plugins/tree/master/userdetails',
+    // 'https://github.com/E-boi/cumcord-plugins/blob/master/showconnections,
+    'https://github.com/E-boi/cumcord-plugins/tree/master/betterfriendslist',
   ]
 };
 
@@ -318,7 +324,7 @@ const getManifest_cc = async (place, theme) => { // just repo or url
 
   const [ repo, branch ] = place.split('@');
 
-  let manifestUrl = repo + '/' + manifestName;
+  let manifestUrl = repo + (repo.endsWith('/') ? '' : '/') + manifestName;
   if (!place.startsWith('http')) manifestUrl = `https://raw.githubusercontent.com/${repo}/${branch ?? 'HEAD'}/${manifestName}`;
 
   return await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
