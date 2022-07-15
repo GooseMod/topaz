@@ -30,4 +30,6 @@ cumcord = {
     }
   }
 };
+
+cumcord.modules.webpackModules = cumcord.modules.webpack;
 })();

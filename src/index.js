@@ -154,6 +154,8 @@ const builtins = {
   'astra/global': '',
 
   '@cumcord/modules/webpack': `module.exports = cumcord.modules.webpack;`,
+  '@cumcord/modules/webpackModules': `module.exports = cumcord.modules.webpack;`,
+  '@cumcord/modules/common': 'module.exports = goosemod.webpackModules.common;',
   '@cumcord/patcher': `module.exports = cumcord.patcher;`,
   'cumcord/global': await getBuiltin('cumcord/global'),
 
