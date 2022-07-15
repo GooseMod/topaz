@@ -446,6 +446,20 @@ const getManifest_vz = async (place, theme) => { // just repo or url
     themes: (await Promise.all(themes)).reduce((acc, [ k, v ]) => { acc[k] = v; return acc; }, {})
   };
 
+  const mods = [];
+  out.stats = {
+    mods: Object.keys(out.plugins).reduce((acc, x) => {
+      const mod = x.split('%')[0];
+      if (mods.includes(mod)) return acc;
+      mods.push(mod);
+
+      return acc + 1;
+    }, 0),
+
+    plugins: plugins.length,
+    themes: themes.length
+  };
+
   console.log(out);
 
   writeFileSync('popular.json', JSON.stringify(out));
