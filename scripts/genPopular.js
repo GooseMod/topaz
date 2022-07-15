@@ -167,12 +167,16 @@ const cc = {
     'https://cumcordplugins.github.io/Condom/cc.c7.pm/ChannelTypingIndicator/',
     'https://cumcordplugins.github.io/Condom/cc.c7.pm/RoleColoredMessages/',
     'https://cumcordplugins.github.io/Condom/cc.c7.pm/TimeBarAllActivities/',
-    // 'https://cumcordplugins.github.io/Condom/cr3atable.github.io/CumcordPlugins/open-in-app/',
+    'https://cumcordplugins.github.io/Condom/cr3atable.github.io/CumcordPlugins/open-in-app/',
     'https://cumcordplugins.github.io/Condom/cc.nova-vps.ml/hide-message/',
     'https://cumcordplugins.github.io/Condom/cc.nova-vps.ml/devmode/',
     'https://cumcordplugins.github.io/Condom/cc.nova-vps.ml/hideblockedmessages/',
     'https://cumcordplugins.github.io/Condom/cumcord.ruthenic.com/noReplyMention/',
     'https://cumcordplugins.github.io/Condom/cumcord.xirreal.dev/hiddenChannels/',
+    'https://cumcordplugins.github.io/Condom/yellowsink.github.io/cc-plugins/who-reacted/',
+    'https://cumcordplugins.github.io/Condom/yellowsink.github.io/cc-plugins/usrbg/',
+    'https://cumcordplugins.github.io/Condom/yellowsink.github.io/cc-plugins/show-username/',
+    'https://cumcordplugins.github.io/Condom/yellowsink.github.io/cc-plugins/channel-activity/',
   ]
 };
 
