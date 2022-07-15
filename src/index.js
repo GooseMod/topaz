@@ -160,6 +160,7 @@ const builtins = {
   '@cumcord/patcher': `module.exports = cumcord.patcher;`,
   '@cumcord/utils': `module.exports = cumcord.utils;`,
   '@cumcord/pluginData': `module.exports = cumcord.pluginData;`,
+  '@cumcord/pluginData/persist': `module.exports = cumcord.pluginData.persist;`,
   'cumcord/global': await getBuiltin('cumcord/global'),
 
   '@rikka/Common/entities/Plugin': await getBuiltin('rikka/plugin'),
