@@ -20,14 +20,18 @@ cumcord = {
 
   modules: {
     webpack: {
-      findByDisplayName: (name, useDefault = true) => goosemod.webpackModules.find(x => x.displayName === name || x.default.displayName === name, useDefault),
-      findByProps: goosemod.webpackModules.findByProps,
-      find: goosemod.webpackModules.find
+      ...goosemod.webpackModules,
+
+      findByDisplayName: (name, useDefault = true) => goosemod.webpackModules.find(x => x.displayName === name || x.default.displayName === name, useDefault)
     },
 
     common: {
       ...goosemod.webpackModules.common
     }
+  },
+
+  utils: {
+    ...goosemod.reactUtils
   }
 };
 
