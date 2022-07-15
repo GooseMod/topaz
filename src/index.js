@@ -268,6 +268,12 @@ const genId = (p) => `__topaz_${p.replace(transformRoot, '').replaceAll('./', '/
 const makeChunk = async (root, p) => {
   // console.log('makeChunk', p);
 
+  const shouldUpdateFetch = !builtins[p];
+  if (shouldUpdateFetch) {
+    fetchProgressTotal++;
+    updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
+  }
+
   const joined = (root + '/' + p).replace(transformRoot, '');
   const resPath = builtins[p] ? p : resolvePath(joined).slice(1);
   const resolved = await resolveFileFromTree(resPath);
@@ -300,6 +306,11 @@ let ${id} = {};
 ` + code.replace('module.exports =', `${id} =`).replace('export default', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`).replaceAll(/export const (.*?)=/g, (_, key) => `${id}.${key}=`) + `
 })(); // MAP_END`;
 
+  if (shouldUpdateFetch) {
+    fetchProgressCurrent++;
+    updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
+  }
+
   return [ id, chunk ];
 };
 
@@ -315,9 +326,6 @@ async function replaceAsync(str, regex, asyncFn) {
 
 let chunks = {}, tree = [];
 const includeRequires = async (path, code) => {
-  fetchProgressTotal++;
-  updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
-
   const root = getDir(path);
 
   // console.log({ path, root });
@@ -372,9 +380,6 @@ ${(await Promise.all(files.map(async x => {
 
     return `powercord.api.i18n.loadAllStrings({ 'en-US': JSON.parse(\`${english}\`) })`;
   }); */
-
-  fetchProgressCurrent++;
-  updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
 
   return code;
 };
