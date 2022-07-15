@@ -155,8 +155,11 @@ const builtins = {
 
   '@cumcord/modules/webpack': `module.exports = cumcord.modules.webpack;`,
   '@cumcord/modules/webpackModules': `module.exports = cumcord.modules.webpack;`,
-  '@cumcord/modules/common': 'module.exports = goosemod.webpackModules.common;',
+  '@cumcord/modules/common': 'module.exports = cumcord.modules.common;',
+  '@cumcord/modules': 'module.exports = cumcord.modules;',
   '@cumcord/patcher': `module.exports = cumcord.patcher;`,
+  '@cumcord/utils': `module.exports = cumcord.utils;`,
+  '@cumcord/pluginData': `module.exports = cumcord.pluginData;`,
   'cumcord/global': await getBuiltin('cumcord/global'),
 
   '@rikka/Common/entities/Plugin': await getBuiltin('rikka/plugin'),
