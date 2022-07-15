@@ -156,6 +156,7 @@ const builtins = {
   '@cumcord/modules/webpack': `module.exports = cumcord.modules.webpack;`,
   '@cumcord/modules/webpackModules': `module.exports = cumcord.modules.webpack;`,
   '@cumcord/modules/common': 'module.exports = cumcord.modules.common;',
+  '@cumcord/modules/common/i18n': 'module.exports = cumcord.modules.common.i18n;',
   '@cumcord/modules': 'module.exports = cumcord.modules;',
   '@cumcord/patcher': `module.exports = cumcord.patcher;`,
   '@cumcord/utils': `module.exports = cumcord.utils;`,

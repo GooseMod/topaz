@@ -45,6 +45,7 @@ cumcord = {
       ...goosemod.webpackModules,
 
       findByDisplayName: (name, useDefault = true) => goosemod.webpackModules.find(x => x.displayName === name || x.default.displayName === name, useDefault),
+      findByDisplayNameAll: (name, useDefault = true) => goosemod.webpackModules.findAll(x => x.displayName === name || x.default.displayName === name, useDefault),
 
       batchFind: (handler) => {
         const mods = [];
@@ -59,6 +60,19 @@ cumcord = {
 
         return mods;
       },
+
+      findAsync: (find) => new Promise(res => {
+        const tryToFind = () => {
+          const ret = find();
+          if (!ret) return;
+
+          clearInterval(int);
+          res(ret);
+        };
+
+        const int = setInterval(tryToFind, 5000);
+        tryToFind();
+      }),
     },
 
     common: {
