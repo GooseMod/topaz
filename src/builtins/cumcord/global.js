@@ -29,11 +29,14 @@ cumcord = {
     injectCSS: (css) => {
       const el = document.createElement('style');
 
-      el.appendChild(document.createTextNode(css));
+      el.textContent = document.createTextNode(css);
 
       document.head.appendChild(el);
 
-      return el.remove;
+      return (newCss) => {
+        if (newCss === undefined) el.remove();
+          else newCss.textContent = newCss;
+      };
     }
   },
 
