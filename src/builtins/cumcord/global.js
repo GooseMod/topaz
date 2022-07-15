@@ -68,7 +68,9 @@ cumcord = {
   },
 
   utils: {
-    ...goosemod.reactUtils
+    ...goosemod.reactUtils,
+
+    copyText: x => goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy')['copy'](x)
   },
 
   pluginData: { persist: { ghost: {} } }
