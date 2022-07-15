@@ -73,7 +73,7 @@ cumcord = {
     copyText: x => goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy')['copy'](x)
   },
 
-  pluginData: { persist: { ghost: {} } }
+  pluginData: { persist: { ghost: {}, store: {} } }
 };
 
 cumcord.modules.webpackModules = cumcord.modules.webpack;
