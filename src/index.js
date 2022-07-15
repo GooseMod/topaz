@@ -280,6 +280,18 @@ const makeChunk = async (root, p) => {
 
   if (p.endsWith('.json') || code.startsWith('{')) code = 'module.exports = ' + code;
 
+  if (p.endsWith('css')) {
+    code = `module.exports = () => {
+      const el = document.createElement('style');
+
+      el.textContent = document.createTextNode(\`${(await transformCSS(join(root, finalPath), code)).replaceAll('`', '\\`').replaceAll('\\', '\\\\')}\`);
+
+      document.head.appendChild(el);
+
+      return () => el.remove();
+    };`;
+  }
+
   const chunk = `// ${finalPath}
 let ${id} = {};
 (() => { // MAP_START|${finalPath}
