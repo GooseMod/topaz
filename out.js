@@ -1,11 +1,129 @@
 (async () => {
-let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
+const log = (_region, ...args) => {
+  const modColor = '253, 218, 13'; // New blurple
+  const regionColor = '114, 137, 218'; // Old blurple
+
+  const fromStr = (str) => str.replace('rgb(', '').replace(')', '').split(', ');
+  const toStr = ([r, g, b]) => `rgb(${r}, ${g}, ${b})`;
+
+  const light = (str, val) => toStr(fromStr(str).map((x) => x * val));
+
+  const makeRegionStyle = (color) => `background-color: rgb(${color}); color: white; border-radius: 4px; border: 2px solid ${light(color, 0.5)}; padding: 3px 6px 3px 6px; font-weight: bold;`;
+
+  const regions = _region.split('.');
+
+  const regionStrings = regions.map(x => `%c${x}%c`);
+  const regionStyling = regions.reduce((res) => res.concat(makeRegionStyle(regionColor), ''), []);
+
+  console.log(`%ctopaz%c ${regionStrings.join(' ')}`,
+    makeRegionStyle(modColor).replace('white', 'black'),
+    '',
+
+    ...regionStyling,
+
+    ...args
+  );
+};
+
 if (window.topaz) { // live reload handling
   topaz.__reloading = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
 
   // setTimeout(() => updateOpenSettings(), 1000);
 }
+
+window.topaz = { log };
+
+const Storage = await eval(`(async () => {
+const startTime = performance.now();
+const dbReq = indexedDB.open('topaz');
+
+const makeTrans = () => db.transaction([ 'store' ], 'readwrite').objectStore('store');
+
+const debounce = (handler, timeout) => {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => handler(...args), timeout);
+  };
+};
+
+const save = debounce(() => makeTrans().put(store, 'store').onsuccess = e => topaz.log('storage', 'db saved'), 1000);
+
+
+let db;
+const store = await new Promise(res => {
+  dbReq.onerror = e => console.error('topaz failed to open idb db', e);
+  dbReq.onsuccess = e => {
+    db = e.target.result;
+    topaz.log('storage', 'opened db');
+
+    try {
+      makeTrans().get('store').onsuccess = e => {
+        res(e.target.result);
+      };
+    } catch (e) {
+      console.error('failed to read from db', e);
+    }
+  };
+
+  dbReq.onupgradeneeded = e => {
+    topaz.log('storage', 'upgraded db', e);
+
+    db = e.target.result;
+
+    const objectStore = db.createObjectStore('store');
+
+    const store = {};
+
+    topaz.log('storage', 'trying to port local storage -> idb');
+    for (const key of Object.keys(localStorage).filter(x => x.startsWith('topaz_'))) {
+      console.log(key);
+      store[key.slice('topaz_'.length)] = localStorage.getItem(key);
+      localStorage.removeItem(key);
+    }
+
+    objectStore.add(store, 'store');
+
+    topaz.log('storage', 'inited db', store);
+
+    res(store);
+  };
+});
+
+
+const Storage = {
+  set: (key, value) => {
+    store[key] = value;
+    save();
+  },
+
+  get: (key, def) => {
+    return store[key] ?? def;
+  },
+
+  delete: (key) => {
+    delete store[key];
+    save();
+  },
+
+  keys: () => Object.keys(store),
+
+  store
+};
+
+// local storage compat
+Storage.setItem = Storage.set;
+Storage.getItem = Storage.get;
+Storage.deleteItem = Storage.delete;
+
+
+topaz.log('storage', \`loaded \${Object.keys(store).length} keys in \${(performance.now() - startTime).toFixed(2)}ms\`);
+
+return Storage; // eval export
+})(); //# sourceURL=TopazStorage`);
+
+let pluginsToInstall = JSON.parse(Storage.get('plugins') ?? '{}');
 
 const initStartTime = performance.now();
 
@@ -516,6 +634,32 @@ const wasm = wasmInstance.exports;
 
 return str;
 })(); //# sourceURL=Grass`);
+const attrs = eval(`const { findByProps } = goosemod.webpackModules;
+
+const anon = true; // use fake values
+
+const bodyAttrs = {
+  'data-current-user-id': anon ? '006482395269169152' : findByProps('getCurrentUser').getCurrentUser().id
+};
+
+const manager = {
+  add: () => {
+    for (const x in bodyAttrs) {
+      document.body.setAttribute(x, bodyAttrs[x]);
+    }
+  },
+
+  remove: () => {
+    for (const x in bodyAttrs) {
+      document.body.removeAttribute(x);
+    }
+  }
+};
+
+manager.add();
+
+manager`);
+
 const Onyx = eval(`const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) => { acc[x] = obj[x].__sentry_original__ ?? obj[x]; return acc; }, {});
 const makeSourceURL = (name) => \`\${name} | Topaz\`.replace(/ /g, '%20');
 const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
@@ -737,9 +881,8 @@ const permissionsModal = async (manifest, neededPerms) => {
 const Onyx = function (entityID, manifest, transformRoot) {
   const context = {};
 
-  // todo: don't allow localStorage, use custom storage api internally
   // todo: filter elements for personal info?
-  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'performance', 'fetch', 'clearTimeout', 'setImmediate', 'location' ];
+  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'performance', 'fetch', 'clearTimeout', 'setImmediate', 'location' ];
 
   // nullify (delete) all keys in window to start except allowlist
   for (const k of Object.keys(window)) { // for (const k of Reflect.ownKeys(window)) {
@@ -860,7 +1003,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
             Object.keys(resultPerms).forEach(x => delete accessedPermissions[x]);
 
             // save permission allowed/denied
-            const store = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}');
+            const store = JSON.parse(topaz.storage.get('permissions') ?? '{}');
             if (!store[this.entityID]) store[this.entityID] = {};
 
             store[this.entityID] = {
@@ -868,7 +1011,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
               ...resultPerms
             };
 
-            localStorage.setItem('topaz_permissions', JSON.stringify(store));
+            topaz.storage.set('permissions', JSON.stringify(store));
 
             /* if (!given && missingPerm === 'token_read') {
               goosemod.showToast(\`Halting \${this.manifest.name} as it is potentially dangerous and denied token\`, { timeout: 10000, subtext: 'Topaz', type: 'error' });
@@ -897,7 +1040,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
     const hasFlags = keys.some(x => typeof x === 'string' && Object.values(permissions).flat().some(y => x === y.split('@')[0])); // has any keys in it
     return hasFlags ? new Proxy(mod, { // make proxy only if potential
       get: (target, prop, reciever) => {
-        const givenPermissions = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}')[this.entityID] ?? {};
+        const givenPermissions = JSON.parse(topaz.storage.get('permissions') ?? '{}')[this.entityID] ?? {};
         const complexPerms = complexMap.filter(x => x[1] === prop);
 
         if (complexPerms.length !== 0) {
@@ -905,7 +1048,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
             get: (sTarget, sProp, sReciever) => {
               if (shouldPermitViaStack()) return Reflect.get(sTarget, sProp, sReciever);
 
-              return checkPerms(sTarget, sProp, sReciever, complexPerms.find(x => x[2] === sProp && givenPermissions[x[0]] !== true)?.[0], JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}')[this.entityID] ?? {});
+              return checkPerms(sTarget, sProp, sReciever, complexPerms.find(x => x[2] === sProp && givenPermissions[x[0]] !== true)?.[0], JSON.parse(topaz.storage.get('permissions') ?? '{}')[this.entityID] ?? {});
             }
           });
 
@@ -927,31 +1070,6 @@ const Onyx = function (entityID, manifest, transformRoot) {
 };
 
 Onyx //# sourceURL=Onyx`);
-const attrs = eval(`const { findByProps } = goosemod.webpackModules;
-
-const anon = true; // use fake values
-
-const bodyAttrs = {
-  'data-current-user-id': anon ? '006482395269169152' : findByProps('getCurrentUser').getCurrentUser().id
-};
-
-const manager = {
-  add: () => {
-    for (const x in bodyAttrs) {
-      document.body.setAttribute(x, bodyAttrs[x]);
-    }
-  },
-
-  remove: () => {
-    for (const x in bodyAttrs) {
-      document.body.removeAttribute(x);
-    }
-  }
-};
-
-manager.add();
-
-manager`);
 const MapGen = eval(`const MAP_START = 'MAP_START|';
 const MAP_END = 'MAP_END';
 
@@ -1140,12 +1258,12 @@ const ScrollerClasses = goosemod.webpackModules.findByProps('scrollerBase', 'aut
 let lastPlugin;
 let expandInt;
 
-const editorSettings = JSON.parse(localStorage.getItem('topaz_editor_settings') ?? 'null') ?? {
+const editorSettings = JSON.parse(topaz.storage.get('editor_settings') ?? 'null') ?? {
   theme: 'vs-dark',
   focusMode: true
 };
 
-const saveEditorSettings = () => localStorage.setItem('topaz_editor_settings', JSON.stringify(editorSettings));
+const saveEditorSettings = () => topaz.storage.set('editor_settings', JSON.stringify(editorSettings));
 
 const _loadedThemes = {};
 const setTheme = async (x) => {
@@ -2550,7 +2668,7 @@ const { React } = Webpack.common;
 
 const i18n = Webpack.findByPropsAll('Messages')[1];
 
-const dataLSId = (id) => 'topaz_bd_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
+const dataLSId = (id) => 'bd_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
 const bindPatch = (func, unpatch) => func.bind({ unpatch }); // Overriding props in original this, better way?
 
 const makeAddonAPI = (id) => ({
@@ -2637,16 +2755,16 @@ BdApi = {
   },
 
 
-  loadData: (id, key) => JSON.parse(localStorage.getItem(dataLSId(id)) ?? '{}')[key],
+  loadData: (id, key) => JSON.parse(topaz.storage.get(dataLSId(id)) ?? '{}')[key],
   getData: (...args) => BdApi.loadData(...args), // alias
 
   saveData: (id, key, value) => {
     const lsId = dataLSId(id);
-    const data = JSON.parse(localStorage.getItem(lsId) ?? '{}');
+    const data = JSON.parse(topaz.storage.get(lsId) ?? '{}');
 
     data[key] = value;
 
-    localStorage.setItem(lsId, JSON.stringify(data));
+    topaz.storage.set(lsId, JSON.stringify(data));
 
     return data[key];
   },
@@ -2654,12 +2772,12 @@ BdApi = {
 
   deleteData: (id, key) => {
     const lsId = dataLSId(id);
-    const data = JSON.parse(localStorage.getItem(lsId) ?? '{}');
+    const data = JSON.parse(topaz.storage.get(lsId) ?? '{}');
 
     data[key] = undefined;
     delete data[key];
 
-    localStorage.setItem(lsId, JSON.stringify(data));
+    topaz.storage.set(lsId, JSON.stringify(data));
 
     return data[key];
   },
@@ -3233,7 +3351,7 @@ global.ZLibrary = window.ZLibrary = ZLibrary;
 (() => {
 const unpatches = {};
 
-const dataLSId = (id) => 'topaz_bd_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
+const dataLSId = (id) => 'dr_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
 
 
 DrApi = {
@@ -3242,16 +3360,16 @@ DrApi = {
   },
 
   storage: {
-    loadData: (id, key) => JSON.parse(localStorage.getItem(dataLSId(id)) ?? '{}')[key],
+    loadData: (id, key) => JSON.parse(topaz.storage.get(dataLSId(id)) ?? '{}')[key],
     getData: (...args) => BdApi.loadData(...args), // alias
 
     saveData: (id, key, value) => {
       const lsId = dataLSId(id);
-      const data = JSON.parse(localStorage.getItem(lsId) ?? '{}');
+      const data = JSON.parse(topaz.storage.get(lsId) ?? '{}');
 
       data[key] = value;
 
-      localStorage.setItem(lsId, JSON.stringify(data));
+      topaz.storage.set(lsId, JSON.stringify(data));
 
       return data[key];
     },
@@ -3259,12 +3377,12 @@ DrApi = {
 
     deleteData: (id, key) => {
       const lsId = dataLSId(id);
-      const data = JSON.parse(localStorage.getItem(lsId) ?? '{}');
+      const data = JSON.parse(topaz.storage.get(lsId) ?? '{}');
 
       data[key] = undefined;
       delete data[key];
 
-      localStorage.setItem(lsId, JSON.stringify(data));
+      topaz.storage.set(lsId, JSON.stringify(data));
 
       return data[key];
     },
@@ -3801,8 +3919,13 @@ module.exports = {
 
   '@cumcord/modules/webpack': `module.exports = cumcord.modules.webpack;`,
   '@cumcord/modules/webpackModules': `module.exports = cumcord.modules.webpack;`,
-  '@cumcord/modules/common': 'module.exports = goosemod.webpackModules.common;',
+  '@cumcord/modules/common': 'module.exports = cumcord.modules.common;',
+  '@cumcord/modules/common/i18n': 'module.exports = cumcord.modules.common.i18n;',
+  '@cumcord/modules': 'module.exports = cumcord.modules;',
   '@cumcord/patcher': `module.exports = cumcord.patcher;`,
+  '@cumcord/utils': `module.exports = cumcord.utils;`,
+  '@cumcord/pluginData': `module.exports = cumcord.pluginData;`,
+  '@cumcord/pluginData/persist': `module.exports = cumcord.pluginData.persist;`,
   'cumcord/global': `let cumcord;
 
 (() => {
@@ -3834,11 +3957,14 @@ cumcord = {
     injectCSS: (css) => {
       const el = document.createElement('style');
 
-      el.appendChild(document.createTextNode(css));
+      el.textContent = document.createTextNode(css);
 
       document.head.appendChild(el);
 
-      return el.remove;
+      return (newCss) => {
+        if (newCss === undefined) el.remove();
+          else newCss.textContent = newCss;
+      };
     }
   },
 
@@ -3847,6 +3973,7 @@ cumcord = {
       ...goosemod.webpackModules,
 
       findByDisplayName: (name, useDefault = true) => goosemod.webpackModules.find(x => x.displayName === name || x.default.displayName === name, useDefault),
+      findByDisplayNameAll: (name, useDefault = true) => goosemod.webpackModules.findAll(x => x.displayName === name || x.default.displayName === name, useDefault),
 
       batchFind: (handler) => {
         const mods = [];
@@ -3861,18 +3988,34 @@ cumcord = {
 
         return mods;
       },
+
+      findAsync: (find) => new Promise(res => {
+        const tryToFind = () => {
+          const ret = find();
+          if (!ret) return;
+
+          clearInterval(int);
+          res(ret);
+        };
+
+        const int = setInterval(tryToFind, 5000);
+        tryToFind();
+      }),
     },
 
     common: {
-      ...goosemod.webpackModules.common
+      ...goosemod.webpackModules.common,
+      i18n: goosemod.webpackModules.findByPropsAll('Messages')[1]
     },
   },
 
   utils: {
-    ...goosemod.reactUtils
+    ...goosemod.reactUtils,
+
+    copyText: x => goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy')['copy'](x)
   },
 
-  pluginData: { persist: { ghost: {} } }
+  pluginData: { persist: { ghost: {}, store: {} } }
 };
 
 cumcord.modules.webpackModules = cumcord.modules.webpack;
@@ -4244,14 +4387,14 @@ class Cache {
   }
 
   load() {
-    const saved = localStorage.getItem(`topaz_cache_${this.id}`);
+    const saved = Storage.get(`cache_${this.id}`);
     if (!saved) return;
 
     this.store = JSON.parse(saved);
   }
 
   save() {
-    localStorage.setItem(`topaz_cache_${this.id}`, JSON.stringify(this.store));
+    Storage.set(`cache_${this.id}`, JSON.stringify(this.store));
   }
 }
 
@@ -4286,6 +4429,12 @@ const genId = (p) => `__topaz_${p.replace(transformRoot, '').replaceAll('./', '/
 const makeChunk = async (root, p) => {
   // console.log('makeChunk', p);
 
+  const shouldUpdateFetch = !builtins[p];
+  if (shouldUpdateFetch) {
+    fetchProgressTotal++;
+    updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
+  }
+
   const joined = (root + '/' + p).replace(transformRoot, '');
   const resPath = builtins[p] ? p : resolvePath(joined).slice(1);
   const resolved = await resolveFileFromTree(resPath);
@@ -4295,16 +4444,36 @@ const makeChunk = async (root, p) => {
 
   let code = await getCode(transformRoot, finalPath, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
   // if (!builtins[p]) code = await includeRequires(join(transformRoot, finalPath), code);
+
+  if (finalPath.endsWith('sx') && !code.match(/^import .*React[^D].*$/gm)) code = `import React from 'react';\n${code}`; // auto-import react for jsx if not imported
+
   code = await includeRequires(join(transformRoot, finalPath), code);
   const id = genId(resPath);
 
   if (p.endsWith('.json') || code.startsWith('{')) code = 'module.exports = ' + code;
+
+  if (p.endsWith('css')) {
+    code = `module.exports = () => {
+      const el = document.createElement('style');
+
+      el.textContent = document.createTextNode(\`${code.replaceAll('`', '\\`').replaceAll('$', '\\$').replaceAll('\\', '\\\\')}\`);
+
+      document.head.appendChild(el);
+
+      return () => el.remove();
+    };`;
+  }
 
   const chunk = `// ${finalPath}
 let ${id} = {};
 (() => { // MAP_START|${finalPath}
 ` + code.replace('module.exports =', `${id} =`).replace('export default', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`).replaceAll(/export const (.*?)=/g, (_, key) => `${id}.${key}=`) + `
 })(); // MAP_END`;
+
+  if (shouldUpdateFetch) {
+    fetchProgressCurrent++;
+    updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
+  }
 
   return [ id, chunk ];
 };
@@ -4321,9 +4490,6 @@ async function replaceAsync(str, regex, asyncFn) {
 
 let chunks = {}, tree = [];
 const includeRequires = async (path, code) => {
-  fetchProgressTotal++;
-  updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
-
   const root = getDir(path);
 
   // console.log({ path, root });
@@ -4359,12 +4525,12 @@ ${(await Promise.all(files.map(async x => {
     return chunkId;
   });
 
-  code = await replaceAsync(code, /import (.*) from ['"`](.*)['"`]/g, async (_, what, where) => {
+  code = await replaceAsync(code, /import (.*) from ['"`](.*?)['"`]/g, async (_, what, where) => {
     // console.log('within replace', join(root, p), chunks);
     const [ chunkId, code ] = await makeChunk(root, where);
     if (!chunks[chunkId]) chunks[chunkId] = code;
 
-    return `const ${what.replace('* as ', '')} = ${chunkId}`;
+    return `const ${what.replace('* as ', '').replaceAll(' as ', ':')} = ${chunkId}`;
   });
 
   code = await replaceAsync(code, /this\.loadStylesheet\(['"`](.*?)['"`]\)/g, async (_, p) => {
@@ -4379,41 +4545,12 @@ ${(await Promise.all(files.map(async x => {
     return `powercord.api.i18n.loadAllStrings({ 'en-US': JSON.parse(\`${english}\`) })`;
   }); */
 
-  fetchProgressCurrent++;
-  updatePending(null, `Fetching (${fetchProgressCurrent}/${fetchProgressTotal})...`);
-
   return code;
 };
 
 const getDir = (url) => url.split('/').slice(0, -1).join('/');
 
 // let root;
-
-const log = (_region, ...args) => {
-  const modColor = '253, 218, 13'; // New blurple
-  const regionColor = '114, 137, 218'; // Old blurple
-
-  const fromStr = (str) => str.replace('rgb(', '').replace(')', '').split(', ');
-  const toStr = ([r, g, b]) => `rgb(${r}, ${g}, ${b})`;
-
-  const light = (str, val) => toStr(fromStr(str).map((x) => x * val));
-
-  const makeRegionStyle = (color) => `background-color: rgb(${color}); color: white; border-radius: 4px; border: 2px solid ${light(color, 0.5)}; padding: 3px 6px 3px 6px; font-weight: bold;`;
-
-  const regions = _region.split('.');
-
-  const regionStrings = regions.map(x => `%c${x}%c`);
-  const regionStyling = regions.reduce((res) => res.concat(makeRegionStyle(regionColor), ''), []);
-
-  console.log(`%ctopaz%c ${regionStrings.join(' ')}`,
-    makeRegionStyle(modColor).replace('white', 'black'),
-    '',
-
-    ...regionStyling,
-
-    ...args
-  );
-};
 
 let plugins = {};
 let pending = [];
@@ -4475,7 +4612,7 @@ const resolveFileFromTree = async (path) => {
     }
   } else res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
 
-  if (path.startsWith('powercord/') && !builtins[path]) {
+  if (!builtins[path] && (path.startsWith('powercord/') || path.startsWith('@'))) {
     console.warn('Missing builtin', path);
     lastError = `Missing builtin: ${path}`;
   } else if (!res && !builtins[path]) {
@@ -4577,7 +4714,7 @@ const install = async (info, settings = undefined, disabled = false) => {
           root = getDir(join(root, './' + main));
           skipTransform = main.endsWith('.css');
 
-          const subdir = getDir(main);
+          subdir = getDir(main);
           if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
 
           break;
@@ -4641,6 +4778,9 @@ const install = async (info, settings = undefined, disabled = false) => {
           indexUrl = join(root, './' + main);
           root = getDir(indexUrl);
 
+          subdir = getDir(main).slice(2);
+          if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
+
           break;
         }
 
@@ -4655,8 +4795,11 @@ const install = async (info, settings = undefined, disabled = false) => {
 
             const main = './' + manifest.file.replace('./', '');
             indexFile = './' + main.split('/').pop();
-            indexUrl = join(root, './' + main);
+            indexUrl = join(root, main);
             root = getDir(indexUrl);
+
+            subdir = getDir(main).slice(2);
+            if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
 
             break;
           }
@@ -4937,10 +5080,14 @@ let transformRoot;
 const transform = async (path, code, mod) => {
   fetchProgressCurrent = 0;
   fetchProgressTotal = 0;
+  lastError = '';
 
   transformRoot = path.split('/').slice(0, -1).join('/');
 
-  const indexCode = await includeRequires(path, code);
+  if (path.endsWith('sx') && !code.match(/^import .*React[^D].*$/gm)) code = `import React from 'react';\n${code}`; // auto-import react for jsx if not imported
+
+  let indexCode = await includeRequires(path, code);
+
   /* code = Object.values(chunks).join('\n\n') + `\n// MAP_START|${'.' + path.replace(transformRoot, '')}
 ${code}
 // MAP_END`; */
@@ -4961,7 +5108,7 @@ ${replaceLast(indexCode, 'export default', 'module.exports =').replaceAll(/expor
 
   if (mod === 'dr') out = replaceLast(out, 'return class ', 'module.exports = class ');
 
-  console.log({ out });
+  console.log({ pre: out });
 
   updatePending(null, 'Transforming...');
 
@@ -4976,19 +5123,21 @@ ${replaceLast(indexCode, 'export default', 'module.exports =').replaceAll(/expor
 ${out}
 })();`;
 
+  console.log({ final: out });
+
   return out;
 };
 
-const topazSettings = JSON.parse(localStorage.getItem('topaz_settings') ?? 'null') ?? {
+const topazSettings = JSON.parse(Storage.get('settings') ?? 'null') ?? {
   pluginSettingsSidebar: false,
   simpleUI: false,
   modalPages: false
 };
 
-const savePlugins = () => !topaz.__reloading && localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
+const savePlugins = () => !topaz.__reloading && Storage.set('plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
 
 const setDisabled = (key, disabled) => {
-  const store = JSON.parse(localStorage.getItem('topaz_disabled') ?? '{}');
+  const store = JSON.parse(Storage.get('disabled') ?? '{}');
 
   if (disabled) {
     store[key] = true;
@@ -4997,7 +5146,7 @@ const setDisabled = (key, disabled) => {
     delete store[key];
   }
 
-  localStorage.setItem('topaz_disabled', JSON.stringify(store));
+  Storage.set('disabled', JSON.stringify(store));
 };
 
 const purgeCacheForPlugin = (info) => {
@@ -5006,17 +5155,18 @@ const purgeCacheForPlugin = (info) => {
 };
 
 const purgePermsForPlugin = (info) => {
-  const store = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}');
+  const store = JSON.parse(Storage.get('permissions') ?? '{}');
 
   store[info] = undefined;
   delete store[info];
 
-  localStorage.setItem('topaz_permissions', JSON.stringify(store));
+  Storage.set('permissions', JSON.stringify(store));
 };
 
 
 window.topaz = {
   settings: topazSettings,
+  storage: Storage,
 
   install: async (info) => {
     const [ manifest ] = await install(info);
@@ -5111,7 +5261,7 @@ window.topaz = {
 log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)}ms`);
 
 (async () => {
-  const disabled = JSON.parse(localStorage.getItem('topaz_disabled') ?? '{}');
+  const disabled = JSON.parse(Storage.get('disabled') ?? '{}');
 
   for (const p in pluginsToInstall) {
     let settings = pluginsToInstall[p];
@@ -5146,8 +5296,8 @@ const startSnippet = async (file, content) => {
 const stopSnippet = (file) => activeSnippets[file]?.();
 
 
-const snippets = JSON.parse(localStorage.getItem('topaz_snippets') ?? '{}');
-const snippetsToggled = JSON.parse(localStorage.getItem('topaz_snippets_toggled') ?? '{}');
+const snippets = JSON.parse(Storage.get('snippets') ?? '{}');
+const snippetsToggled = JSON.parse(Storage.get('snippets_toggled') ?? '{}');
 for (const snippet in snippets) {
   if (snippetsToggled[snippet]) startSnippet(snippet, snippets[snippet]);
 }
@@ -5617,7 +5767,7 @@ class Plugin extends React.PureComponent {
               }
             };
 
-            const givenPermissions = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}')[entityID] ?? {};
+            const givenPermissions = JSON.parse(Storage.get('permissions') ?? '{}')[entityID] ?? {};
 
             const entryClasses = goosemod.webpackModules.findByProps('entryItem');
 
@@ -5637,11 +5787,11 @@ class Plugin extends React.PureComponent {
 
                 onClick: () => {
                   // save permission allowed/denied
-                  const store = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}');
+                  const store = JSON.parse(Storage.get('permissions') ?? '{}');
 
                   store[entityID] = {};
 
-                  localStorage.setItem('topaz_permissions', JSON.stringify(store));
+                  Storage.set('permissions', JSON.stringify(store));
 
                   setTimeout(() => { // reload plugin
                     topaz.reload(entityID);
@@ -5672,12 +5822,12 @@ class Plugin extends React.PureComponent {
                         checked: givenPermissions[perms[category][perm]],
                         onChange: (x) => {
                           // save permission allowed/denied
-                          const store = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}');
+                          const store = JSON.parse(Storage.get('permissions') ?? '{}');
                           if (!store[entityID]) store[entityID] = {};
 
                           store[entityID][perms[category][perm]] = x;
 
-                          localStorage.setItem('topaz_permissions', JSON.stringify(store));
+                          Storage.set('permissions', JSON.stringify(store));
 
                           setTimeout(() => { // reload plugin
                             topaz.reload(entityID);
@@ -5731,7 +5881,7 @@ class Plugin extends React.PureComponent {
   }
 }
 
-const saveTopazSettings = () => localStorage.setItem('topaz_settings', JSON.stringify(topazSettings));
+const saveTopazSettings = () => Storage.set('settings', JSON.stringify(topazSettings));
 
 class TopazSettings extends React.PureComponent {
   render() {
@@ -5782,8 +5932,8 @@ class Snippets extends React.PureComponent {
     if (_Editor === 'div') setTimeout(() => this.forceUpdate(), 200);
 
     const saveSnippets = () => {
-      localStorage.setItem('topaz_snippets', JSON.stringify(snippets));
-      localStorage.setItem('topaz_snippets_toggled', JSON.stringify(snippetsToggled));
+      Storage.set('snippets', JSON.stringify(snippets));
+      Storage.set('snippets_toggled', JSON.stringify(snippetsToggled));
     };
 
     const updateSnippet = (file, content) => {
