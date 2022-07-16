@@ -20,7 +20,6 @@ const store = await new Promise(res => {
   dbReq.onerror = e => console.error('topaz failed to open idb db', e);
   dbReq.onsuccess = e => {
     db = e.target.result;
-    topaz.log('storage', 'opened db');
 
     try {
       makeTrans().get('store').onsuccess = e => {
@@ -32,8 +31,6 @@ const store = await new Promise(res => {
   };
 
   dbReq.onupgradeneeded = e => {
-    topaz.log('storage', 'upgraded db', e);
-
     db = e.target.result;
 
     const objectStore = db.createObjectStore('store');
