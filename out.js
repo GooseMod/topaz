@@ -5410,7 +5410,7 @@ const setDisabled = (key, disabled) => {
 
 const purgeCacheForPlugin = (info) => {
   finalCache.remove(info); // remove final cache
-  fetchCache.keys().filter(x => x.includes(info)).forEach(y => fetchCache.remove(y)); // remove fetch caches
+  fetchCache.keys().filter(x => x.includes(info.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).forEach(y => fetchCache.remove(y)); // remove fetch caches
 };
 
 const purgePermsForPlugin = (info) => {
