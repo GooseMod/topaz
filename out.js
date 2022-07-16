@@ -5618,6 +5618,7 @@ const Tooltip = goosemod.webpackModules.findByDisplayName('Tooltip');
 const Header = goosemod.settings.Items['header'];
 const Subtext = goosemod.settings.Items['subtext'];
 const TextAndChild = goosemod.settings.Items['text-and-child'];
+const TextAndButton = goosemod.settings.Items['text-and-button'];
 const TextAndToggle = goosemod.settings.Items['toggle'];
 const Divider = goosemod.settings.Items['divider'];
 
@@ -6181,6 +6182,21 @@ class TopazSettings extends React.PureComponent {
           saveTopazSettings();
         }
       }),
+
+      React.createElement(Header, {
+        text: 'Actions',
+      }),
+
+      React.createElement(TextAndButton, {
+        text: 'Purge Caches',
+        subtext: 'Purge Topaz\'s caches completely',
+        buttonText: 'Purge',
+
+        onclick: () => {
+          fetchCache.purge();
+          finalCache.purge();
+        }
+      })
     )
   }
 }
