@@ -51,6 +51,8 @@ const pc = {
     'SammCheese/AFK-on-exit',
     'SammCheese/Do-Not-Slowmode-Me',
     'Juby210/game-activity-toggle',
+    'discord-modifications/force-owner-crown',
+    'discord-modifications/quick-delete',
   ],
 
   themes: [
