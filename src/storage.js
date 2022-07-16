@@ -79,7 +79,7 @@ const Storage = {
 // local storage compat
 Storage.setItem = Storage.set;
 Storage.getItem = Storage.get;
-Storage.deleteItem = Storage.delete;
+Storage.removeItem = Storage.delete;
 
 
 topaz.log('storage', `loaded ${Object.keys(store).length} keys in ${(performance.now() - startTime).toFixed(2)}ms`);

@@ -32,9 +32,20 @@ if (window.topaz) { // live reload handling
   // setTimeout(() => updateOpenSettings(), 1000);
 }
 
-window.topaz = { log };
+window.topaz = {
+  version: 'alpha 7',
+  log
+};
 
 const Storage = await eval(await (await fetch('http://localhost:1337/src/storage.js')).text());
+
+const openChangelog = async () => eval(await (await fetch('http://localhost:1337/src/changelog.js')).text());
+
+const lastVersion = Storage.get('last_version');
+if (!lastVersion || lastVersion !== topaz.version) setTimeout(openChangelog, 2000); // temp: show if no last version
+// if (lastVersion && lastVersion !== topaz.version) setTimeout(openChangelog, 5000);
+Storage.set('last_version', topaz.version);
+
 
 let pluginsToInstall = JSON.parse(Storage.get('plugins') ?? '{}');
 
@@ -1069,6 +1080,7 @@ const purgePermsForPlugin = (info) => {
 
 
 window.topaz = {
+  version: topaz.version,
   settings: topazSettings,
   storage: Storage,
 
@@ -2011,7 +2023,7 @@ class Settings extends React.PureComponent {
       }, 'Topaz',
         React.createElement('span', {
           className: 'description-30xx7u topaz-version'
-        }, 'alpha 6'),
+        }, topaz.version),
 
         React.createElement(HeaderBarContainer.Divider),
 
@@ -2022,7 +2034,7 @@ class Settings extends React.PureComponent {
           className: TabBarClasses2.tabBar,
 
           onItemSelect: (x) => {
-            if (x === 'RELOAD') return;
+            if (x === 'RELOAD' || x === 'CHANGELOG') return;
 
             const textInputEl = document.querySelector('.topaz-settings .input-2g-os5');
             if (textInputEl) textInputs[selectedTab] = textInputEl.value;
@@ -2063,6 +2075,18 @@ class Settings extends React.PureComponent {
             tooltipText: 'Reload Topaz',
             onClick: async () => {
               topaz.reloadTopaz();
+            }
+          })),
+
+          React.createElement(TabBar.Item, {
+            id: 'CHANGELOG',
+
+            className: TabBarClasses2.item
+          }, React.createElement(PanelButton, {
+            icon: goosemod.webpackModules.findByDisplayName('Clock'),
+            tooltipText: 'Topaz Changelog',
+            onClick: async () => {
+              openChangelog();
             }
           }))
         ),

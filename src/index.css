@@ -219,18 +219,24 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 
 .topaz-settings [aria-controls="settings-tab"] {
   position: absolute;
-  right: 100px;
+  right: 108px;
 }
 
-.topaz-settings [aria-controls="reload-tab"] {
+.topaz-settings [aria-controls="reload-tab"], .topaz-settings [aria-controls="changelog-tab"] {
   position: absolute;
-  right: 42px;
+  right: 64px;
 
   padding: 0;
   margin: 0;
 
   width: 24px;
   height: 24px;
+
+  cursor: default;
+}
+
+.topaz-settings [aria-controls="changelog-tab"] {
+  right: 32px;
 }
 
 .topaz-settings [aria-controls="reload-tab"] > button:hover {
@@ -238,7 +244,12 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   background: none;
 }
 
-.topaz-settings [aria-controls="reload-tab"]:hover {
+.topaz-settings [aria-controls="changelog-tab"] > button:hover {
+  color: var(--interactive-hover);
+  background: none;
+}
+
+.topaz-settings [aria-controls="reload-tab"]:hover, .topaz-settings [aria-controls="changelog-tab"]:hover {
   background: none !important;
   cursor: unset !important;
 }
