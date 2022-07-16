@@ -71,6 +71,8 @@ module.exports = {
   AdvancedScrollerAuto: goosemod.webpackModules.findByProps('AdvancedScrollerAuto').AdvancedScrollerAuto,
   AdvancedScrollerNone: goosemod.webpackModules.findByProps('AdvancedScrollerNone').AdvancedScrollerNone,
 
+  Menu: goosemod.webpackModules.findByProps('MenuGroup'),
+
   AsyncComponent: require('powercord/components/AsyncComponent'),
   settings: require('powercord/components/settings'),
   modal: require('powercord/components/modal')
