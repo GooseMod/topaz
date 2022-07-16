@@ -3831,7 +3831,10 @@ module.exports = {
   ContextMenu: goosemod.webpackModules.findByProps('openContextMenu', 'closeContextMenu'),
   Modals: goosemod.webpackModules.findByProps('openModal', 'closeAllModals'),
   Dispatcher: goosemod.webpackModules.common.FluxDispatcher,
-  React: goosemod.webpackModules.common.React
+  React: goosemod.webpackModules.common.React,
+  Constants: goosemod.webpackModules.findByProps('MAX_MESSAGE_LENGTH'),
+  Messages: goosemod.webpackModules.findByProps('sendMessage'),
+  Users: goosemod.webpackModules.findByProps('getCurrentUser'),
 };`,
   '@webpack/stores': `module.exports = {
   Guilds: goosemod.webpackModules.findByProps('getGuilds', 'getGuild'),
@@ -4305,6 +4308,129 @@ vizality = {
 
 })();`,
 
+  'enmity/metro/common': `module.exports = {
+  ContextMenu: goosemod.webpackModules.findByProps('openContextMenu', 'closeContextMenu'),
+  Modals: goosemod.webpackModules.findByProps('openModal', 'closeAllModals'),
+  Dispatcher: goosemod.webpackModules.common.FluxDispatcher,
+  React: goosemod.webpackModules.common.React,
+  Constants: goosemod.webpackModules.findByProps('MAX_MESSAGE_LENGTH'),
+  Messages: goosemod.webpackModules.findByProps('sendMessage'),
+  Users: goosemod.webpackModules.findByProps('getCurrentUser'),
+};`,
+  'enmity/metro': `const bulkify = (original) => (...args) => {
+  const opts = args[args.length - 1];
+  if (opts.bulk) return args.slice(0, -1).map(x => original(...x));
+
+  return original(...args);
+}
+
+module.exports = {
+  findByProps: bulkify(goosemod.webpackModules.findByProps),
+  findByDisplayName: (name, opts = {}) => goosemod.webpackModules.find(x => x.displayName === name || x.default?.displayName === name, opts.interop ?? true),
+
+  bulk: (...filters) => filters.map(x => goosemod.webpackModules.find(x, false)),
+  findLazy: (filter) => new Promise(res => {
+    const check = () => {
+      const ret = goosemod.webpackModules.find(filter);
+      if (!ret) return;
+
+      res(ret);
+      clearInterval(int);
+    };
+
+    const int = setInterval(check, 1000);
+    check();
+  }),
+
+  filters: {
+    byProps: (...props) => (x) => props.every(y => x.hasOwnProperty(y) || (x.__proto__?.hasOwnProperty?.(y))),
+    byDisplayName: (name, exportDefault = false) => (x) => {
+      if (x.displayName === name) return x;
+      if (x.default?.displayName === name) return exportDefault ? x.default : x;
+    }
+  },
+
+  // todo: temporary as astra and unbound use same import names
+  getByProps: goosemod.webpackModules.findByProps,
+  getByDisplayName: (name, opts) => {
+    const ret = goosemod.webpackModules.find(x => x.displayName === name || x.default?.displayName === name, false);
+
+    return opts.ret === 'exports' ? ret : ret[name];
+  },
+
+  MessageActions: goosemod.webpackModules.findByProps('sendMessage')
+};`,
+  'enmity/patcher': `const unpatches = {};
+
+module.exports = {
+  create: (id) => {
+    unpatches[id] = [];
+
+    return {
+      instead: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return patch(this, args, original); }, false, true);
+
+        unpatches[id].push(unpatch);
+        return unpatch;
+      },
+
+      before: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(this, args); }, true);
+
+        unpatches[id].push(unpatch);
+        return unpatch;
+      },
+
+      after: (parent, key, patch) => {
+        const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return patch(this, args, ret); }, false);
+
+        unpatches[id].push(unpatch);
+        return unpatch;
+      },
+
+      unpatchAll: () => {
+        unpatches[id].forEach(x => x());
+      }
+    };
+  },
+
+  // todo: temporary as astra and unbound use same import names
+  instead: (id, parent, key, patch) => {
+    const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return patch(this, original, args); }, false, true);
+
+    if (!unpatches[id]) unpatches[id] = [];
+    unpatches[id].push(unpatch);
+
+    return unpatch;
+  },
+
+  before: (id, parent, key, patch) => {
+    const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(this, args); }, true);
+
+    if (!unpatches[id]) unpatches[id] = [];
+    unpatches[id].push(unpatch);
+
+    return unpatch;
+  },
+
+  after: (id, parent, key, patch) => {
+    const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return patch(this, ret, args); }, false);
+
+    if (!unpatches[id]) unpatches[id] = [];
+    unpatches[id].push(unpatch);
+
+    return unpatch;
+  },
+
+  unpatchAll: (id) => {
+    if (!unpatches[id]) return;
+
+    unpatches[id].forEach(x => x());
+  }
+};`,
+  'enmity/managers/plugins': `module.exports = { Plugin: {}, registerPlugin: () => {} };`,
+  'enmity/global': '',
+
   'react': 'module.exports = goosemod.webpackModules.common.React;',
   'lodash': 'module.exports = window._;',
 
@@ -4742,6 +4868,18 @@ const install = async (info, settings = undefined, disabled = false) => {
 
             subdir = getDir(main).slice(2);
             tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
+          } else if (manifest.authors && !manifest.main && manifest.version) {
+            mod = 'em';
+
+            manifest.author = manifest.authors.map(x => x.name).join(', ');
+
+            const main = await resolveFileFromTree('src/index');
+            indexFile = './' + main.split('/').pop();
+            indexUrl = join(root, main);
+            root = getDir(indexUrl);
+
+            subdir = getDir(main).slice(2);
+            tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
           }
 
           if (typeof manifest.author === 'object') manifest.author = manifest.author.name;
@@ -4751,6 +4889,11 @@ const install = async (info, settings = undefined, disabled = false) => {
           if (indexCode.includes('extends UPlugin')) mod = 'ast';
           if (indexCode.includes('@rikka')) mod = 'rk';
           if (indexCode.includes('@vizality')) mod = 'vz';
+
+          if (mod === 'em') {
+            indexCode = indexCode.replace(/registerPlugin\((.*?)\)/, (_, v) => `module.exports = ${v};`);
+            indexCode = indexCode.replace(/^import (.*?) from ['"`]\.\.\/manifest\.json['"`].*$/m, (_, v) => `const ${v} = {};`);
+          }
 
           break;
 
@@ -4849,6 +4992,7 @@ const install = async (info, settings = undefined, disabled = false) => {
       case 'vel':
       case 'gm':
       case 'cc':
+      case 'em':
         if (mod === 'cc' && typeof PluginClass === 'function') PluginClass = PluginClass({ persist: { ghost: {} } });
 
         plugin = PluginClass;
@@ -5015,6 +5159,12 @@ const install = async (info, settings = undefined, disabled = false) => {
         plugin._topaz_stop = () => plugin.onUnload?.();
 
         break;
+
+      case 'em':
+        plugin._topaz_start = () => plugin.onStart?.();
+        plugin._topaz_stop = () => plugin.onStop?.();
+
+        break;
     }
   }
 
@@ -5054,6 +5204,7 @@ const fullMod = (mod) => {
     case 'cc': return 'cumcord';
     case 'rk': return 'rikka';
     case 'vz': return 'vizality';
+    case 'em': return 'enmity';
   }
 };
 
@@ -5069,6 +5220,7 @@ const displayMod = (mod) => {
     case 'cc': return 'Cumcord';
     case 'rk': return 'Rikka';
     case 'vz': return 'Vizality';
+    case 'em': return 'Enmity';
   }
 };
 

@@ -207,6 +207,12 @@ const builtins = {
   '@vizality/entities': await getBuiltin('vizality/entities'),
   'vizality/global': await getBuiltin('vizality/global'),
 
+  'enmity/metro/common': await getBuiltin('unbound/webpack/common'),
+  'enmity/metro': await getBuiltin('unbound/webpack/webpack'),
+  'enmity/patcher': await getBuiltin('unbound/patcher'),
+  'enmity/managers/plugins': `module.exports = { Plugin: {}, registerPlugin: () => {} };`,
+  'enmity/global': '',
+
   'react': 'module.exports = goosemod.webpackModules.common.React;',
   'lodash': 'module.exports = window._;',
 
@@ -613,6 +619,18 @@ const install = async (info, settings = undefined, disabled = false) => {
 
             subdir = getDir(main).slice(2);
             tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
+          } else if (manifest.authors && !manifest.main && manifest.version) {
+            mod = 'em';
+
+            manifest.author = manifest.authors.map(x => x.name).join(', ');
+
+            const main = await resolveFileFromTree('src/index');
+            indexFile = './' + main.split('/').pop();
+            indexUrl = join(root, main);
+            root = getDir(indexUrl);
+
+            subdir = getDir(main).slice(2);
+            tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
           }
 
           if (typeof manifest.author === 'object') manifest.author = manifest.author.name;
@@ -622,6 +640,11 @@ const install = async (info, settings = undefined, disabled = false) => {
           if (indexCode.includes('extends UPlugin')) mod = 'ast';
           if (indexCode.includes('@rikka')) mod = 'rk';
           if (indexCode.includes('@vizality')) mod = 'vz';
+
+          if (mod === 'em') {
+            indexCode = indexCode.replace(/registerPlugin\((.*?)\)/, (_, v) => `module.exports = ${v};`);
+            indexCode = indexCode.replace(/^import (.*?) from ['"`]\.\.\/manifest\.json['"`].*$/m, (_, v) => `const ${v} = {};`);
+          }
 
           break;
 
@@ -720,6 +743,7 @@ const install = async (info, settings = undefined, disabled = false) => {
       case 'vel':
       case 'gm':
       case 'cc':
+      case 'em':
         if (mod === 'cc' && typeof PluginClass === 'function') PluginClass = PluginClass({ persist: { ghost: {} } });
 
         plugin = PluginClass;
@@ -886,6 +910,12 @@ const install = async (info, settings = undefined, disabled = false) => {
         plugin._topaz_stop = () => plugin.onUnload?.();
 
         break;
+
+      case 'em':
+        plugin._topaz_start = () => plugin.onStart?.();
+        plugin._topaz_stop = () => plugin.onStop?.();
+
+        break;
     }
   }
 
@@ -925,6 +955,7 @@ const fullMod = (mod) => {
     case 'cc': return 'cumcord';
     case 'rk': return 'rikka';
     case 'vz': return 'vizality';
+    case 'em': return 'enmity';
   }
 };
 
@@ -940,6 +971,7 @@ const displayMod = (mod) => {
     case 'cc': return 'Cumcord';
     case 'rk': return 'Rikka';
     case 'vz': return 'Vizality';
+    case 'em': return 'Enmity';
   }
 };
 

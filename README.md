@@ -33,6 +33,7 @@ A "next-gen" mod bundling client-side in web, designed for wide compat and with 
 | GooseMod | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |  |
 | CC | ![](https://img.shields.io/badge/some-yellow?style=for-the-badge) | ![](https://img.shields.io/badge/unsupported-red?style=for-the-badge) |
 | Unbound | ![](https://img.shields.io/badge/initial-orange?style=for-the-badge) | ![](https://img.shields.io/badge/unsupported-red?style=for-the-badge) |
+| Enmity | ![](https://img.shields.io/badge/initial-orange?style=for-the-badge) | ![](https://img.shields.io/badge/unsupported-red?style=for-the-badge) |
 | Astra | ![](https://img.shields.io/badge/some-yellow?style=for-the-badge) |  |
 | Vizality | ![](https://img.shields.io/badge/initial-orange?style=for-the-badge) | ![](https://img.shields.io/badge/unsupported-red?style=for-the-badge) |
 | Velocity | ![](https://img.shields.io/badge/most-green?style=for-the-badge) | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |

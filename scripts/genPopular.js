@@ -198,6 +198,13 @@ const vz = {
   ]
 };
 
+const em = {
+  plugins: [
+    'https://github.com/discord-modifications/enmity-addons/tree/main/Plugins/SplitMessages',
+    'https://github.com/FifiTheBulldog/enmity-plugins/tree/master/NoReplyMention',
+  ]
+};
+
 let lastRequest = 0;
 const userCache = {};
 
@@ -364,6 +371,23 @@ const getManifest_vz = async (place, theme) => { // just repo or url
   return manifest;
 };
 
+const getManifest_em = async (place) => {
+  const manifestName = 'manifest.json';
+
+  console.log(place);
+
+  const [ repo, branch ] = place.split('@');
+
+  let manifestUrl = repo + '/' + manifestName;
+  if (!place.startsWith('http')) manifestUrl = `https://raw.githubusercontent.com/${repo}/${branch ?? 'HEAD'}/${manifestName}`;
+
+  const manifest = await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
+
+  manifest.author = manifest.authors.map(x => x.name).join(', ');
+
+  return manifest;
+};
+
 
 (async () => {
   let plugins = [];
@@ -434,6 +458,12 @@ const getManifest_vz = async (place, theme) => { // just repo or url
   for (const place of vz.plugins) {
     plugins.push(getManifest_vz(place.split('|')[0], false).then(manifest => {
       return [makeId('VZ', manifest), place];
+    }));
+  }
+
+  for (const place of em.plugins) {
+    plugins.push(getManifest_em(place.split('|')[0], false).then(manifest => {
+      return [makeId('EM', manifest), place];
     }));
   }
 
