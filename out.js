@@ -4807,6 +4807,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     let indexFile = await resolveFileFromTree('index');
     let indexUrl = !isGitHub ? info : `https://raw.githubusercontent.com/${repo}/${branch}/${subdir ? (subdir + '/') : ''}${indexFile ? indexFile.slice(2) : 'index.js'}`;
     let root = getDir(indexUrl);
+    let indexCode;
 
     chunks = {}; // reset chunks
 
@@ -4817,9 +4818,9 @@ const install = async (info, settings = undefined, disabled = false) => {
       if (await resolveFileFromTree('cumcord_manifest.json')) mod = 'cc';
     }
 
-    let indexCode;
-    if (!indexFile && (!mod || mod === 'bd' || (mod === 'pc' && (await resolveFileFromTree('powercord_manifest.json')))) && !info.endsWith('.js')) {
-      isTheme = true;
+
+    isTheme = info.endsWith('.theme.css') || await resolveFileFromTree('powercord_manifest.json');
+    if (isTheme) {
       let skipTransform = false;
 
       switch (mod) {
