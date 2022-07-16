@@ -3,7 +3,7 @@ let DrApi;
 (() => {
 const unpatches = {};
 
-const dataLSId = (id) => 'topaz_bd_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
+const dataLSId = (id) => 'dr_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
 
 
 DrApi = {
@@ -12,16 +12,16 @@ DrApi = {
   },
 
   storage: {
-    loadData: (id, key) => JSON.parse(localStorage.getItem(dataLSId(id)) ?? '{}')[key],
+    loadData: (id, key) => JSON.parse(topaz.storage.get(dataLSId(id)) ?? '{}')[key],
     getData: (...args) => BdApi.loadData(...args), // alias
 
     saveData: (id, key, value) => {
       const lsId = dataLSId(id);
-      const data = JSON.parse(localStorage.getItem(lsId) ?? '{}');
+      const data = JSON.parse(topaz.storage.get(lsId) ?? '{}');
 
       data[key] = value;
 
-      localStorage.setItem(lsId, JSON.stringify(data));
+      topaz.storage.set(lsId, JSON.stringify(data));
 
       return data[key];
     },
@@ -29,12 +29,12 @@ DrApi = {
 
     deleteData: (id, key) => {
       const lsId = dataLSId(id);
-      const data = JSON.parse(localStorage.getItem(lsId) ?? '{}');
+      const data = JSON.parse(topaz.storage.get(lsId) ?? '{}');
 
       data[key] = undefined;
       delete data[key];
 
-      localStorage.setItem(lsId, JSON.stringify(data));
+      topaz.storage.set(lsId, JSON.stringify(data));
 
       return data[key];
     },

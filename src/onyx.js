@@ -219,9 +219,8 @@ const permissionsModal = async (manifest, neededPerms) => {
 const Onyx = function (entityID, manifest, transformRoot) {
   const context = {};
 
-  // todo: don't allow localStorage, use custom storage api internally
   // todo: filter elements for personal info?
-  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'localStorage', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'performance', 'fetch', 'clearTimeout', 'setImmediate', 'location' ];
+  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'performance', 'fetch', 'clearTimeout', 'setImmediate', 'location' ];
 
   // nullify (delete) all keys in window to start except allowlist
   for (const k of Object.keys(window)) { // for (const k of Reflect.ownKeys(window)) {
@@ -342,7 +341,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
             Object.keys(resultPerms).forEach(x => delete accessedPermissions[x]);
 
             // save permission allowed/denied
-            const store = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}');
+            const store = JSON.parse(topaz.storage.get('permissions') ?? '{}');
             if (!store[this.entityID]) store[this.entityID] = {};
 
             store[this.entityID] = {
@@ -350,7 +349,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
               ...resultPerms
             };
 
-            localStorage.setItem('topaz_permissions', JSON.stringify(store));
+            topaz.storage.set('permissions', JSON.stringify(store));
 
             /* if (!given && missingPerm === 'token_read') {
               goosemod.showToast(`Halting ${this.manifest.name} as it is potentially dangerous and denied token`, { timeout: 10000, subtext: 'Topaz', type: 'error' });
@@ -379,7 +378,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
     const hasFlags = keys.some(x => typeof x === 'string' && Object.values(permissions).flat().some(y => x === y.split('@')[0])); // has any keys in it
     return hasFlags ? new Proxy(mod, { // make proxy only if potential
       get: (target, prop, reciever) => {
-        const givenPermissions = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}')[this.entityID] ?? {};
+        const givenPermissions = JSON.parse(topaz.storage.get('permissions') ?? '{}')[this.entityID] ?? {};
         const complexPerms = complexMap.filter(x => x[1] === prop);
 
         if (complexPerms.length !== 0) {
@@ -387,7 +386,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
             get: (sTarget, sProp, sReciever) => {
               if (shouldPermitViaStack()) return Reflect.get(sTarget, sProp, sReciever);
 
-              return checkPerms(sTarget, sProp, sReciever, complexPerms.find(x => x[2] === sProp && givenPermissions[x[0]] !== true)?.[0], JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}')[this.entityID] ?? {});
+              return checkPerms(sTarget, sProp, sReciever, complexPerms.find(x => x[2] === sProp && givenPermissions[x[0]] !== true)?.[0], JSON.parse(topaz.storage.get('permissions') ?? '{}')[this.entityID] ?? {});
             }
           });
 

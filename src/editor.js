@@ -105,12 +105,12 @@ const ScrollerClasses = goosemod.webpackModules.findByProps('scrollerBase', 'aut
 let lastPlugin;
 let expandInt;
 
-const editorSettings = JSON.parse(localStorage.getItem('topaz_editor_settings') ?? 'null') ?? {
+const editorSettings = JSON.parse(topaz.storage.get('editor_settings') ?? 'null') ?? {
   theme: 'vs-dark',
   focusMode: true
 };
 
-const saveEditorSettings = () => localStorage.setItem('topaz_editor_settings', JSON.stringify(editorSettings));
+const saveEditorSettings = () => topaz.storage.set('editor_settings', JSON.stringify(editorSettings));
 
 const _loadedThemes = {};
 const setTheme = async (x) => {

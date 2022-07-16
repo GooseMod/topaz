@@ -1,5 +1,30 @@
 (async () => {
-let pluginsToInstall = JSON.parse(localStorage.getItem('topaz_plugins') ?? '{}');
+const log = (_region, ...args) => {
+  const modColor = '253, 218, 13'; // New blurple
+  const regionColor = '114, 137, 218'; // Old blurple
+
+  const fromStr = (str) => str.replace('rgb(', '').replace(')', '').split(', ');
+  const toStr = ([r, g, b]) => `rgb(${r}, ${g}, ${b})`;
+
+  const light = (str, val) => toStr(fromStr(str).map((x) => x * val));
+
+  const makeRegionStyle = (color) => `background-color: rgb(${color}); color: white; border-radius: 4px; border: 2px solid ${light(color, 0.5)}; padding: 3px 6px 3px 6px; font-weight: bold;`;
+
+  const regions = _region.split('.');
+
+  const regionStrings = regions.map(x => `%c${x}%c`);
+  const regionStyling = regions.reduce((res) => res.concat(makeRegionStyle(regionColor), ''), []);
+
+  console.log(`%ctopaz%c ${regionStrings.join(' ')}`,
+    makeRegionStyle(modColor).replace('white', 'black'),
+    '',
+
+    ...regionStyling,
+
+    ...args
+  );
+};
+
 if (window.topaz) { // live reload handling
   topaz.__reloading = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
@@ -7,12 +32,19 @@ if (window.topaz) { // live reload handling
   // setTimeout(() => updateOpenSettings(), 1000);
 }
 
+window.topaz = { log };
+
+const Storage = await eval(await (await fetch('http://localhost:1337/src/storage.js')).text());
+
+let pluginsToInstall = JSON.parse(Storage.get('plugins') ?? '{}');
+
 const initStartTime = performance.now();
 
 const sucrase = eval(await (await fetch('http://localhost:1337/src/sucrase.js')).text());
 const grass = await eval(await (await fetch('http://localhost:1337/src/grass.js')).text());
-const Onyx = eval(await (await fetch('http://localhost:1337/src/onyx.js')).text());
 const attrs = eval(await (await fetch('http://localhost:1337/src/attrs.js')).text());
+
+const Onyx = eval(await (await fetch('http://localhost:1337/src/onyx.js')).text());
 const MapGen = eval(await (await fetch('http://localhost:1337/src/mapgen.js')).text());
 Onyx.prototype.MapGen = MapGen; // import mapgen into onyx
 
@@ -226,14 +258,14 @@ class Cache {
   }
 
   load() {
-    const saved = localStorage.getItem(`topaz_cache_${this.id}`);
+    const saved = Storage.get(`cache_${this.id}`);
     if (!saved) return;
 
     this.store = JSON.parse(saved);
   }
 
   save() {
-    localStorage.setItem(`topaz_cache_${this.id}`, JSON.stringify(this.store));
+    Storage.set(`cache_${this.id}`, JSON.stringify(this.store));
   }
 }
 
@@ -390,32 +422,6 @@ ${(await Promise.all(files.map(async x => {
 const getDir = (url) => url.split('/').slice(0, -1).join('/');
 
 // let root;
-
-const log = (_region, ...args) => {
-  const modColor = '253, 218, 13'; // New blurple
-  const regionColor = '114, 137, 218'; // Old blurple
-
-  const fromStr = (str) => str.replace('rgb(', '').replace(')', '').split(', ');
-  const toStr = ([r, g, b]) => `rgb(${r}, ${g}, ${b})`;
-
-  const light = (str, val) => toStr(fromStr(str).map((x) => x * val));
-
-  const makeRegionStyle = (color) => `background-color: rgb(${color}); color: white; border-radius: 4px; border: 2px solid ${light(color, 0.5)}; padding: 3px 6px 3px 6px; font-weight: bold;`;
-
-  const regions = _region.split('.');
-
-  const regionStrings = regions.map(x => `%c${x}%c`);
-  const regionStyling = regions.reduce((res) => res.concat(makeRegionStyle(regionColor), ''), []);
-
-  console.log(`%ctopaz%c ${regionStrings.join(' ')}`,
-    makeRegionStyle(modColor).replace('white', 'black'),
-    '',
-
-    ...regionStyling,
-
-    ...args
-  );
-};
 
 let plugins = {};
 let pending = [];
@@ -993,16 +999,16 @@ ${out}
   return out;
 };
 
-const topazSettings = JSON.parse(localStorage.getItem('topaz_settings') ?? 'null') ?? {
+const topazSettings = JSON.parse(Storage.get('settings') ?? 'null') ?? {
   pluginSettingsSidebar: false,
   simpleUI: false,
   modalPages: false
 };
 
-const savePlugins = () => !topaz.__reloading && localStorage.setItem('topaz_plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
+const savePlugins = () => !topaz.__reloading && Storage.set('plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
 
 const setDisabled = (key, disabled) => {
-  const store = JSON.parse(localStorage.getItem('topaz_disabled') ?? '{}');
+  const store = JSON.parse(Storage.get('disabled') ?? '{}');
 
   if (disabled) {
     store[key] = true;
@@ -1011,7 +1017,7 @@ const setDisabled = (key, disabled) => {
     delete store[key];
   }
 
-  localStorage.setItem('topaz_disabled', JSON.stringify(store));
+  Storage.set('disabled', JSON.stringify(store));
 };
 
 const purgeCacheForPlugin = (info) => {
@@ -1020,17 +1026,18 @@ const purgeCacheForPlugin = (info) => {
 };
 
 const purgePermsForPlugin = (info) => {
-  const store = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}');
+  const store = JSON.parse(Storage.get('permissions') ?? '{}');
 
   store[info] = undefined;
   delete store[info];
 
-  localStorage.setItem('topaz_permissions', JSON.stringify(store));
+  Storage.set('permissions', JSON.stringify(store));
 };
 
 
 window.topaz = {
   settings: topazSettings,
+  storage: Storage,
 
   install: async (info) => {
     const [ manifest ] = await install(info);
@@ -1125,7 +1132,7 @@ window.topaz = {
 log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)}ms`);
 
 (async () => {
-  const disabled = JSON.parse(localStorage.getItem('topaz_disabled') ?? '{}');
+  const disabled = JSON.parse(Storage.get('disabled') ?? '{}');
 
   for (const p in pluginsToInstall) {
     let settings = pluginsToInstall[p];
@@ -1160,8 +1167,8 @@ const startSnippet = async (file, content) => {
 const stopSnippet = (file) => activeSnippets[file]?.();
 
 
-const snippets = JSON.parse(localStorage.getItem('topaz_snippets') ?? '{}');
-const snippetsToggled = JSON.parse(localStorage.getItem('topaz_snippets_toggled') ?? '{}');
+const snippets = JSON.parse(Storage.get('snippets') ?? '{}');
+const snippetsToggled = JSON.parse(Storage.get('snippets_toggled') ?? '{}');
 for (const snippet in snippets) {
   if (snippetsToggled[snippet]) startSnippet(snippet, snippets[snippet]);
 }
@@ -1631,7 +1638,7 @@ class Plugin extends React.PureComponent {
               }
             };
 
-            const givenPermissions = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}')[entityID] ?? {};
+            const givenPermissions = JSON.parse(Storage.get('permissions') ?? '{}')[entityID] ?? {};
 
             const entryClasses = goosemod.webpackModules.findByProps('entryItem');
 
@@ -1651,11 +1658,11 @@ class Plugin extends React.PureComponent {
 
                 onClick: () => {
                   // save permission allowed/denied
-                  const store = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}');
+                  const store = JSON.parse(Storage.get('permissions') ?? '{}');
 
                   store[entityID] = {};
 
-                  localStorage.setItem('topaz_permissions', JSON.stringify(store));
+                  Storage.set('permissions', JSON.stringify(store));
 
                   setTimeout(() => { // reload plugin
                     topaz.reload(entityID);
@@ -1686,12 +1693,12 @@ class Plugin extends React.PureComponent {
                         checked: givenPermissions[perms[category][perm]],
                         onChange: (x) => {
                           // save permission allowed/denied
-                          const store = JSON.parse(localStorage.getItem('topaz_permissions') ?? '{}');
+                          const store = JSON.parse(Storage.get('permissions') ?? '{}');
                           if (!store[entityID]) store[entityID] = {};
 
                           store[entityID][perms[category][perm]] = x;
 
-                          localStorage.setItem('topaz_permissions', JSON.stringify(store));
+                          Storage.set('permissions', JSON.stringify(store));
 
                           setTimeout(() => { // reload plugin
                             topaz.reload(entityID);
@@ -1745,7 +1752,7 @@ class Plugin extends React.PureComponent {
   }
 }
 
-const saveTopazSettings = () => localStorage.setItem('topaz_settings', JSON.stringify(topazSettings));
+const saveTopazSettings = () => Storage.set('settings', JSON.stringify(topazSettings));
 
 class TopazSettings extends React.PureComponent {
   render() {
@@ -1796,8 +1803,8 @@ class Snippets extends React.PureComponent {
     if (_Editor === 'div') setTimeout(() => this.forceUpdate(), 200);
 
     const saveSnippets = () => {
-      localStorage.setItem('topaz_snippets', JSON.stringify(snippets));
-      localStorage.setItem('topaz_snippets_toggled', JSON.stringify(snippetsToggled));
+      Storage.set('snippets', JSON.stringify(snippets));
+      Storage.set('snippets_toggled', JSON.stringify(snippetsToggled));
     };
 
     const updateSnippet = (file, content) => {
