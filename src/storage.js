@@ -2,8 +2,18 @@
 const startTime = performance.now();
 const dbReq = indexedDB.open('topaz');
 
-const getTrans = () => db.transaction([ 'store' ], 'readwrite').objectStore('store');
-const save = () => getTrans().put(store, 'store').onsuccess = e => topaz.log('storage', 'db saved');
+const makeTrans = () => db.transaction([ 'store' ], 'readwrite').objectStore('store');
+
+const debounce = (handler, timeout) => {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => handler(...args), timeout);
+  };
+};
+
+const save = debounce(() => makeTrans().put(store, 'store').onsuccess = e => topaz.log('storage', 'db saved'), 1000);
+
 
 let db;
 const store = await new Promise(res => {
@@ -13,7 +23,7 @@ const store = await new Promise(res => {
     topaz.log('storage', 'opened db');
 
     try {
-      getTrans().get('store').onsuccess = e => {
+      makeTrans().get('store').onsuccess = e => {
         res(e.target.result);
       };
     } catch (e) {
@@ -70,6 +80,7 @@ const Storage = {
 Storage.setItem = Storage.set;
 Storage.getItem = Storage.get;
 Storage.deleteItem = Storage.delete;
+
 
 topaz.log('storage', `loaded ${Object.keys(store).length} keys in ${(performance.now() - startTime).toFixed(2)}ms`);
 
