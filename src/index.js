@@ -126,7 +126,7 @@ const transformCSS = async (root, code, skipTransform = false, updateProgress = 
   const builtins = [ 'hsla', 'hsl', 'rgb', 'rgba' ];
   for (const x of builtins) newCode = newCode.replaceAll(x, '_' + x);
 
-  if (!skipTransform) newCode = grass(newCode, { style: '', quiet: true, load_paths: [''] });
+  if (!skipTransform) newCode = grass(newCode, { style: 'expanded', quiet: true, load_paths: [''] });
 
   for (const x of builtins) newCode = newCode.replaceAll('_' + x, x);
 
