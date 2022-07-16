@@ -324,7 +324,9 @@ const makeChunk = async (root, p) => {
   }
 
   const joined = (root + '/' + p).replace(transformRoot, '');
-  const resPath = builtins[p] ? p : resolvePath(joined).slice(1);
+  let resPath = builtins[p] ? p : resolvePath(joined).slice(1);
+  if (builtins[p + '/']) resPath = p.slice(0, -1);
+
   const resolved = await resolveFileFromTree(resPath);
   console.log('CHUNK', genId(resPath), '|', root.replace(transformRoot, ''), p, '|', joined, resPath, resolved);
 
