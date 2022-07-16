@@ -1852,7 +1852,70 @@ class TopazSettings extends React.PureComponent {
           fetchCache.purge();
           finalCache.purge();
         }
-      })
+      }),
+
+      React.createElement(Header, {
+        text: 'Backup',
+      }),
+
+      React.createElement(TextAndButton, {
+        text: 'Download Backup',
+        subtext: 'Download a backup file of your Topaz plugins, themes, and settings',
+        buttonText: 'Download',
+
+        onclick: () => {
+          const toSave = JSON.stringify(topaz.storage.keys().filter(x => !x.startsWith('cache_')).reduce((acc, x) => {
+            acc[x] = topaz.storage.get(x);
+            return acc;
+          }, {}));
+
+          const el = document.createElement("a");
+          el.style.display = 'none';
+
+          const file = new Blob([ toSave ], { type: 'application/json' });
+
+          el.href = URL.createObjectURL(file);
+          el.download = `topaz_backup.json`;
+
+          document.body.appendChild(el);
+
+          el.click();
+          el.remove();
+        }
+      }),
+
+      React.createElement(TextAndButton, {
+        text: 'Restore Backup',
+        subtext: 'Restores your Topaz setup from a backup file. **Only load backups you trust**',
+        buttonText: 'Restore',
+
+        onclick: async () => {
+          const el = document.createElement('input');
+          el.style.display = 'none';
+          el.type = 'file';
+
+          el.click();
+
+          await new Promise(res => { el.onchange = () => res(); });
+
+          const file = el.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+
+          reader.onload = () => {
+            const obj = JSON.parse(reader.result);
+
+            for (const k in obj) {
+              topaz.storage.set(k, obj[k]);
+            }
+
+            location.reload();
+          };
+
+          reader.readAsText(file);
+        }
+      }),
     )
   }
 }
