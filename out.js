@@ -4660,6 +4660,11 @@ const getCode = async (root, p, ...backups) => {
 
 const genId = (p) => `__topaz_${p.replace(transformRoot, '').replaceAll('./', '/').replace(/[^A-Za-z0-9]/g, '_').split('.')[0]}`;
 
+const autoImportReact = (code) => { // auto import react for jsx if not imported
+  if (!code.match(/^(import|const) [^;]*?React[, ].*?$/gm)) code = `import React from 'react';\n${code}`;
+  return code;
+};
+
 const makeChunk = async (root, p) => {
   // console.log('makeChunk', p);
 
@@ -4681,7 +4686,7 @@ const makeChunk = async (root, p) => {
   let code = await getCode(transformRoot, finalPath, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
   // if (!builtins[p]) code = await includeRequires(join(transformRoot, finalPath), code);
 
-  if (finalPath.endsWith('sx') && !code.match(/^(import|const) .*React[, ].*$/gm)) code = `import React from 'react';\n${code}`; // auto import react for jsx if not imported
+  if (finalPath.endsWith('sx')) autoImportReact(code);
 
   code = await includeRequires(join(transformRoot, finalPath), code);
   const id = genId(resPath);
@@ -5347,7 +5352,7 @@ const transform = async (path, code, mod) => {
 
   transformRoot = path.split('/').slice(0, -1).join('/');
 
-  if (path.endsWith('sx') && !code.match(/^(import|const) .*React[, ].*$/gm)) code = `import React from 'react';\n${code}`; // auto import react for jsx if not imported
+  if (path.endsWith('sx')) autoImportReact(code);
 
   let indexCode = await includeRequires(path, code);
 
