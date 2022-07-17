@@ -3,6 +3,14 @@ let powercord;
 (() => {
 const { React, Flux, FluxDispatcher } = goosemod.webpackModules.common;
 
+const fluxPrefix = 'topaz_pc_settings_' + __entityID.replace(/[^A-Za-z0-9]/g, '_');
+const FluxActions = {
+  UPDATE_SETTINGS: fluxPrefix + '_update_settings',
+  TOGGLE_SETTING: fluxPrefix + '_toggle_setting',
+  UPDATE_SETTING: fluxPrefix + '_update_setting',
+  DELETE_SETTING: fluxPrefix + '_delete_setting',
+};
+
 class SettingsStore extends Flux.Store {
   constructor (Dispatcher, handlers) {
     super(Dispatcher, handlers);
@@ -40,30 +48,41 @@ class SettingsStore extends Flux.Store {
   set = this.updateSetting
   delete = this.deleteSetting
 
-  // not flux but yes
   connectStore = connectStore
 }
 
-const connectStore = (comp) => class ConnectWrap extends React.PureComponent {
-  render() {
-    const props = this.props;
-    delete props.children;
+const connectStore = (comp) => Flux.connectStores([ settingStore ], () => ({
+  settings: settingStore.store,
+  getSetting: settingStore.getSetting,
 
-    return React.createElement(comp, {
-      ...props,
-      getSetting: settingStore.getSetting,
-      updateSetting: settingStore.updateSetting,
-      toggleSetting: settingStore.toggleSetting,
-      deleteSetting: settingStore.deleteSetting,
-    }, this.props.children)
+  updateSetting: (setting, value) => {
+    FluxDispatcher.dispatch({
+      type: FluxActions.UPDATE_SETTING,
+      setting,
+      value
+    });
+  },
+
+  toggleSetting: (setting, defaultValue) => {
+    FluxDispatcher.dispatch({
+      type: FluxActions.TOGGLE_SETTING,
+      setting,
+      defaultValue
+    });
+  },
+
+  deleteSetting: (setting) => {
+    FluxDispatcher.dispatch({
+      type: FluxActions.DELETE_SETTING,
+      setting
+    });
   }
-};
+}))(comp);
 
-const settingStore = new SettingsStore(FluxDispatcher, {
-  POWERCORD_SETTINGS_UPDATE: ({ category, settings }) => updateSettings(category, settings),
-  POWERCORD_SETTING_TOGGLE: ({ category, setting, defaultValue }) => toggleSetting(category, setting, defaultValue),
-  POWERCORD_SETTING_UPDATE: ({ category, setting, value }) => updateSetting(category, setting, value),
-  POWERCORD_SETTING_DELETE: ({ category, setting }) => deleteSetting(category, setting)
+const settingStore = new SettingsStore(FluxDispatcher, { // always return true to update properly
+  [FluxActions.TOGGLE_SETTING]: ({ setting, defaultValue }) => settingStore.toggleSetting(setting, defaultValue) || true,
+  [FluxActions.UPDATE_SETTING]: ({ setting, value }) => settingStore.updateSetting(setting, value) || true,
+  [FluxActions.DELETE_SETTING]: ({ setting }) => settingStore.deleteSetting(setting) || true
 });
 
 const settingsUnpatch = {};
@@ -164,7 +183,9 @@ powercord = {
 
         if (!SettingsView) return;
 
-        topaz.internal.registerSettings(__entityID, { render, props: { ...settingStore } });
+        topaz.internal.registerSettings(__entityID, {
+          render: connectStore(render)
+        });
 
         settingsUnpatch[id] = goosemod.patcher.patch(SettingsView.prototype, 'getPredicateSections', (_, sections) => {
           const logout = sections.find((c) => c.section === 'logout');

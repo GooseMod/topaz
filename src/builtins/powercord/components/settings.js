@@ -54,19 +54,7 @@ class FormItem extends React.PureComponent {
 }
 
 module.exports = {
-  SwitchItem: class SwitchItemContainer extends React.PureComponent {
-    render() {
-      return React.createElement(OriginalSwitchItem, {
-        ...this.props,
-        onChange: (e) => {
-          this.props.onChange(e);
-
-          this.props.value = e;
-          this.forceUpdate();
-        }
-      }, this.props.children);
-    }
-  },
+  SwitchItem: OriginalSwitchItem,
 
   TextInput: class TextInput extends React.PureComponent {
     render() {
@@ -136,13 +124,7 @@ module.exports = {
         },
 
         React.createElement(OriginalRadioGroup, {
-          ...this.props,
-          onChange: (e) => {
-            this.props.onChange(e);
-
-            this.props.value = e.value;
-            this.forceUpdate();
-          }
+          ...this.props
         })
       );
     }
