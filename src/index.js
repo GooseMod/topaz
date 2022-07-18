@@ -1616,7 +1616,7 @@ class Plugin extends React.PureComponent {
       },
         settings ? React.createElement(PanelButton, {
           icon: goosemod.webpackModules.findByDisplayName('Gear'),
-          tooltipText: 'Open Settings',
+          tooltipText: 'Settings',
           onClick: () => {
             openSub(manifest.name, 'settings', React.createElement(settings.render, settings.props ?? {}));
           }
@@ -2101,6 +2101,7 @@ class Settings extends React.PureComponent {
       if (tmpEl && !tmpEl.placeholder) textInputHandler('', true);
     }, 10);
 
+    const modules = Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme);
 
     return React.createElement('div', {
       className: 'topaz-settings' + (topazSettings.simpleUI ? ' topaz-simple' : '')
@@ -2193,11 +2194,37 @@ class Settings extends React.PureComponent {
         React.createElement(FormTitle, {
           tag: 'h5',
           className: Margins.marginBottom8,
-        }, 'Installed'),
+        },
+          modules.length + ' Installed',
+
+          React.createElement(PanelButton, {
+            icon: goosemod.webpackModules.findByDisplayName('Trash'),
+            tooltipText: 'Uninstall All',
+            onClick: async () => {
+              if (!(await goosemod.confirmDialog('Uninstall', 'Uninstall All ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes'), 'Are you sure you want to uninstall all ' + (selectedTab === 'PLUGINS' ? 'plugins' : 'themes') + ' from Topaz?'))) return;
+              for (const x of modules) topaz.uninstall(x.__entityID);
+            }
+          }),
+
+          React.createElement(PanelButton, {
+            icon: goosemod.webpackModules.findByDisplayName('Copy'),
+            tooltipText: 'Copy All',
+            onClick: async () => {
+              const links = modules.map(({ __entityID }) => {
+                let link = __entityID.includes('http') ? __entityID : `https://github.com/${__entityID}`;
+                if (link.includes('raw.githubusercontent.com')) link = 'https://github.com/' + [...link.split('/').slice(3, 5), 'blob', ...link.split('/').slice(5)].join('/'); // raw github links -> normal
+
+                return link;
+              });
+
+              goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy').copy(links.join('\n'));
+            }
+          }),
+        ),
 
         React.createElement(Divider),
 
-        ...Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme).map(({ entityID, __enabled, manifest, __entityID, __settings, __mod, __theme }) => React.createElement(Plugin, {
+        ...modules.map(({ entityID, __enabled, manifest, __entityID, __settings, __mod, __theme }) => React.createElement(Plugin, {
           manifest,
           entityID: __entityID,
           enabled: __enabled,

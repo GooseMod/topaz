@@ -102,8 +102,8 @@
   gap: 4px;
 }
 
-.topaz-plugin-icons [aria-label="Uninstall"]:hover,
-.topaz-plugin-icons [aria-label="Fresh Reinstall"]:hover {
+.topaz-settings button[aria-label^="Uninstall"]:hover,
+.topaz-settings button[aria-label^="Reinstall"]:hover {
   background: hsla(359,calc(var(--saturation-factor, 1)*82.6%),59.4%,0.6);
 }
 
@@ -210,6 +210,13 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 .topaz-settings h5 + .dividerDefault-3C2-ws {
   margin-top: 0;
   margin-bottom: 20px;
+}
+
+.topaz-settings > h5:nth-child(3) button {
+  float: right;
+  width: 28px;
+  top: -6px;
+  height: 28px;
 }
 
 
