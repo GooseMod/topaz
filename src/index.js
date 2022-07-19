@@ -2197,16 +2197,16 @@ class Settings extends React.PureComponent {
         },
           modules.length + ' Installed',
 
-          React.createElement(PanelButton, {
+          modules.length > 0 ? React.createElement(PanelButton, {
             icon: goosemod.webpackModules.findByDisplayName('Trash'),
             tooltipText: 'Uninstall All',
             onClick: async () => {
               if (!(await goosemod.confirmDialog('Uninstall', 'Uninstall All ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes'), 'Are you sure you want to uninstall all ' + (selectedTab === 'PLUGINS' ? 'plugins' : 'themes') + ' from Topaz?'))) return;
               for (const x of modules) topaz.uninstall(x.__entityID);
             }
-          }),
+          }) : null,
 
-          React.createElement(PanelButton, {
+          modules.length > 0 ? React.createElement(PanelButton, {
             icon: goosemod.webpackModules.findByDisplayName('Copy'),
             tooltipText: 'Copy All',
             onClick: async () => {
@@ -2219,7 +2219,7 @@ class Settings extends React.PureComponent {
 
               goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy').copy(links.join('\n'));
             }
-          }),
+          }) : null,
         ),
 
         React.createElement(Divider),
