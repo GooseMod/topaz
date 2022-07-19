@@ -33,7 +33,7 @@ if (window.topaz) { // live reload handling
 }
 
 window.topaz = {
-  version: 'alpha 7',
+  version: 'alpha 8',
   log
 };
 
@@ -125,43 +125,26 @@ return Storage; // eval export
 
 const openChangelog = async () => eval(`const sleep = x => new Promise(res => setTimeout(res, x));
 
-let body = \`__Bundler | JS__
-- Auto import React for JSX files which don't themselves
-- Add \\\`X as Y\\\` ESM import support
-- Add CSS import support
-- Fix ESM imports sometimes not working
-- Fix not using subdirs in some mods
-- Rewrite fetching progress to not include builtins and repeated files
-- Fix missing builtin warning not triggering when it should
-- Clear last error on start
-
-__Bundler | CSS__
-- Rewrite theme detection
-- Use \\\`expanded\\\` style for Grass to not minify and fix bugs
+let body = \`__Settings__
+- Add backup system
+- Add Purge Caches button
+- Rewrite to use more Discord components than GMs
 
 __UI__
-- Add changelog modal
-- Add changelog button in tabbar
+- Add quick actions to Plugins and Themes
 
-__Storage__
-- Rewrite all storage usage to use new custom API using IndexedDB
+__Snippets__
+- Add Snippets Library (early/WIP)
+- Tweak UI
 
-__Enmity__
-- Add initial plugin support
+__Bundler | JS__
+- Fix purging fetch cache on uninstall
+- Add support for builtins ending in /
+- Rewrite React auto importing for JSX
 
-__Cumcord__
-- Add alias for modules.webpackModules
-- Add support for exported functions instead of objects
-- Add Utils
-- Add more to Webpack
-- Add more to Patcher
-- Add support for GitHub links to builds
-- Add mock plugin data
-- Add more exports
-
-__Popular__
-- Add newly working
-- Add Enmity plugin support\`;
+__Powercord__
+- Settings: Rewrite to use Flux
+- Components: Add Menu export\`;
 let bodySplit = body.split('\\n');
 
 let categoryAssign = {
@@ -1383,6 +1366,95 @@ setTimeout(() => setTheme(editorSettings.theme), 500);
 const focus_enlarge = () => document.body.classList.add('topaz-editor-focus');
 const focus_revert = () => document.body.classList.remove('topaz-editor-focus');
 
+const langToImg = (lang, size = 24) => {
+  let img, props = {};
+
+  switch (lang) {
+    case 'js':
+      img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/javascript.svg';
+      break;
+
+    case 'jsx':
+      img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/react.svg';
+      props.style = { filter: 'hue-rotate(220deg) brightness(1.5)' }; // HS yellow
+      break;
+
+    case 'ts':
+      img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/typescript.svg';
+      break;
+
+    case 'tsx':
+      img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/react.svg';
+      props.style = { filter: 'hue-rotate(20deg) brightness(1.5)' }; // TS blue
+      break;
+
+    case 'css':
+      img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/css.svg';
+      break;
+
+    case 'scss':
+      img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/sass.svg';
+      break;
+  }
+
+  return React.createElement('img', {
+    src: img,
+    ...props,
+
+    width: size,
+    height: size
+  });
+};
+
+const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
+const FormText = goosemod.webpackModules.findByDisplayName('FormText');
+const LegacyHeader = goosemod.webpackModules.findByDisplayName('LegacyHeader');
+const ModalStuff = goosemod.webpackModules.findByProps('ModalRoot');
+const { openModal } = goosemod.webpackModules.findByProps('openModal', 'updateModal');
+const Flex = goosemod.webpackModules.findByDisplayName('Flex');
+const Markdown = goosemod.webpackModules.find((x) => x.displayName === 'Markdown' && x.rules);
+const Button = goosemod.webpackModules.findByProps('Sizes', 'Colors', 'Looks', 'DropdownSizes');
+
+const makeModal = (header, content, entireCustom) => {
+  openModal((e) => {
+    return React.createElement(ModalStuff.ModalRoot, {
+      transitionState: e.transitionState,
+      size: 'large'
+    },
+      entireCustom ? React.createElement(entireCustom, e, null) : React.createElement(ModalStuff.ModalHeader, {},
+        React.createElement(Flex.Child, {
+          basis: 'auto',
+          grow: 1,
+          shrink: 1,
+          wrap: false,
+        },
+          React.createElement(LegacyHeader, {
+            tag: 'h2',
+            size: LegacyHeader.Sizes.SIZE_20,
+            className: 'topaz-modal-header'
+          }, header)
+        ),
+        React.createElement('FlexChild', {
+          basis: 'auto',
+          grow: 0,
+          shrink: 1,
+          wrap: false
+        },
+          React.createElement(ModalStuff.ModalCloseButton, {
+            onClick: e.onClose
+          })
+        )
+      ),
+
+      entireCustom ? null : React.createElement(ModalStuff.ModalContent, {
+        className: \`topaz-modal-content\`
+      },
+        content
+      )
+    )
+  });
+};
+
 
 const selections = {};
 
@@ -1431,46 +1503,6 @@ return function Editor(props) {
   }
 
   const openExt = openFile.split('.').pop();
-
-  const langToImg = (lang, size = 24) => {
-    let img, props = {};
-
-    switch (lang) {
-      case 'js':
-        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/javascript.svg';
-        break;
-
-      case 'jsx':
-        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/react.svg';
-        props.style = { filter: 'hue-rotate(220deg) brightness(1.5)' }; // HS yellow
-        break;
-
-      case 'ts':
-        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/typescript.svg';
-        break;
-
-      case 'tsx':
-        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/react.svg';
-        props.style = { filter: 'hue-rotate(20deg) brightness(1.5)' }; // TS blue
-        break;
-
-      case 'css':
-        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/css.svg';
-        break;
-
-      case 'scss':
-        img = 'https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/sass.svg';
-        break;
-    }
-
-    return React.createElement('img', {
-      src: img,
-      ...props,
-
-      width: size,
-      height: size
-    });
-  };
 
   console.log('render', files, defaultFile, openFile, files[openFile] === undefined, openExt);
 
@@ -1584,6 +1616,7 @@ return function Editor(props) {
       }, React.createElement(PanelButton, {
         icon: goosemod.webpackModules.findByDisplayName('PlusAlt'),
         tooltipText: 'New',
+        tooltipClassName: plugin.entityID !== 'snippets' ? '' : (goosemod.webpackModules.findByProps('tooltipBottom').tooltipBottom + ' topaz-snippets-tooltip-bottom'),
         onClick: () => {
           const name = fileIcons ? '.css' : '';
 
@@ -1597,6 +1630,334 @@ return function Editor(props) {
         }
       })),
 
+      plugin.entityID !== 'snippets' ? null : React.createElement(TabBar.Item, {
+        id: '#library',
+
+        className: TabBarClasses2.item
+      }, React.createElement(PanelButton, {
+        icon: goosemod.webpackModules.findByDisplayName('Library'),
+        tooltipText: 'Library',
+        tooltipClassName: goosemod.webpackModules.findByProps('tooltipBottom').tooltipBottom + ' topaz-snippets-tooltip-bottom',
+        onClick: async () => {
+          let selectedItem = 'CSS';
+
+          const { fetchMessages } = goosemod.webpackModules.findByProps('fetchMessages', 'sendMessage');
+          const { getRawMessages } = goosemod.webpackModules.findByProps('getMessages');
+          const { getChannel, hasChannel } = goosemod.webpackModules.findByProps('getChannel', 'getDMFromUserId');
+
+          const channels = [
+            '755005803303403570',
+            '836694789898109009',
+            '449569809613717518'
+          ];
+
+          const getSnippets = async (channelId) => {
+            if (!hasChannel(channelId)) return;
+
+            await fetchMessages({ channelId }); // Load messages
+
+            const channel = getChannel(channelId);
+            const messages = Object.values(getRawMessages(channelId)).filter(x => x.content.includes('\\\`\\\`\\\`css') && // Make sure it has CSS codeblock
+              !x.message_reference && // Exclude replies
+              !x.content.toLowerCase().includes('quick css') && // Exclude PC / BD specific snippets
+              !x.content.toLowerCase().includes('plugin') &&
+              !x.content.toLowerCase().includes('powercord') && !x.content.toLowerCase().includes('betterdiscord') &&
+              !x.content.toLowerCase().includes('fix') && !x.content.toLowerCase().includes('bother') &&
+              (x.attachments.length > 0 || x.embeds.length > 0)
+            );
+
+            for (let i = messages.length - 1; i > 0; i--) { // shuffle
+              const j = Math.floor(Math.random() * (i + 1));
+              [messages[i], messages[j]] = [messages[j], messages[i]];
+            }
+
+            return { channel, messages };
+          };
+
+          const channelSnippets = await Promise.all(channels.map(x => getSnippets(x)));
+
+          const makeBuiltin = ({ title, desc, preview, author, css }) => {
+            return {
+              attachments: [ {
+                proxy_url: preview,
+                type: 'image'
+              } ],
+              author,
+
+              content: \`\${title}\\n\${desc}\\n\\\`\\\`\\\`css\\n\${css}\\\`\\\`\\\`\`
+            }
+          };
+
+          const builtinSnippets = [ {
+            channel: null,
+            messages: [
+              {
+                title: 'Custom Font',
+                desc: 'Choose a custom font (locally installed) for Discord, edit to change',
+                preview: '',
+                author: {
+                  id: '506482395269169153',
+                  avatar: '256174d9f90e1c70c5602ef28efd74ab',
+                  username: 'Ducko'
+                },
+                css: \`body {
+  --font-primary: normal font name;
+  --font-display: header font name;
+  --font-headline: header font name;
+  --font-code: code font name;
+}
+
+code { /* Fix code font variable not being used in some places */
+  font-family: var(--font-code);
+}\`
+              },
+              {
+                title: 'Custom Home Icon',
+                desc: 'Choose a custom home icon (top left Discord icon), edit to change',
+                preview: 'https://i.imgur.com/6zSmFRU.png',
+                author: {
+                  id: '506482395269169153',
+                  avatar: '256174d9f90e1c70c5602ef28efd74ab',
+                  username: 'Ducko'
+                },
+                css: \`[class^="homeIcon"] path {
+  fill: none;
+}
+
+[class^="homeIcon"] {
+  background: url(IMAGE_URL_HERE) center/cover no-repeat;
+  width: 48px;
+  height: 48px;
+}\`
+              },
+              {
+                title: 'Hide Public Badge',
+                desc: 'Hides the public badge in server headers',
+                preview: '',
+                author: {
+                  id: '506482395269169153',
+                  avatar: '256174d9f90e1c70c5602ef28efd74ab',
+                  username: 'Ducko'
+                },
+                css: \`[class^="communityInfoContainer"] {
+  display: none;
+}\`
+              },
+              {
+                title: 'Hide Help Button',
+                desc: 'Hides the help button (top right)',
+                preview: '',
+                author: {
+                  id: '506482395269169153',
+                  avatar: '256174d9f90e1c70c5602ef28efd74ab',
+                  username: 'Ducko'
+                },
+                css: \`[class^="toolbar"] a[href="https://support.discord.com/"] {
+  display: none;
+}\`
+              }
+            ].map(x => makeBuiltin(x))
+          } ];
+
+          const snippets = channelSnippets.concat(builtinSnippets);
+
+          class Snippet extends React.PureComponent {
+            render() {
+              const attach = this.props.attachments[this.props.attachments.length - 1] ?? this.props.embeds[this.props.embeds.length - 1];
+              // if (!attach) return null;
+
+              let title = this.props.content.split('\\n')[0].replaceAll('**', '').replaceAll('__', '').replace(':', '').split('.')[0].split(' (')[0].split('!')[0];
+              let content = this.props.content;
+
+              content = content.replaceAll('Preview: ', '').replaceAll('Previews: ', '').replaceAll(', instead:', '');
+
+              if (title.length < 50 && !title.includes('\`\`\`')) {
+                const cap = (str, spl) => str.split(spl).map(x => (x[0] ?? '').toUpperCase() + x.slice(1)).join(spl);
+                title = cap(cap(title, ' '), '/').replace(/https\\:\\/\\/.*?( |\\n|\$)/gi, '');
+                title = title.replace('Adds A', '').replace('Adds ', '').replace('Make ', '');
+                content = content.split('\\n').slice(1).join('\\n');
+              } else {
+                title = '';
+              }
+
+              content = content.replace(/\`\`\`css(.*)\`\`\`/gs, '').replace(/https\\:\\/\\/.*?( |\\n|\$)/gi, '');
+
+              if (this.props._title) title = this.props._title;
+              if (this.props._content) content = this.props._content;
+
+              if (!title || title.length < 8) return null;
+
+              content = content.split('\\n').filter(x => x)[0] ?? '';
+              if (content.includes('other snippets')) content = '';
+              if (content) content = content[0].toUpperCase() + content.slice(1);
+
+              const code = /\`\`\`css(.*)\`\`\`/s.exec(this.props.content)[1].trim();
+              const file = title.split(' ').slice(0, 3).join('') + '.css';
+
+              if (files[file]) return null;
+
+              return React.createElement('div', {
+                className: 'topaz-snippet'
+              },
+                attach ? React.createElement(((attach.type ?? attach.content_type).startsWith('video') || (attach.type ?? attach.content_type).startsWith('gifv')) ? 'video' : 'img', {
+                  src: attach?.video?.proxy_url || attach.proxy_url || attach.thumbnail?.proxy_url || 'data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=',
+                  autoPlay: true,
+                  muted: true,
+                  loop: true
+                }) : null,
+
+                React.createElement(LegacyHeader, {
+                  tag: 'h2',
+                  size: LegacyHeader.Sizes.SIZE_20
+                },
+                  React.createElement('span', {}, title),
+
+                  React.createElement('div', {
+
+                  },
+                    React.createElement('img', {
+                      src: \`https://cdn.discordapp.com/avatars/\${this.props.author.id}/\${this.props.author.avatar}.webp?size=24\`
+                    }),
+
+                    React.createElement('span', {}, this.props.author.username)
+                  ),
+                ),
+
+                React.createElement(FormText, {
+                  type: 'description'
+                },
+                  React.createElement(Markdown, {}, content)
+                ),
+
+                React.createElement('div', {},
+                  React.createElement(Button, {
+                    color: Button.Colors.BRAND,
+                    look: Button.Looks.FILLED,
+
+                    size: Button.Sizes.SMALL,
+
+                    onClick: () => {
+                      props.onChange(file, code);
+                      setOpenFile(file);
+                      this.forceUpdate();
+                    }
+                  }, 'Add'),
+
+                  this.props.channel ? React.createElement(goosemod.webpackModules.findByDisplayName('Tooltip'), {
+                    text: 'Jump to Message',
+                    position: 'top'
+                  }, ({ onMouseLeave, onMouseEnter }) => React.createElement(Button, {
+                    color: Button.Colors.PRIMARY,
+                    size: Button.Sizes.SMALL,
+
+                    onMouseEnter,
+                    onMouseLeave,
+
+                    onClick: () => {
+                      const { transitionTo } = goosemod.webpackModules.findByProps('transitionTo');
+                      const { jumpToMessage } = goosemod.webpackModules.findByProps('jumpToMessage');
+
+                      this.props.onClose();
+                      document.querySelector('.closeButton-PCZcma').click();
+
+                      transitionTo(\`/channels/\${this.props.channel.guild_id}/\${this.props.channel.id}\`);
+                      jumpToMessage({ channelId: this.props.channel.id, messageId: this.props.id, flash: true });
+                    }
+                  },
+                    React.createElement(goosemod.webpackModules.findByDisplayName('Reply'), {
+                      width: '24',
+                      height: '24',
+                    })
+                  )) : null
+                )
+              )
+            }
+          }
+
+          class SnippetsLibrary extends React.PureComponent {
+            render() {
+              return [
+                React.createElement(ModalStuff.ModalHeader, {},
+                  React.createElement(Flex.Child, {
+                    basis: 'auto',
+                    grow: 1,
+                    shrink: 1,
+                    wrap: false,
+                  },
+                    React.createElement(LegacyHeader, {
+                      tag: 'h2',
+                      size: LegacyHeader.Sizes.SIZE_20,
+                      className: 'topaz-snippets-library-header'
+                    },
+                      'Snippets Library',
+
+                      React.createElement(TabBar, {
+                        selectedItem,
+
+                        type: TabBarClasses1.topPill,
+                        className: [ TabBarClasses2.tabBar],
+
+                        onItemSelect: (x) => {
+                          selectedItem = x;
+                          this.forceUpdate();
+                        }
+                      },
+                        React.createElement(TabBar.Item, {
+                          id: 'CSS'
+                        }, 'CSS'),
+                        /* React.createElement(TabBar.Item, {
+                          id: 'CHANNELS',
+
+                          className: TabBarClasses2.item
+                        }, 'Your Channels'),
+
+                        React.createElement(TabBar.Item, {
+                          id: 'COMMON',
+
+                          className: TabBarClasses2.item
+                        }, 'Common'), */
+
+                        /* React.createElement(TabBar.Item, {
+                          id: 'SOURCES',
+
+                          className: TabBarClasses2.item
+                        }, 'Sources'), */
+                      )
+                    )
+                  ),
+                  React.createElement('FlexChild', {
+                    basis: 'auto',
+                    grow: 0,
+                    shrink: 1,
+                    wrap: false
+                  },
+                    React.createElement(ModalStuff.ModalCloseButton, {
+                      onClick: this.props.onClose
+                    })
+                  )
+                ),
+
+                React.createElement(ModalStuff.ModalContent, {
+                  className: \`topaz-modal-content\`
+                },
+                  React.createElement('div', {
+                    className: 'topaz-snippet-container'
+                  },
+                    snippets.reduce((acc, x) => acc.concat(x.messages.map(y => React.createElement(Snippet, {
+                      ...y,
+                      channel: x.channel,
+                      onClose: this.props.onClose
+                    }))), [])
+                  )
+                )
+              ];
+            }
+          }
+
+          makeModal(null, null, SnippetsLibrary);
+        }
+      })),
+
       React.createElement(TabBar.Item, {
         id: '#settings',
 
@@ -1605,77 +1966,37 @@ return function Editor(props) {
         icon: goosemod.webpackModules.findByDisplayName('Gear'),
         tooltipText: 'Editor Settings',
         onClick: async () => {
-          const LegacyHeader = goosemod.webpackModules.findByDisplayName('LegacyHeader');
-          const ModalStuff = goosemod.webpackModules.findByProps('ModalRoot');
-          const { openModal } = goosemod.webpackModules.findByProps('openModal', 'updateModal');
-          const Flex = goosemod.webpackModules.findByDisplayName('Flex');
-
-          const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
-
           const titleCase = (str) => str.split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
-          openModal((e) => {
-            return React.createElement(ModalStuff.ModalRoot, {
-              transitionState: e.transitionState,
-              size: 'large'
-            },
-              React.createElement(ModalStuff.ModalHeader, {},
-                React.createElement(Flex.Child, {
-                  basis: 'auto',
-                  grow: 1,
-                  shrink: 1,
-                  wrap: false,
-                },
-                  React.createElement(LegacyHeader, {
-                    tag: 'h2',
-                    size: LegacyHeader.Sizes.SIZE_20,
-                  }, 'Editor Settings')
-                ),
-                React.createElement('FlexChild', {
-                  basis: 'auto',
-                  grow: 0,
-                  shrink: 1,
-                  wrap: false
-                },
-                  React.createElement(ModalStuff.ModalCloseButton, {
-                    onClick: e.onClose
-                  })
-                )
-              ),
+          makeModal('Editor Settings', [
+            React.createElement(SwitchItem, {
+              note: 'Enlarges settings content for larger editor',
+              value: editorSettings.focusMode,
+              onChange: x => {
+                editorSettings.focusMode = x;
+                saveEditorSettings();
 
-              React.createElement(ModalStuff.ModalContent, {
-                className: \`topaz-modal-content\`
+                if (x) focus_enlarge();
+                  else focus_revert();
+              }
+            }, 'Focus Mode'),
+
+            React.createElement(FormTitle, {
+              tag: 'h5'
+            }, 'Theme'),
+
+            React.createElement(SingleSelect, {
+              onChange: x => {
+                setTheme(x);
+                saveEditorSettings();
               },
-                React.createElement(SwitchItem, {
-                  note: 'Enlarges settings content for larger editor',
-                  value: editorSettings.focusMode,
-                  onChange: x => {
-                    editorSettings.focusMode = x;
-                    saveEditorSettings();
-
-                    if (x) focus_enlarge();
-                      else focus_revert();
-                  }
-                }, 'Focus Mode'),
-
-                React.createElement(FormTitle, {
-                  tag: 'h5'
-                }, 'Theme'),
-
-                React.createElement(SingleSelect, {
-                  onChange: x => {
-                    setTheme(x);
-                    saveEditorSettings();
-                  },
-                  options: [ 'vs-dark', 'vs-light', 'Dracula', 'Monokai', 'Nord', 'Twilight' ].map(x => ({
-                    label: titleCase(x.replace('vs-', 'VS ')),
-                    value: x
-                  })),
-                  value: editorSettings.theme
-                })
-              )
-            )
-          });
+              options: [ 'vs-dark', 'vs-light', 'Dracula', 'Monokai', 'Nord', 'Twilight' ].map(x => ({
+                label: titleCase(x.replace('vs-', 'VS ')),
+                value: x
+              })),
+              value: editorSettings.theme
+            })
+          ]);
         }
       })),
 
@@ -4689,7 +5010,7 @@ const makeChunk = async (root, p) => {
   let code = await getCode(transformRoot, finalPath, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
   // if (!builtins[p]) code = await includeRequires(join(transformRoot, finalPath), code);
 
-  if (finalPath.endsWith('sx')) autoImportReact(code);
+  if (finalPath.endsWith('sx')) code = autoImportReact(code);
 
   code = await includeRequires(join(transformRoot, finalPath), code);
   const id = genId(resPath);
@@ -5355,7 +5676,7 @@ const transform = async (path, code, mod) => {
 
   transformRoot = path.split('/').slice(0, -1).join('/');
 
-  if (path.endsWith('sx')) autoImportReact(code);
+  if (path.endsWith('sx')) code = autoImportReact(code);
 
   let indexCode = await includeRequires(path, code);
 
@@ -6546,16 +6867,16 @@ class Settings extends React.PureComponent {
         },
           modules.length + ' Installed',
 
-          React.createElement(PanelButton, {
+          modules.length > 0 ? React.createElement(PanelButton, {
             icon: goosemod.webpackModules.findByDisplayName('Trash'),
             tooltipText: 'Uninstall All',
             onClick: async () => {
               if (!(await goosemod.confirmDialog('Uninstall', 'Uninstall All ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes'), 'Are you sure you want to uninstall all ' + (selectedTab === 'PLUGINS' ? 'plugins' : 'themes') + ' from Topaz?'))) return;
               for (const x of modules) topaz.uninstall(x.__entityID);
             }
-          }),
+          }) : null,
 
-          React.createElement(PanelButton, {
+          modules.length > 0 ? React.createElement(PanelButton, {
             icon: goosemod.webpackModules.findByDisplayName('Copy'),
             tooltipText: 'Copy All',
             onClick: async () => {
@@ -6568,7 +6889,7 @@ class Settings extends React.PureComponent {
 
               goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy').copy(links.join('\n'));
             }
-          }),
+          }) : null,
         ),
 
         React.createElement(Divider),
@@ -6892,6 +7213,7 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 
 .topaz-editor-focus .contentColumn-1C7as6.contentColumnDefault-3eyv5o {
   max-width: calc(100vw - 270px);
+  padding-bottom: 0;
 }
 
 .contentColumn-1C7as6.contentColumnDefault-3eyv5o {
@@ -6981,7 +7303,7 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   padding: 3px;
 }
 
-.topaz-editor > [role="tablist"] > [aria-controls^="#new-tab"] {
+.topaz-editor > [role="tablist"] > [aria-controls^="#new-tab"], .topaz-editor > [role="tablist"] > [aria-controls^="#library-tab"] {
   right: unset;
   position: unset;
 
@@ -7126,7 +7448,7 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 .topaz-snippets > .topaz-editor > [role="tablist"] {
   flex-direction: column;
   background: var(--background-secondary-alt);
-  width: 240px !important;
+  width: 260px !important;
 }
 
 .topaz-snippets > .topaz-editor > [role="tablist"] > * {
@@ -7137,6 +7459,7 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 .topaz-snippets > .topaz-editor > [role="tablist"] > :not([aria-controls^="#"]) {
   border-left: 2px solid transparent;
   padding: 8px 4px 8px 16px;
+  border-bottom: 1px solid var(--background-primary) !important;
 }
 
 .topaz-snippets > .topaz-editor > [role="tablist"] > .selected-g-kMVV {
@@ -7145,10 +7468,26 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 
 .topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls^="#"] {
   bottom: 0;
+  border-left: none;
 }
 
 .topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#settings-tab"] {
   border-radius: 8px 0 0 0 !important;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#new-tab"], .topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#library-tab"] {
+  width: 50%;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#new-tab"] button, .topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#library-tab"] button {
+  width: 100%;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#library-tab"] {
+  position: relative;
+  left: 50%;
+  transform: translateY(-100%);
+  border-left: 1px solid var(--background-secondary);
 }
 
 
@@ -7157,7 +7496,7 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 }
 
 .topaz-snippets > .topaz-editor > section {
-  width: calc(100% - 240px) !important;
+  width: calc(100% - 260px) !important;
 }
 
 .topaz-snippets > .topaz-editor > [role="tablist"] .input-2XRLou {
@@ -7193,6 +7532,125 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 
 #topaz-repo-autocomplete.topaz-simple .code-style { /* Hide repos in autocomplete */
   display: none;
+}
+
+.topaz-snippets-tooltip-bottom {
+  transform: translateY(100%) !important;
+  top: 44px;
+}
+
+.topaz-snippets-tooltip-bottom [class^="tooltipPointer"] {
+  top: -10px;
+}
+
+.topaz-snippets-library-header {
+  display: flex;
+}
+
+.topaz-snippets-library-header [role="tablist"] {
+  display: inline-flex;
+  margin-left: 20px;
+  flex-grow: 1;
+  position: relative;
+}
+
+
+.topaz-snippet {
+  box-shadow: var(--elevation-medium);
+  background: var(--background-secondary-alt);
+  padding: 10px;
+  width: 50%;
+  border-radius: 8px;
+
+  position: relative;
+
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.topaz-snippet > :first-child {
+  width: calc(100% + 20px);
+  margin-top: -10px;
+  margin-left: -10px;
+
+  object-fit: contain;
+  background: var(--background-tertiary);
+  height: 200px;
+
+  border-radius: 8px 8px 0 0;
+}
+
+.topaz-snippet h2 {
+  margin: 8px 0;
+
+  font-size: 18px;
+  position: relative;
+}
+
+.topaz-snippet > h2 div {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  border-radius: 20px;
+
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.topaz-snippet > h2 div > img {
+  border-radius: 50%;
+}
+
+.topaz-snippet > h2 div > span {
+  color: var(--header-primary);
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.topaz-snippet > h2 > span {
+  width: 75%;
+  display: inline-block;
+}
+
+.topaz-snippet .paragraph-9M861H {
+  margin-bottom: 0 !important;
+  word-break: break-word;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.topaz-snippet > :last-child {
+  display: flex;
+  gap: 20px;
+
+  margin-top: auto;
+}
+
+.topaz-snippet > :last-child > :last-child:not(:first-child) {
+  padding: 2px 6px;
+  min-width: 0;
+}
+
+.topaz-snippet > :last-child > :last-child:not(:first-child) svg {
+  transform: scaleX(-1);
+}
+
+.topaz-snippet-container {
+  overflow: hidden scroll;
+  padding-right: 8px;
+  display: grid;
+  grid-template-columns: calc(50% - 26px) calc(50% - 26px);
+  gap: 40px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
 }`));
 document.head.appendChild(cssEl);
 

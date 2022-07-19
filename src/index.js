@@ -33,7 +33,7 @@ if (window.topaz) { // live reload handling
 }
 
 window.topaz = {
-  version: 'alpha 7',
+  version: 'alpha 8',
   log
 };
 

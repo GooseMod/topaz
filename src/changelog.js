@@ -1,42 +1,25 @@
 const sleep = x => new Promise(res => setTimeout(res, x));
 
-let body = `__Bundler | JS__
-- Auto import React for JSX files which don't themselves
-- Add \`X as Y\` ESM import support
-- Add CSS import support
-- Fix ESM imports sometimes not working
-- Fix not using subdirs in some mods
-- Rewrite fetching progress to not include builtins and repeated files
-- Fix missing builtin warning not triggering when it should
-- Clear last error on start
-
-__Bundler | CSS__
-- Rewrite theme detection
-- Use \`expanded\` style for Grass to not minify and fix bugs
+let body = `__Settings__
+- Add backup system
+- Add Purge Caches button
+- Rewrite to use more Discord components than GMs
 
 __UI__
-- Add changelog modal
-- Add changelog button in tabbar
+- Add quick actions to Plugins and Themes
 
-__Storage__
-- Rewrite all storage usage to use new custom API using IndexedDB
+__Snippets__
+- Add Snippets Library (early/WIP)
+- Tweak UI
 
-__Enmity__
-- Add initial plugin support
+__Bundler | JS__
+- Fix purging fetch cache on uninstall
+- Add support for builtins ending in /
+- Rewrite React auto importing for JSX
 
-__Cumcord__
-- Add alias for modules.webpackModules
-- Add support for exported functions instead of objects
-- Add Utils
-- Add more to Webpack
-- Add more to Patcher
-- Add support for GitHub links to builds
-- Add mock plugin data
-- Add more exports
-
-__Popular__
-- Add newly working
-- Add Enmity plugin support`;
+__Powercord__
+- Settings: Rewrite to use Flux
+- Components: Add Menu export`;
 let bodySplit = body.split('\n');
 
 let categoryAssign = {
