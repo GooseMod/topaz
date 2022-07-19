@@ -131,7 +131,7 @@ let body = \`__Settings__
 - Rewrite to use more Discord components than GMs
 
 __UI__
-- Add quick actions to Plugins and Themes
+- Add quick actions (Uninstall All, Copy All) to Plugins and Themes
 
 __Snippets__
 - Add Snippets Library (early/WIP)
@@ -157,7 +157,7 @@ let categoryAssign = {
 let changelog = {
   image: '',
   version: topaz.version[0].toUpperCase() + topaz.version.slice(1),
-  date: '2022-07-16',
+  date: '2022-07-19',
 
   body: bodySplit.reduce((acc, x, i) => {
     if (x[0] === '_') {
