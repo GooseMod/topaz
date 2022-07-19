@@ -340,7 +340,7 @@ const makeChunk = async (root, p) => {
   let code = await getCode(transformRoot, finalPath, p.match(/.*\.[a-z]+/) ? null : p + '.jsx', p.includes('.jsx') ? p.replace('.jsx', '.js') : p.replace('.js', '.jsx'));
   // if (!builtins[p]) code = await includeRequires(join(transformRoot, finalPath), code);
 
-  if (finalPath.endsWith('sx')) autoImportReact(code);
+  if (finalPath.endsWith('sx')) code = autoImportReact(code);
 
   code = await includeRequires(join(transformRoot, finalPath), code);
   const id = genId(resPath);
@@ -1006,7 +1006,7 @@ const transform = async (path, code, mod) => {
 
   transformRoot = path.split('/').slice(0, -1).join('/');
 
-  if (path.endsWith('sx')) autoImportReact(code);
+  if (path.endsWith('sx')) code = autoImportReact(code);
 
   let indexCode = await includeRequires(path, code);
 
