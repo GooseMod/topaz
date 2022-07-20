@@ -432,7 +432,7 @@ return function Editor(props) {
             return { channel, messages };
           };
 
-          const channelSnippets = await Promise.all(channels.map(x => getSnippets(x)));
+          const channelSnippets = (await Promise.all(channels.map(x => getSnippets(x)))).filter(x => x);
 
           const makeBuiltin = ({ title, desc, preview, author, css }) => {
             return {
