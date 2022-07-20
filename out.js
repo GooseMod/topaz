@@ -2029,7 +2029,7 @@ code { /* Fix code font variable not being used in some places */
     ) : React.createElement(MonacoEditor, {
       defaultValue: files[openFile],
       defaultLanguage: langs[openExt] ?? openExt,
-      path: plugin.entityID + '_' + openFile,
+      path: (plugin.entityID + '_' + openFile).replace(/[^A-Za-z0-9\\-_ ]/g, ''),
       saveViewState: false,
 
       onMount: editor => editorRef.current = editor,
