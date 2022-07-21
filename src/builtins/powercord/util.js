@@ -12,7 +12,7 @@ module.exports = {
       const el = document.querySelector(query);
       if (el) return el;
 
-      await sleep(5);
+      await sleep(200);
     }
   },
 
