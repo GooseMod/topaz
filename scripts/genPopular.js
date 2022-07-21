@@ -53,6 +53,8 @@ const pc = {
     'Juby210/game-activity-toggle',
     'discord-modifications/force-owner-crown',
     'discord-modifications/quick-delete',
+    'discord-modifications/screenshare-crack',
+    'asportnoy/powercord-role-dividers',
   ],
 
   themes: [
@@ -68,7 +70,6 @@ const pc = {
     'LuckFire/amoled-cord',
     'discord-extensions/essence',
     'slowstab/dracula',
-    'CelestialReaver/Synthwave84',
     'NatesWorld-Projects/Native',
     'SlippingGitty/surCord',
     'kawaiizenbo/OptimalTheme',
@@ -111,6 +112,12 @@ const bd = {
     'https://github.com/Strencher/BetterDiscordStuff/blob/master/PlatformIndicators/APlatformIndicators.plugin.js',
     'https://github.com/Neodymium7/BetterDiscordStuff/blob/main/VoiceActivity/VoiceActivity.plugin.js',
     // 'https://raw.githubusercontent.com/NomadNaomie/BD-Tone-Indicators/main/ToneIndicator.plugin.js',
+  ],
+
+  themes: [
+    'https://github.com/CelestialReaver/BetterDiscord/blob/main/themes/Synthwave84/Synthwave84.theme.css',
+    'https://github.com/codedotspectra/themes/blob/master/themes-files/neutron.theme.css',
+    'https://github.com/codedotspectra/themes/blob/master/themes-files/nocturnal.theme.css',
   ]
 };
 
@@ -411,6 +418,12 @@ const getManifest_em = async (place) => {
 
   for (const place of bd.plugins) {
     plugins.push(getManifest_bd(place.split('|')[0], false).then(manifest => {
+      return [makeId('BD', manifest), place];
+    }));
+  }
+
+  for (const place of bd.themes) {
+    themes.push(getManifest_bd(place.split('|')[0], false).then(manifest => {
       return [makeId('BD', manifest), place];
     }));
   }
