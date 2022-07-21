@@ -1216,6 +1216,8 @@ window.topaz = {
       purgeCacheForPlugin(info);
       purgePermsForPlugin(info);
 
+      topaz.storage.keys().filter(x => x.startsWith(info)).forEach(x => topaz.storage.delete(x)); // remove keys starting with info
+
       savePlugins();
       setDisabled(info, false); // Remove from disabled list
     }

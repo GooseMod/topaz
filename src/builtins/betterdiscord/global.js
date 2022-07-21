@@ -9,7 +9,7 @@ const { React } = Webpack.common;
 
 const i18n = Webpack.findByPropsAll('Messages')[1];
 
-const dataLSId = (id) => 'bd_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
+const dataLSId = (id) => __entityID + '_bd_' + id;
 const bindPatch = (func, unpatch) => func.bind({ unpatch }); // Overriding props in original this, better way?
 
 const makeAddonAPI = (id) => ({
