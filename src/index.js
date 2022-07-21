@@ -594,7 +594,8 @@ const install = async (info, settings = undefined, disabled = false) => {
 
       switch (mod) {
         case 'bd':
-          indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
+          indexURL = join(root, './' + info.split('/').slice(-1)[0]);
+          indexCode = await getCode(root, './' + info.split('/').slice(-1)[0]);
           manifest = [...indexCode.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
           skipTransform = true;
 
@@ -606,6 +607,7 @@ const install = async (info, settings = undefined, disabled = false) => {
           manifest = await (await fetch(join(root, './powercord_manifest.json'))).json();
 
           const main = manifest.theme.replace(/^\.?\//, '');
+          indexURL = join(root, './' + main);
           indexCode = await getCode(root, './' + main);
           root = getDir(join(root, './' + main));
           skipTransform = main.endsWith('.css');
@@ -739,6 +741,13 @@ const install = async (info, settings = undefined, disabled = false) => {
   let plugin;
   if (isTheme) {
     let el;
+
+    const updateVar = (name, val) => {
+      let toSet = val;
+      if (name.toLowerCase().includes('font') && val[0] === '%') toSet = 'Whitney';
+      document.body.style.setProperty(name, toSet);
+    };
+
     plugin = {
       _topaz_start: () => {
         if (el) el.remove();
@@ -746,13 +755,104 @@ const install = async (info, settings = undefined, disabled = false) => {
         el.appendChild(document.createTextNode(newCode)); // Load the stylesheet via style element w/ CSS text
 
         document.body.appendChild(el);
+
+        const themeSettingsVars = JSON.parse(Storage.get(info + '_theme_settings', '{}'));
+        for (const x in themeSettingsVars) updateVar(x, themeSettingsVars[x]);
       },
 
       _topaz_stop: () => {
         el.remove();
+
+        const themeSettingsVars = JSON.parse(Storage.get(info + '_theme_settings', '{}'));
+        for (const x in themeSettingsVars) document.body.style.removeProperty(x);
       },
 
       __theme: true
+    };
+
+    const discordVars = [ '--header-primary', '--header-secondary', '--text-normal', '--text-muted', '--text-link', '--channels-default', '--interactive-normal', '--interactive-hover', '--interactive-active', '--interactive-muted', '--background-primary', '--background-secondary', '--background-secondary-alt', '--background-tertiary', '--background-accent', '--background-floating', '--background-mobile-primary', '--background-mobile-secondary', '--background-modifier-hover', '--background-modifier-active', '--background-modifier-selected', '--background-modifier-accent', '--background-mentioned', '--background-mentioned-hover', '--background-message-hover', '--background-help-warning', '--background-help-info', '--scrollbar-thin-thumb', '--scrollbar-thin-track', '--scrollbar-auto-thumb', '--scrollbar-auto-track', '--scrollbar-auto-scrollbar-color-thumb', '--scrollbar-auto-scrollbar-color-track', '--elevation-stroke', '--elevation-low', '--elevation-medium', '--elevation-high', '--logo-primary', '--focus-primary', '--radio-group-dot-foreground', '--guild-header-text-shadow', '--channeltextarea-background', '--activity-card-background', '--textbox-markdown-syntax', '--deprecated-card-bg', '--deprecated-card-editable-bg', '--deprecated-store-bg', '--deprecated-quickswitcher-input-background', '--deprecated-quickswitcher-input-placeholder', '--deprecated-text-input-bg', '--deprecated-text-input-border', '--deprecated-text-input-border-hover', '--deprecated-text-input-border-disabled', '--deprecated-text-input-prefix' ];
+    class ThemeSettings extends React.PureComponent {
+      constructor(props) {
+        super(props);
+
+        this.state = {};
+        this.state.store = JSON.parse(Storage.get(info + '_theme_settings', '{}'));
+
+        this.state.rawVariables = this.props.code.match(/--([^*!\n}]*): ([^*\n}]*);/g) || [];
+        this.state.variables = this.state.rawVariables.map((x) => {
+          const spl = x.split(':');
+
+          const name = spl[0].trim();
+          const val = spl.slice(1).join(':').trim().slice(0, -1).replace(' !important', '');
+
+          return [
+            name,
+            this.state.store[name] ?? val,
+            val
+          ];
+        }).filter((x, i, s) => !discordVars.includes(x[0]) && !x[1].includes('var(') && !x[0].includes('glasscord') && s.indexOf(s.find((y) => y[0] === x[0])) === i);
+
+        this.state.background = this.state.variables.find(x => (x[0].toLowerCase().includes('background') || x[0].toLowerCase().includes('bg') || x[0].toLowerCase().includes('wallpaper')) && !x[0].toLowerCase().includes('profile') && x[2].includes('http'));
+        this.state.homeButton = this.state.variables.find(x => (x[0].toLowerCase().includes('home')) && x[2].includes('http'));
+        this.state.fontPrimary = this.state.variables.find(x => (x[0].toLowerCase().includes('font')) && x[2].includes('sans-serif'));
+
+        this.state.shouldShow = this.state.background || this.state.homeButton || this.state.fontPrimary;
+      }
+
+      render() {
+        console.log(this.state);
+
+        const saveVar = (name, val) => {
+          this.state.store[name] = val;
+          Storage.set(info + '_theme_settings', JSON.stringify(this.state.store));
+        };
+
+        const toggle = (name, desc, v) => React.createElement(goosemod.webpackModules.findByDisplayName('SwitchItem'), {
+          note: desc,
+          value: !v[1].startsWith('%'),
+
+          className: 'topaz-theme-setting-toggle',
+
+          onChange: x => {
+            if (x) v[1] = v[1].slice(1);
+              else v[1] = '%' + v[1];
+            updateVar(...v);
+
+            this.forceUpdate();
+            saveVar(...v);
+          }
+        }, name);
+
+        const text = (name, desc, v) => React.createElement(goosemod.settings.Items['text-input'], {
+          text: name,
+          subtext: desc,
+          initialValue: () => v[1].replace(/url\(['"`]?(.*?)['"`]?\)/, (_, inner) => inner),
+          oninput: x => {
+            if (v[1].startsWith('url(')) x = 'url(' + x + ')';
+            v[1] = x;
+
+            updateVar(...v);
+            saveVar(...v);
+          }
+        });
+
+        const toggleable = (v, toggleName, toggleDesc, textName, textDesc) => [
+          v && toggle(toggleName, toggleDesc, v),
+          v && !v[1].startsWith('%') && text(textName, textDesc, v),
+        ];
+
+        return [
+          ...toggleable(this.state.background, 'Background', 'Enable theme\'s custom background', 'Background URL'),
+          ...toggleable(this.state.homeButton, 'Home Button', 'Enable theme\'s custom home button', 'Image URL'),
+          ...toggleable(this.state.fontPrimary, 'Font', 'Enable theme\'s custom font', 'Font Name'),
+        ];
+      }
+    }
+
+    const setProps = { code: newCode };
+    if (new ThemeSettings(setProps).state.shouldShow) plugin.__settings = {
+      render: ThemeSettings,
+      props: setProps
     };
   } else {
     const execContainer = new Onyx(info, manifest, transformRoot);

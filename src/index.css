@@ -712,3 +712,7 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   box-sizing: border-box;
   overflow: visible;
 }
+
+.topaz-theme-setting-toggle > :last-child {
+  display: none;
+}
