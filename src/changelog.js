@@ -76,11 +76,15 @@ const show = async () => {
     document.querySelector('.title-2ftWWc:first-child').style.marginTop = '0px';
 
     const hideAdvanced = () => {
-      const els = document.querySelectorAll('.content-FDHp32 li');
+      const els = [...document.querySelectorAll('.content-FDHp32 li')];
       if (showAdvanced) {
-        els.forEach(x => x.style.display = '');
+        els.concat([...document.querySelectorAll('.content-FDHp32 h1')]).forEach(x => x.style.display = '');
       } else {
         els.forEach(x => x.children.length > 0 ? x.style.display = '' : x.style.display = 'none');
+        const children = [...document.querySelectorAll('.content-FDHp32 > div > *')];
+        document.querySelectorAll('.content-FDHp32 h1').forEach(x => {
+          if ([...children[children.indexOf(x) + 1].children].every(y => y.children.length === 0)) x.style.display = 'none';
+        });
       }
     };
 
