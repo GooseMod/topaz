@@ -299,7 +299,13 @@ const getCode = async (root, p, ...backups) => {
   for (path of [ p, ...backups ]) {
     if (!path) continue;
 
-    const req = await fetch(join(root, path));
+    const url = join(root, path);
+    const req = await fetch(url).catch(e => {
+      if (e.stack.startsWith('TypeError')) { // possible CORS error, try with our CORS proxy
+        console.warn('Failed to fetch', url, '- trying CORS proxy');
+        return fetch(`https://topaz-cors.goosemod.workers.dev/?` + url);
+      }
+    });
     // console.log('REQ', join(root, path), req.status);
     if (req.status !== 200) continue;
     console.log(p, req.status);
