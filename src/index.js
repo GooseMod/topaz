@@ -1672,7 +1672,7 @@ class Plugin extends React.PureComponent {
           }
         }, 'v' + manifest.version) : null,
 
-        React.createElement('span', {
+        manifest.author && React.createElement('span', {
           class: 'description-30xx7u',
           style: {
             marginLeft: '4px',
