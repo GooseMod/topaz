@@ -118,6 +118,8 @@ const bd = {
     'https://github.com/CelestialReaver/BetterDiscord/blob/main/themes/Synthwave84/Synthwave84.theme.css',
     'https://github.com/codedotspectra/themes/blob/master/themes-files/neutron.theme.css',
     'https://github.com/codedotspectra/themes/blob/master/themes-files/nocturnal.theme.css',
+    'https://github.com/przemec/Novum/blob/master/Novum.theme.css',
+    'https://github.com/TakosThings/Fluent-Discord/blob/gh-pages/Fluent-Discord.theme.css',
   ]
 };
 
