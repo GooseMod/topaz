@@ -224,6 +224,8 @@ const builtins = {
   'enmity/managers/plugins': `module.exports = { Plugin: {}, registerPlugin: () => {} };`,
   'enmity/global': '',
 
+  'demoncord/global': await getBuiltin('demoncord/global'),
+
   'react': 'module.exports = goosemod.webpackModules.common.React;',
   'lodash': 'module.exports = window._;',
 
@@ -725,6 +727,32 @@ const install = async (info, settings = undefined, disabled = false) => {
             break;
           }
         }
+
+        default: {
+          if (!indexCode) indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
+          if (indexCode.includes('demon.')) {
+            mod = 'dc';
+
+            manifest = indexCode.match(/meta: {([\s\S]*?)}/)[1].split('\n').slice(1, -1)
+              .reduce((acc, x) => {
+                let [ key, val ] = x.split(':');
+
+                key = key.trim();
+                val = val.trim();
+
+                if (val.endsWith(',')) val = val.slice(0, -1);
+                if (val.startsWith('\'') || val.startsWith('"')) val = val.slice(1, -1);
+
+                if (key === 'desc') key = 'description';
+
+                acc[key] = val;
+
+                return acc;
+              }, {});
+          }
+
+          if (!mod) console.warn('Failed to identify mod');
+        }
       }
 
       if (!indexCode) indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
@@ -869,6 +897,7 @@ const install = async (info, settings = undefined, disabled = false) => {
       case 'gm':
       case 'cc':
       case 'em':
+      case 'dc':
         if (mod === 'cc' && typeof PluginClass === 'function') PluginClass = PluginClass({ persist: { ghost: {} } });
 
         plugin = PluginClass;
@@ -1041,6 +1070,17 @@ const install = async (info, settings = undefined, disabled = false) => {
         plugin._topaz_stop = () => plugin.onStop?.();
 
         break;
+
+      case 'dc':
+        plugin._topaz_start = () => {
+          plugin.__dcStartOut = plugin.onStart?.();
+        };
+
+        plugin._topaz_stop = () => {
+          plugin.onStop?.(plugin.__dcStartOut);
+        };
+
+        break;
     }
   }
 
@@ -1081,6 +1121,7 @@ const fullMod = (mod) => {
     case 'rk': return 'rikka';
     case 'vz': return 'vizality';
     case 'em': return 'enmity';
+    case 'dc': return 'demoncord';
   }
 };
 
@@ -1097,6 +1138,7 @@ const displayMod = (mod) => {
     case 'rk': return 'Rikka';
     case 'vz': return 'Vizality';
     case 'em': return 'Enmity';
+    case 'dc': return 'Demoncord';
   }
 };
 
