@@ -214,6 +214,13 @@ const em = {
   ]
 };
 
+const dc = {
+  plugins: [
+    'https://git.ruthenic.com/ruthenic/demoncord-noReplyMention/raw/branch/master/src/index.js',
+    'https://git.ruthenic.com/ruthenic/demoncord-GrammarNazi/raw/branch/master/src/index.js',
+  ]
+};
+
 let lastRequest = 0;
 const userCache = {};
 
@@ -397,6 +404,26 @@ const getManifest_em = async (place) => {
   return manifest;
 };
 
+const getManifest_dc = async (place) => {
+  const indexCode = await (await fetch(place)).text();
+
+  return indexCode.match(/meta: {([\s\S]*?)}/)[1].split('\n').slice(1, -1)
+  .reduce((acc, x) => {
+    let [ key, val ] = x.split(':');
+
+    key = key.trim();
+    val = val.trim();
+
+    if (val.endsWith(',')) val = val.slice(0, -1);
+    if (val.startsWith('\'') || val.startsWith('"')) val = val.slice(1, -1);
+
+    if (key === 'desc') key = 'description';
+
+    acc[key] = val;
+
+    return acc;
+  }, {});
+};
 
 (async () => {
   let plugins = [];
@@ -479,6 +506,12 @@ const getManifest_em = async (place) => {
   for (const place of em.plugins) {
     plugins.push(getManifest_em(place.split('|')[0], false).then(manifest => {
       return [makeId('EM', manifest), place];
+    }));
+  }
+
+  for (const place of dc.plugins) {
+    plugins.push(getManifest_dc(place.split('|')[0], false).then(manifest => {
+      return [makeId('DC', manifest), place];
     }));
   }
 
