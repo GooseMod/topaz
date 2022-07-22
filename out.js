@@ -33,7 +33,7 @@ if (window.topaz) { // live reload handling
 }
 
 window.topaz = {
-  version: 'alpha 8',
+  version: 'alpha 9',
   log
 };
 
@@ -125,26 +125,27 @@ return Storage; // eval export
 
 const openChangelog = async () => eval(`const sleep = x => new Promise(res => setTimeout(res, x));
 
-let body = \`__Settings__
-- Add backup system
-- Add Purge Caches button
-- Rewrite to use more Discord components than GMs
+let body = \`
+__Popular__
+- **Rewrote autocomplete to use React.** Should be a bit snappier and easier to work with in future.
+- **Added filtering.** There's now a new filtering menu (click the filter icon) to allow you to filter by mods, with more options coming soon.
+
+__Bundler__
+- **Added initial Demoncord plugin support.** Brings the total up to 12 mods!
+- Added CORS proxy fallback if a request fails due to lacking CORS
+- Tweaked BD meta comment extraction to work with more
+
+__Theme Settings__
+- **Added initial theme settings.** With some themes there will now be a settings menu allowing you to customize the background, home icon, and font if they have it. It's currently a work in progress and will only work for some.
 
 __UI__
-- Add quick actions (Uninstall All, Copy All) to Plugins and Themes
+- **Rewrote to be more robust.** Now correctly handles lack of some metadata like author or version, instead of sometimes showing broken data.
 
-__Snippets__
-- Add Snippets Library (early/WIP)
-- Tweak UI
+__Changelog__
+- **Added advanced toggle.** You can enable it to view all (more technical) changes if you're interested. Also now using Discord's style of paragraphs with explanations.
 
-__Bundler | JS__
-- Fix purging fetch cache on uninstall
-- Add support for builtins ending in /
-- Rewrite React auto importing for JSX
-
-__Powercord__
-- Settings: Rewrite to use Flux
-- Components: Add Menu export\`;
+__Editor__
+- Fix freezing/errors if files include some characters\`;
 let bodySplit = body.split('\\n');
 
 let categoryAssign = {
@@ -157,7 +158,7 @@ let categoryAssign = {
 let changelog = {
   image: '',
   version: topaz.version[0].toUpperCase() + topaz.version.slice(1),
-  date: '2022-07-19',
+  date: '2022-07-23',
 
   body: bodySplit.reduce((acc, x, i) => {
     if (x[0] === '_') {
@@ -182,6 +183,7 @@ let changelog = {
   }, '')
 };
 
+let showAdvanced = topaz.storage.get('changelog_advanced', false);
 const show = async () => {
   goosemod.changelog.resetChangelog();
 
@@ -197,6 +199,47 @@ const show = async () => {
     document.querySelector('.modal-3Hrb0S [data-text-variant="heading-lg/medium"]').textContent = \`Topaz | \${changelog.version}\`; // Set changelog modal title
     document.querySelector('.modal-3Hrb0S .footer-31IekZ')?.remove?.(); // Remove footer of modal with social media
     document.querySelector('.title-2ftWWc:first-child').style.marginTop = '0px';
+
+    const hideAdvanced = () => {
+      const els = [...document.querySelectorAll('.content-FDHp32 li')];
+      if (showAdvanced) {
+        els.concat([...document.querySelectorAll('.content-FDHp32 h1')]).forEach(x => x.style.display = '');
+      } else {
+        els.forEach(x => x.children.length > 0 ? x.style.display = '' : x.style.display = 'none');
+        const children = [...document.querySelectorAll('.content-FDHp32 > div > *')];
+        document.querySelectorAll('.content-FDHp32 h1').forEach(x => {
+          if ([...children[children.indexOf(x) + 1].children].every(y => y.children.length === 0)) x.style.display = 'none';
+        });
+      }
+    };
+
+    hideAdvanced();
+
+    if (!document.querySelector('#topaz-changelog-advanced')) {
+      const container = document.createElement('div');
+      document.querySelector('.modal-3Hrb0S [data-text-variant="heading-lg/medium"]').appendChild(container);
+
+      const { React, ReactDOM } = goosemod.webpackModules.common;
+
+      class AdvancedToggle extends React.PureComponent {
+        render() {
+          return React.createElement(goosemod.webpackModules.findByDisplayName('SwitchItem'), {
+            className: 'topaz-changelog-advanced',
+            value: showAdvanced,
+            onChange: x => {
+              showAdvanced = x;
+              this.forceUpdate();
+
+              hideAdvanced();
+
+              topaz.storage.set('changelog_advanced', showAdvanced);
+            }
+          }, 'Advanced');
+        }
+      }
+
+      ReactDOM.render(React.createElement(AdvancedToggle), container);
+    }
   };
 
   // Tweak again since opening it right at beginning of injection / Discord load (eg: GooseMod update) often fails to do after first wait
@@ -2233,7 +2276,7 @@ module.exports = {
       const el = document.querySelector(query);
       if (el) return el;
 
-      await sleep(5);
+      await sleep(200);
     }
   },
 
@@ -3100,7 +3143,7 @@ const { React } = Webpack.common;
 
 const i18n = Webpack.findByPropsAll('Messages')[1];
 
-const dataLSId = (id) => 'bd_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
+const dataLSId = (id) => __entityID + '_bd_' + id;
 const bindPatch = (func, unpatch) => func.bind({ unpatch }); // Overriding props in original this, better way?
 
 const makeAddonAPI = (id) => ({
@@ -3783,7 +3826,7 @@ global.ZLibrary = window.ZLibrary = ZLibrary;
 (() => {
 const unpatches = {};
 
-const dataLSId = (id) => 'dr_' + __entityID.replace('https://raw.githubusercontent.com/', '').replace(/[^A-Za-z0-9]/g, '') + '_' + id;
+const dataLSId = (id) => __entityID + '_dr_' + id;
 
 
 DrApi = {
@@ -4863,6 +4906,30 @@ module.exports = {
   'enmity/managers/plugins': `module.exports = { Plugin: {}, registerPlugin: () => {} };`,
   'enmity/global': '',
 
+  'demoncord/global': `let demon;
+
+(() => {
+demon = {
+  summon: mod => {
+    switch (mod) {
+      case 'modules/webpack': return {
+        ...goosemod.webpackModules
+      };
+
+      case 'patcher': return {
+        before: (name, parent, handler) => goosemod.patcher.patch(parent, name, handler, true),
+        after: (name, parent, handler) => goosemod.patcher.patch(parent, name, handler),
+        instead: (name, parent, handler) => goosemod.patcher.patch(parent, name, handler, false, true),
+      };
+
+      case 'utils/logger': return {
+        makeLogger: (func, name) => (regions, ...msg) => func(name, ...regions, ...msg)
+      };
+    }
+  }
+};
+})();`,
+
   'react': 'module.exports = goosemod.webpackModules.common.React;',
   'lodash': 'module.exports = window._;',
 
@@ -4969,7 +5036,13 @@ const getCode = async (root, p, ...backups) => {
   for (path of [ p, ...backups ]) {
     if (!path) continue;
 
-    const req = await fetch(join(root, path));
+    const url = join(root, path);
+    const req = await fetch(url).catch(e => {
+      if (e.stack.startsWith('TypeError')) { // possible CORS error, try with our CORS proxy
+        console.warn('Failed to fetch', url, '- trying CORS proxy');
+        return fetch(`https://topaz-cors.goosemod.workers.dev/?` + url);
+      }
+    });
     // console.log('REQ', join(root, path), req.status);
     if (req.status !== 200) continue;
     console.log(p, req.status);
@@ -5264,8 +5337,9 @@ const install = async (info, settings = undefined, disabled = false) => {
 
       switch (mod) {
         case 'bd':
-          indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
-          manifest = [...indexCode.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
+          indexURL = join(root, './' + info.split('/').slice(-1)[0]);
+          indexCode = await getCode(root, './' + info.split('/').slice(-1)[0]);
+          manifest = [...indexCode.matchAll(/^ *\* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
           skipTransform = true;
 
           break;
@@ -5276,6 +5350,7 @@ const install = async (info, settings = undefined, disabled = false) => {
           manifest = await (await fetch(join(root, './powercord_manifest.json'))).json();
 
           const main = manifest.theme.replace(/^\.?\//, '');
+          indexURL = join(root, './' + main);
           indexCode = await getCode(root, './' + main);
           root = getDir(join(root, './' + main));
           skipTransform = main.endsWith('.css');
@@ -5347,7 +5422,7 @@ const install = async (info, settings = undefined, disabled = false) => {
         case 'bd': // read from comment in code
           indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
 
-          manifest = [...indexCode.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
+          manifest = [...indexCode.matchAll(/^ *\* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
 
           if (indexCode.includes('DrApi')) mod = 'dr';
 
@@ -5387,6 +5462,32 @@ const install = async (info, settings = undefined, disabled = false) => {
             break;
           }
         }
+
+        default: {
+          if (!indexCode) indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
+          if (indexCode.includes('demon.')) {
+            mod = 'dc';
+
+            manifest = indexCode.match(/meta: {([\s\S]*?)}/)[1].split('\n').slice(1, -1)
+              .reduce((acc, x) => {
+                let [ key, val ] = x.split(':');
+
+                key = key.trim();
+                val = val.trim();
+
+                if (val.endsWith(',')) val = val.slice(0, -1);
+                if (val.startsWith('\'') || val.startsWith('"')) val = val.slice(1, -1);
+
+                if (key === 'desc') key = 'description';
+
+                acc[key] = val;
+
+                return acc;
+              }, {});
+          }
+
+          if (!mod) console.warn('Failed to identify mod');
+        }
       }
 
       if (!indexCode) indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
@@ -5409,6 +5510,13 @@ const install = async (info, settings = undefined, disabled = false) => {
   let plugin;
   if (isTheme) {
     let el;
+
+    const updateVar = (name, val) => {
+      let toSet = val;
+      if (name.toLowerCase().includes('font') && val[0] === '%') toSet = 'Whitney';
+      document.body.style.setProperty(name, toSet);
+    };
+
     plugin = {
       _topaz_start: () => {
         if (el) el.remove();
@@ -5416,13 +5524,104 @@ const install = async (info, settings = undefined, disabled = false) => {
         el.appendChild(document.createTextNode(newCode)); // Load the stylesheet via style element w/ CSS text
 
         document.body.appendChild(el);
+
+        const themeSettingsVars = JSON.parse(Storage.get(info + '_theme_settings', '{}'));
+        for (const x in themeSettingsVars) updateVar(x, themeSettingsVars[x]);
       },
 
       _topaz_stop: () => {
         el.remove();
+
+        const themeSettingsVars = JSON.parse(Storage.get(info + '_theme_settings', '{}'));
+        for (const x in themeSettingsVars) document.body.style.removeProperty(x);
       },
 
       __theme: true
+    };
+
+    const discordVars = [ '--header-primary', '--header-secondary', '--text-normal', '--text-muted', '--text-link', '--channels-default', '--interactive-normal', '--interactive-hover', '--interactive-active', '--interactive-muted', '--background-primary', '--background-secondary', '--background-secondary-alt', '--background-tertiary', '--background-accent', '--background-floating', '--background-mobile-primary', '--background-mobile-secondary', '--background-modifier-hover', '--background-modifier-active', '--background-modifier-selected', '--background-modifier-accent', '--background-mentioned', '--background-mentioned-hover', '--background-message-hover', '--background-help-warning', '--background-help-info', '--scrollbar-thin-thumb', '--scrollbar-thin-track', '--scrollbar-auto-thumb', '--scrollbar-auto-track', '--scrollbar-auto-scrollbar-color-thumb', '--scrollbar-auto-scrollbar-color-track', '--elevation-stroke', '--elevation-low', '--elevation-medium', '--elevation-high', '--logo-primary', '--focus-primary', '--radio-group-dot-foreground', '--guild-header-text-shadow', '--channeltextarea-background', '--activity-card-background', '--textbox-markdown-syntax', '--deprecated-card-bg', '--deprecated-card-editable-bg', '--deprecated-store-bg', '--deprecated-quickswitcher-input-background', '--deprecated-quickswitcher-input-placeholder', '--deprecated-text-input-bg', '--deprecated-text-input-border', '--deprecated-text-input-border-hover', '--deprecated-text-input-border-disabled', '--deprecated-text-input-prefix' ];
+    class ThemeSettings extends React.PureComponent {
+      constructor(props) {
+        super(props);
+
+        this.state = {};
+        this.state.store = JSON.parse(Storage.get(info + '_theme_settings', '{}'));
+
+        this.state.rawVariables = this.props.code.match(/--([^*!\n}]*): ([^*\n}]*);/g) || [];
+        this.state.variables = this.state.rawVariables.map((x) => {
+          const spl = x.split(':');
+
+          const name = spl[0].trim();
+          const val = spl.slice(1).join(':').trim().slice(0, -1).replace(' !important', '');
+
+          return [
+            name,
+            this.state.store[name] ?? val,
+            val
+          ];
+        }).filter((x, i, s) => !discordVars.includes(x[0]) && !x[1].includes('var(') && !x[0].includes('glasscord') && s.indexOf(s.find((y) => y[0] === x[0])) === i);
+
+        this.state.background = this.state.variables.find(x => (x[0].toLowerCase().includes('background') || x[0].toLowerCase().includes('bg') || x[0].toLowerCase().includes('wallpaper')) && !x[0].toLowerCase().includes('profile') && x[2].includes('http'));
+        this.state.homeButton = this.state.variables.find(x => (x[0].toLowerCase().includes('home')) && x[2].includes('http'));
+        this.state.fontPrimary = this.state.variables.find(x => (x[0].toLowerCase().includes('font')) && x[2].includes('sans-serif'));
+
+        this.state.shouldShow = this.state.background || this.state.homeButton || this.state.fontPrimary;
+      }
+
+      render() {
+        console.log(this.state);
+
+        const saveVar = (name, val) => {
+          this.state.store[name] = val;
+          Storage.set(info + '_theme_settings', JSON.stringify(this.state.store));
+        };
+
+        const toggle = (name, desc, v) => React.createElement(goosemod.webpackModules.findByDisplayName('SwitchItem'), {
+          note: desc,
+          value: !v[1].startsWith('%'),
+
+          className: 'topaz-theme-setting-toggle',
+
+          onChange: x => {
+            if (x) v[1] = v[1].slice(1);
+              else v[1] = '%' + v[1];
+            updateVar(...v);
+
+            this.forceUpdate();
+            saveVar(...v);
+          }
+        }, name);
+
+        const text = (name, desc, v) => React.createElement(goosemod.settings.Items['text-input'], {
+          text: name,
+          subtext: desc,
+          initialValue: () => v[1].replace(/url\(['"`]?(.*?)['"`]?\)/, (_, inner) => inner),
+          oninput: x => {
+            if (v[1].startsWith('url(')) x = 'url(' + x + ')';
+            v[1] = x;
+
+            updateVar(...v);
+            saveVar(...v);
+          }
+        });
+
+        const toggleable = (v, toggleName, toggleDesc, textName, textDesc) => [
+          v && toggle(toggleName, toggleDesc, v),
+          v && !v[1].startsWith('%') && text(textName, textDesc, v),
+        ];
+
+        return [
+          ...toggleable(this.state.background, 'Background', 'Enable theme\'s custom background', 'Background URL'),
+          ...toggleable(this.state.homeButton, 'Home Button', 'Enable theme\'s custom home button', 'Image URL'),
+          ...toggleable(this.state.fontPrimary, 'Font', 'Enable theme\'s custom font', 'Font Name'),
+        ];
+      }
+    }
+
+    const setProps = { code: newCode };
+    if (new ThemeSettings(setProps).state.shouldShow) plugin.__settings = {
+      render: ThemeSettings,
+      props: setProps
     };
   } else {
     const execContainer = new Onyx(info, manifest, transformRoot);
@@ -5433,6 +5632,7 @@ const install = async (info, settings = undefined, disabled = false) => {
       case 'gm':
       case 'cc':
       case 'em':
+      case 'dc':
         if (mod === 'cc' && typeof PluginClass === 'function') PluginClass = PluginClass({ persist: { ghost: {} } });
 
         plugin = PluginClass;
@@ -5605,6 +5805,17 @@ const install = async (info, settings = undefined, disabled = false) => {
         plugin._topaz_stop = () => plugin.onStop?.();
 
         break;
+
+      case 'dc':
+        plugin._topaz_start = () => {
+          plugin.__dcStartOut = plugin.onStart?.();
+        };
+
+        plugin._topaz_stop = () => {
+          plugin.onStop?.(plugin.__dcStartOut);
+        };
+
+        break;
     }
   }
 
@@ -5645,6 +5856,7 @@ const fullMod = (mod) => {
     case 'rk': return 'rikka';
     case 'vz': return 'vizality';
     case 'em': return 'enmity';
+    case 'dc': return 'demoncord';
   }
 };
 
@@ -5661,6 +5873,7 @@ const displayMod = (mod) => {
     case 'rk': return 'Rikka';
     case 'vz': return 'Vizality';
     case 'em': return 'Enmity';
+    case 'dc': return 'Demoncord';
   }
 };
 
@@ -5785,6 +5998,8 @@ window.topaz = {
     if (!topaz.__reloading) {
       purgeCacheForPlugin(info);
       purgePermsForPlugin(info);
+
+      topaz.storage.keys().filter(x => x.startsWith(info)).forEach(x => topaz.storage.delete(x)); // remove keys starting with info
 
       savePlugins();
       setDisabled(info, false); // Remove from disabled list
@@ -6234,7 +6449,7 @@ class Plugin extends React.PureComponent {
           }
         }, 'v' + manifest.version) : null,
 
-        React.createElement('span', {
+        manifest.author && React.createElement('span', {
           class: 'description-30xx7u',
           style: {
             marginLeft: '4px',
@@ -6660,9 +6875,80 @@ class Snippets extends React.PureComponent {
   }
 }
 
+const autocompleteFiltering = JSON.parse(Storage.get('autocomplete_filtering', 'null')) ?? {
+  mods: {}
+};
+
 class Settings extends React.PureComponent {
   render() {
     const textInputHandler = (inp, init = false) => {
+      const addFilterPopout = () => {
+        if (document.querySelector('#topaz-repo-filtering')) return; // already open
+
+        const popout = document.createElement('div');
+        popout.id = 'topaz-repo-filtering';
+        popout.className = ScrollerClasses.thin + (topazSettings.simpleUI ? ' topaz-simple' : '');
+
+        const autoPos = autocomplete.getBoundingClientRect();
+
+        popout.style.top = autoPos.top + 'px';
+        popout.style.left = autoPos.right + 8 + 'px';
+
+        document.body.appendChild(popout);
+
+        const regen = () => textInputHandler(el.value ?? '');
+
+        const mods = Object.keys(recom).reduce((acc, x) => {
+          const mod = x.split('%')[0].toLowerCase();
+          if (!acc.includes(mod)) acc.push(mod);
+          return acc;
+        }, []);
+
+        class FilterPopout extends React.PureComponent {
+          render() {
+            return React.createElement(React.Fragment, {},
+              React.createElement('h5', {}, 'Filters'),
+              React.createElement(FormTitle, {
+                tag: 'h5'
+              }, 'Mods'),
+
+              ...mods.map(x => React.createElement(goosemod.webpackModules.findByDisplayName('SwitchItem'), {
+                value: autocompleteFiltering.mods[x] !== false,
+                onChange: y => {
+                  autocompleteFiltering.mods[x] = y;
+
+                  this.forceUpdate();
+                  regen();
+
+                  Storage.set('autocomplete_filtering', JSON.stringify(autocompleteFiltering));
+                }
+              }, displayMod(x)))
+            );
+          }
+        }
+
+        ReactDOM.render(React.createElement(FilterPopout), popout);
+
+        const checkClick = e => {
+          el.focus();
+          if (e.path.some(x => x.id === 'topaz-repo-filtering')) return;
+
+          removeFilterPopout();
+          if (!e.path.some(x => x.id === 'topaz-repo-autocomplete')) {
+            autocomplete.style.display = 'none';
+            el.blur();
+          }
+
+          document.removeEventListener('click', checkClick);
+        };
+
+        setTimeout(() => document.addEventListener('click', checkClick), 100);
+      };
+
+      const removeFilterPopout = () => {
+        document.querySelector('#topaz-repo-filtering')?.remove?.();
+      };
+
       const el = document.querySelector('.topaz-settings .input-2g-os5');
 
       const install = async (info) => {
@@ -6705,8 +6991,12 @@ class Settings extends React.PureComponent {
 
         el.onfocus = () => textInputHandler(el.value ?? '');
 
-        el.onblur = () => {
+        el.onblur = (e) => {
+          const checkIfInFilterPopout = el => el && (el.id === 'topaz-repo-filtering' || checkIfInFilterPopout(el.parentElement));
+          if (e.relatedTarget?.ariaLabel === 'Filter' || checkIfInFilterPopout(e.relatedTarget)) return; // Filter button clicked, ignore
+
           setTimeout(() => {
+            removeFilterPopout();
             autocomplete.style.display = 'none';
           }, 100);
         };
@@ -6731,36 +7021,65 @@ class Settings extends React.PureComponent {
 
       const recom = popular[selectedTab.toLowerCase()];
       const infoFromRecom = (x) => x.endsWith('.plugin.js') ? x.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '') : x.replace('https://github.com/', '');
-      const matching = Object.keys(recom).filter((x) => !plugins[infoFromRecom(recom[x])] && fuzzySearch.test(x));
+      const matching = Object.keys(recom).filter((x) => !plugins[infoFromRecom(recom[x])] && fuzzySearch.test(x) && autocompleteFiltering.mods[x.split('%')[0].toLowerCase()] !== false);
 
       if (!init && matching.length > 0) {
+        ReactDOM.render(React.createElement(React.Fragment, {},
+          React.createElement('h5', {},
+            'Popular ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes'),
+
+            React.createElement(PanelButton, {
+              icon: goosemod.webpackModules.findByDisplayName('Filter'),
+              tooltipText: 'Filter',
+
+              onClick: () => {
+                if (document.querySelector('#topaz-repo-filtering')) {
+                  removeFilterPopout();
+                  document.querySelector('[aria-label="Filter"]').classList.remove('active');
+                } else {
+                  addFilterPopout();
+                  document.querySelector('[aria-label="Filter"]').classList.add('active');
+                }
+              }
+            })
+          ),
+
+          ...matching.map(x => {
+            const [ mod, name, author ] = x.split('%');
+
+            let place = recom[x];
+            if (place.length > 40) place = place.slice(0, 40) + '...';
+
+            return React.createElement('div', {
+              className: 'title-2dsDLn',
+              onClick: () => {
+                autocomplete.style.display = 'none';
+                el.value = '';
+                install(recom[x]);
+              }
+            },
+              React.createElement('span', {
+                className: 'topaz-tag tag-floating'
+              }, mod),
+
+              ' ' + name + ' ',
+
+              author !== 'undefined' && React.createElement('span', {
+                className: 'description-30xx7u'
+              }, 'by '),
+              author !== 'undefined' && author.split('#')[0],
+
+              React.createElement('span', {
+                className: 'code-style'
+              }, place)
+            );
+          })
+        ), autocomplete);
+
         autocomplete.style.display = 'block';
-        autocomplete.innerHTML = '';
 
-        const hel = document.createElement('h5');
-        hel.textContent = 'Popular ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes');
-        autocomplete.appendChild(hel);
-
-        for (const x of matching) {
-          const [ mod, name, author ] = x.split('%');
-
-          let place = recom[x];
-          if (place.length > 40) place = place.slice(0, 40) + '...';
-
-          const nel = document.createElement('div');
-          nel.className = 'title-2dsDLn';
-          nel.innerHTML = `<span class="topaz-tag tag-floating">${mod}</span> ${name} <span class="description-30xx7u">by</span> ${author.split('#')[0]} <span class="code-style">${place}</span>`; // sad
-
-          nel.onclick = async () => {
-            autocomplete.style.display = 'none';
-
-            el.value = '';
-
-            install(recom[x]);
-          };
-
-          autocomplete.appendChild(nel);
-        }
+        if (!document.querySelector('#topaz-repo-filtering')) document.querySelector('[aria-label="Filter"]').classList.remove('active');
+          else document.querySelector('[aria-label="Filter"]').classList.add('active');
       } else {
         autocomplete.style.display = 'none';
       }
@@ -6938,15 +7257,40 @@ let settingsUnpatch = goosemod.patcher.patch(goosemod.webpackModules.findByDispl
 });
 
 const cssEl = document.createElement('style');
-cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
+cssEl.appendChild(document.createTextNode(`#topaz-repo-filtering, #topaz-repo-autocomplete {
   position: absolute;
   z-index: 999;
   background: var(--background-floating);
   max-height: 280px;
-  overflow: auto;
+  overflow-y: auto;
+  border-radius: 0 0 3px 3px;
 }
 
-#topaz-repo-autocomplete > h5 {
+#topaz-repo-filtering > :not(:first-child) {
+  margin: 0 8px;
+}
+
+#topaz-repo-filtering .divider-_0um2u {
+  display: none;
+}
+
+#topaz-repo-filtering .container-1zDvAE {
+  margin-bottom: 8px;
+}
+
+#topaz-repo-filtering .h5-2RwDNl {
+  margin-bottom: 8px;
+}
+
+#topaz-repo-filtering > :first-child {
+  margin-bottom: 10px;
+}
+
+#topaz-repo-filtering .container-1zDvAE .title-2dsDLn {
+  color: var(--text-normal);
+}
+
+#topaz-repo-autocomplete > h5, #topaz-repo-filtering > :first-child {
   padding: 8px;
   font-weight: 600;
   font-size: 12px;
@@ -6955,6 +7299,23 @@ cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
   color: var(--header-secondary);
   text-transform: uppercase;
   border-bottom: 2px solid var(--background-primary);
+}
+
+#topaz-repo-autocomplete > h5 > button {
+  float: right;
+  width: 24px;
+  height: 24px;
+  margin-top: -4px;
+}
+
+#topaz-repo-autocomplete > h5 > button.active {
+  color: var(--interactive-active);
+}
+
+#topaz-repo-autocomplete > h5 > button[aria-label="Filter"] svg {
+  transform: scale(1.2);
+  width: 16px;
+  height: 16px;
 }
 
 #topaz-repo-autocomplete > div {
@@ -6980,6 +7341,13 @@ cssEl.appendChild(document.createTextNode(`#topaz-repo-autocomplete {
 #topaz-repo-autocomplete > div:hover {
   background: var(--background-secondary);
 }
+
+#topaz-repo-filtering {
+  border-radius: 6px;
+  width: 240px;
+  box-shadow: var(--elevation-stroke), var(--elevation-medium);
+}
+
 
 .topaz-settings > [role="tablist"] {
   margin-bottom: 20px;
@@ -7651,6 +8019,24 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   width: 100%;
   box-sizing: border-box;
   overflow: visible;
+}
+
+.topaz-theme-setting-toggle > :last-child {
+  display: none;
+}
+
+.topaz-changelog-advanced {
+  position: absolute;
+  right: 60px;
+  top: 19px;
+}
+
+.topaz-changelog-advanced .control-1fl03- {
+  margin-left: 8px;
+}
+
+.topaz-changelog-advanced .divider-_0um2u {
+  display: none;
 }`));
 document.head.appendChild(cssEl);
 
