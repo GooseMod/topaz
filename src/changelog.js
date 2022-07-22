@@ -16,6 +16,9 @@ __Theme Settings__
 __UI__
 - **Rewrote to be more robust.** Now correctly handles lack of some metadata like author or version, instead of sometimes showing broken data.
 
+__Changelog__
+- **Added advanced toggle.** You can enable it to view all (more technical) changes if you're interested. Also now using Discord's style of paragraphs with explanations.
+
 __Editor__
 - Fix freezing/errors if files include some characters`;
 let bodySplit = body.split('\n');
