@@ -604,7 +604,7 @@ const install = async (info, settings = undefined, disabled = false) => {
         case 'bd':
           indexURL = join(root, './' + info.split('/').slice(-1)[0]);
           indexCode = await getCode(root, './' + info.split('/').slice(-1)[0]);
-          manifest = [...indexCode.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
+          manifest = [...indexCode.matchAll(/^ *\* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
           skipTransform = true;
 
           break;
@@ -687,7 +687,7 @@ const install = async (info, settings = undefined, disabled = false) => {
         case 'bd': // read from comment in code
           indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
 
-          manifest = [...indexCode.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
+          manifest = [...indexCode.matchAll(/^ *\* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
 
           if (indexCode.includes('DrApi')) mod = 'dr';
 
