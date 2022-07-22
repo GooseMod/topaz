@@ -2229,7 +2229,7 @@ class Settings extends React.PureComponent {
 
           const nel = document.createElement('div');
           nel.className = 'title-2dsDLn';
-          nel.innerHTML = `<span class="topaz-tag tag-floating">${mod}</span> ${name} <span class="description-30xx7u">by</span> ${author.split('#')[0]} <span class="code-style">${place}</span>`; // sad
+          nel.innerHTML = `<span class="topaz-tag tag-floating">${mod}</span> ${name}${author !== 'undefined' ? ` <span class="description-30xx7u">by</span> ${author.split('#')[0]}` : ''} <span class="code-style">${place}</span>`; // sad
 
           nel.onclick = async () => {
             autocomplete.style.display = 'none';
