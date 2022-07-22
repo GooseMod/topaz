@@ -292,7 +292,14 @@ const getManifest_bd = async (place, theme) => { // .plugin.js url
 
   console.log(place);
 
-  return [...code.matchAll(/^ \* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
+  const manifest = [...code.matchAll(/^ *\* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
+
+  if (!manifest.name) manifest.name = code.match(/info: *\{[\s\S]*?name: *['"](.*?)['"],/)?.[1];
+  if (!manifest.description) manifest.description = code.match(/info: *\{[\s\S]*?description: *['"](.*?)['"],/)?.[1];
+  if (!manifest.version) manifest.version = code.match(/info: *\{[\s\S]*?version: *['"](.*?)['"],/)?.[1];
+  if (!manifest.author) manifest.author = code.match(/authors: *\[[\s\S]*?name: *['"](.*?)['"],/)?.[1];
+
+  return manifest;
 };
 
 const getManifest_vel = async (place) => {
