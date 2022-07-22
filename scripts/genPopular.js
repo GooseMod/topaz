@@ -55,6 +55,8 @@ const pc = {
     'discord-modifications/quick-delete',
     'discord-modifications/screenshare-crack',
     'asportnoy/powercord-role-dividers',
+    'cyyynthia/total-members',
+    'powercord-community/badges-everywhere|12944qwerty/badges-everywhere',
   ],
 
   themes: [
