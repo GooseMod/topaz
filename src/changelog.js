@@ -1,25 +1,23 @@
 const sleep = x => new Promise(res => setTimeout(res, x));
 
-let body = `__Settings__
-- Add backup system
-- Add Purge Caches button
-- Rewrite to use more Discord components than GMs
+let body = `
+__Popular__
+- **Rewrote autocomplete to use React.** Should be a bit snappier and easier to work with in future.
+- **Added filtering.** There's now a new filtering menu (click the filter icon) to allow you to filter by mods, with more options coming soon.
+
+__Bundler__
+- **Added initial Demoncord plugin support.** Brings the total up to 12 mods!
+- Added CORS proxy fallback if a request fails due to lacking CORS
+- Tweaked BD meta comment extraction to work with more
+
+__Theme Settings__
+- **Added initial theme settings.** With some themes there will now be a settings menu allowing you to customize the background, home icon, and font if they have it. It's currently a work in progress and will only work for some.
 
 __UI__
-- Add quick actions (Uninstall All, Copy All) to Plugins and Themes
+- **Rewrote to be more robust.** Now correctly handles lack of some metadata like author or version, instead of sometimes showing broken data.
 
-__Snippets__
-- Add Snippets Library (early/WIP)
-- Tweak UI
-
-__Bundler | JS__
-- Fix purging fetch cache on uninstall
-- Add support for builtins ending in /
-- Rewrite React auto importing for JSX
-
-__Powercord__
-- Settings: Rewrite to use Flux
-- Components: Add Menu export`;
+__Editor__
+- Fix freezing/errors if files include some characters`;
 let bodySplit = body.split('\n');
 
 let categoryAssign = {
@@ -32,7 +30,7 @@ let categoryAssign = {
 let changelog = {
   image: '',
   version: topaz.version[0].toUpperCase() + topaz.version.slice(1),
-  date: '2022-07-19',
+  date: '2022-07-23',
 
   body: bodySplit.reduce((acc, x, i) => {
     if (x[0] === '_') {
@@ -57,6 +55,7 @@ let changelog = {
   }, '')
 };
 
+let showAdvanced = topaz.storage.get('changelog_advanced', false);
 const show = async () => {
   goosemod.changelog.resetChangelog();
 
@@ -72,6 +71,43 @@ const show = async () => {
     document.querySelector('.modal-3Hrb0S [data-text-variant="heading-lg/medium"]').textContent = `Topaz | ${changelog.version}`; // Set changelog modal title
     document.querySelector('.modal-3Hrb0S .footer-31IekZ')?.remove?.(); // Remove footer of modal with social media
     document.querySelector('.title-2ftWWc:first-child').style.marginTop = '0px';
+
+    const hideAdvanced = () => {
+      const els = document.querySelectorAll('.content-FDHp32 li');
+      if (showAdvanced) {
+        els.forEach(x => x.style.display = '');
+      } else {
+        els.forEach(x => x.children.length > 0 ? x.style.display = '' : x.style.display = 'none');
+      }
+    };
+
+    hideAdvanced();
+
+    if (!document.querySelector('#topaz-changelog-advanced')) {
+      const container = document.createElement('div');
+      document.querySelector('.modal-3Hrb0S [data-text-variant="heading-lg/medium"]').appendChild(container);
+
+      const { React, ReactDOM } = goosemod.webpackModules.common;
+
+      class AdvancedToggle extends React.PureComponent {
+        render() {
+          return React.createElement(goosemod.webpackModules.findByDisplayName('SwitchItem'), {
+            className: 'topaz-changelog-advanced',
+            value: showAdvanced,
+            onChange: x => {
+              showAdvanced = x;
+              this.forceUpdate();
+
+              hideAdvanced();
+
+              topaz.storage.set('changelog_advanced', showAdvanced);
+            }
+          }, 'Advanced');
+        }
+      }
+
+      ReactDOM.render(React.createElement(AdvancedToggle), container);
+    }
   };
 
   // Tweak again since opening it right at beginning of injection / Discord load (eg: GooseMod update) often fails to do after first wait

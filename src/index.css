@@ -765,3 +765,17 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 .topaz-theme-setting-toggle > :last-child {
   display: none;
 }
+
+.topaz-changelog-advanced {
+  position: absolute;
+  right: 60px;
+  top: 19px;
+}
+
+.topaz-changelog-advanced .control-1fl03- {
+  margin-left: 8px;
+}
+
+.topaz-changelog-advanced .divider-_0um2u {
+  display: none;
+}
