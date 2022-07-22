@@ -38,6 +38,7 @@ A "next-gen" mod bundling client-side in web, designed for wide compat and with 
 | Vizality | ![](https://img.shields.io/badge/initial-orange?style=for-the-badge) | ![](https://img.shields.io/badge/unsupported-red?style=for-the-badge) |
 | Velocity | ![](https://img.shields.io/badge/most-green?style=for-the-badge) | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |
 | Discord Re-envisioned | ![](https://img.shields.io/badge/most-green?style=for-the-badge) | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |
+| Demoncord | ![](https://img.shields.io/badge/most-green?style=for-the-badge) | |
 | Rikka | ![](https://img.shields.io/badge/initial-orange?style=for-the-badge) | ![](https://img.shields.io/badge/unsupported-red?style=for-the-badge) |
 
 > **Note** |
