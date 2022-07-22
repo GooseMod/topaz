@@ -1,12 +1,37 @@
-#topaz-repo-autocomplete {
+#topaz-repo-filtering, #topaz-repo-autocomplete {
   position: absolute;
   z-index: 999;
   background: var(--background-floating);
   max-height: 280px;
-  overflow: auto;
+  overflow-y: auto;
+  border-radius: 0 0 3px 3px;
 }
 
-#topaz-repo-autocomplete > h5 {
+#topaz-repo-filtering > :not(:first-child) {
+  margin: 0 8px;
+}
+
+#topaz-repo-filtering .divider-_0um2u {
+  display: none;
+}
+
+#topaz-repo-filtering .container-1zDvAE {
+  margin-bottom: 8px;
+}
+
+#topaz-repo-filtering .h5-2RwDNl {
+  margin-bottom: 8px;
+}
+
+#topaz-repo-filtering > :first-child {
+  margin-bottom: 10px;
+}
+
+#topaz-repo-filtering .container-1zDvAE .title-2dsDLn {
+  color: var(--text-normal);
+}
+
+#topaz-repo-autocomplete > h5, #topaz-repo-filtering > :first-child {
   padding: 8px;
   font-weight: 600;
   font-size: 12px;
@@ -15,6 +40,23 @@
   color: var(--header-secondary);
   text-transform: uppercase;
   border-bottom: 2px solid var(--background-primary);
+}
+
+#topaz-repo-autocomplete > h5 > button {
+  float: right;
+  width: 24px;
+  height: 24px;
+  margin-top: -4px;
+}
+
+#topaz-repo-autocomplete > h5 > button.active {
+  color: var(--interactive-active);
+}
+
+#topaz-repo-autocomplete > h5 > button[aria-label="Filter"] svg {
+  transform: scale(1.2);
+  width: 16px;
+  height: 16px;
 }
 
 #topaz-repo-autocomplete > div {
@@ -40,6 +82,13 @@
 #topaz-repo-autocomplete > div:hover {
   background: var(--background-secondary);
 }
+
+#topaz-repo-filtering {
+  border-radius: 6px;
+  width: 240px;
+  box-shadow: var(--elevation-stroke), var(--elevation-medium);
+}
+
 
 .topaz-settings > [role="tablist"] {
   margin-bottom: 20px;

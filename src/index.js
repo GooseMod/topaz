@@ -2140,9 +2140,80 @@ class Snippets extends React.PureComponent {
   }
 }
 
+const autocompleteFiltering = JSON.parse(Storage.get('autocomplete_filtering', 'null')) ?? {
+  mods: {}
+};
+
 class Settings extends React.PureComponent {
   render() {
     const textInputHandler = (inp, init = false) => {
+      const addFilterPopout = () => {
+        if (document.querySelector('#topaz-repo-filtering')) return; // already open
+
+        const popout = document.createElement('div');
+        popout.id = 'topaz-repo-filtering';
+        popout.className = ScrollerClasses.thin + (topazSettings.simpleUI ? ' topaz-simple' : '');
+
+        const autoPos = autocomplete.getBoundingClientRect();
+
+        popout.style.top = autoPos.top + 'px';
+        popout.style.left = autoPos.right + 8 + 'px';
+
+        document.body.appendChild(popout);
+
+        const regen = () => textInputHandler(el.value ?? '');
+
+        const mods = Object.keys(recom).reduce((acc, x) => {
+          const mod = x.split('%')[0].toLowerCase();
+          if (!acc.includes(mod)) acc.push(mod);
+          return acc;
+        }, []);
+
+        class FilterPopout extends React.PureComponent {
+          render() {
+            return React.createElement(React.Fragment, {},
+              React.createElement('h5', {}, 'Filters'),
+              React.createElement(FormTitle, {
+                tag: 'h5'
+              }, 'Mods'),
+
+              ...mods.map(x => React.createElement(goosemod.webpackModules.findByDisplayName('SwitchItem'), {
+                value: autocompleteFiltering.mods[x] !== false,
+                onChange: y => {
+                  autocompleteFiltering.mods[x] = y;
+
+                  this.forceUpdate();
+                  regen();
+
+                  Storage.set('autocomplete_filtering', JSON.stringify(autocompleteFiltering));
+                }
+              }, displayMod(x)))
+            );
+          }
+        }
+
+        ReactDOM.render(React.createElement(FilterPopout), popout);
+
+        const checkClick = e => {
+          el.focus();
+          if (e.path.some(x => x.id === 'topaz-repo-filtering')) return;
+
+          removeFilterPopout();
+          if (!e.path.some(x => x.id === 'topaz-repo-autocomplete')) {
+            autocomplete.style.display = 'none';
+            el.blur();
+          }
+
+          document.removeEventListener('click', checkClick);
+        };
+
+        setTimeout(() => document.addEventListener('click', checkClick), 100);
+      };
+
+      const removeFilterPopout = () => {
+        document.querySelector('#topaz-repo-filtering')?.remove?.();
+      };
+
       const el = document.querySelector('.topaz-settings .input-2g-os5');
 
       const install = async (info) => {
@@ -2185,8 +2256,12 @@ class Settings extends React.PureComponent {
 
         el.onfocus = () => textInputHandler(el.value ?? '');
 
-        el.onblur = () => {
+        el.onblur = (e) => {
+          const checkIfInFilterPopout = el => el && (el.id === 'topaz-repo-filtering' || checkIfInFilterPopout(el.parentElement));
+          if (e.relatedTarget?.ariaLabel === 'Filter' || checkIfInFilterPopout(e.relatedTarget)) return; // Filter button clicked, ignore
+
           setTimeout(() => {
+            removeFilterPopout();
             autocomplete.style.display = 'none';
           }, 100);
         };
@@ -2211,36 +2286,65 @@ class Settings extends React.PureComponent {
 
       const recom = popular[selectedTab.toLowerCase()];
       const infoFromRecom = (x) => x.endsWith('.plugin.js') ? x.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '') : x.replace('https://github.com/', '');
-      const matching = Object.keys(recom).filter((x) => !plugins[infoFromRecom(recom[x])] && fuzzySearch.test(x));
+      const matching = Object.keys(recom).filter((x) => !plugins[infoFromRecom(recom[x])] && fuzzySearch.test(x) && autocompleteFiltering.mods[x.split('%')[0].toLowerCase()] !== false);
 
       if (!init && matching.length > 0) {
+        ReactDOM.render(React.createElement(React.Fragment, {},
+          React.createElement('h5', {},
+            'Popular ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes'),
+
+            React.createElement(PanelButton, {
+              icon: goosemod.webpackModules.findByDisplayName('Filter'),
+              tooltipText: 'Filter',
+
+              onClick: () => {
+                if (document.querySelector('#topaz-repo-filtering')) {
+                  removeFilterPopout();
+                  document.querySelector('[aria-label="Filter"]').classList.remove('active');
+                } else {
+                  addFilterPopout();
+                  document.querySelector('[aria-label="Filter"]').classList.add('active');
+                }
+              }
+            })
+          ),
+
+          ...matching.map(x => {
+            const [ mod, name, author ] = x.split('%');
+
+            let place = recom[x];
+            if (place.length > 40) place = place.slice(0, 40) + '...';
+
+            return React.createElement('div', {
+              className: 'title-2dsDLn',
+              onClick: () => {
+                autocomplete.style.display = 'none';
+                el.value = '';
+                install(recom[x]);
+              }
+            },
+              React.createElement('span', {
+                className: 'topaz-tag tag-floating'
+              }, mod),
+
+              ' ' + name + ' ',
+
+              author !== 'undefined' && React.createElement('span', {
+                className: 'description-30xx7u'
+              }, 'by '),
+              author !== 'undefined' && author.split('#')[0],
+
+              React.createElement('span', {
+                className: 'code-style'
+              }, place)
+            );
+          })
+        ), autocomplete);
+
         autocomplete.style.display = 'block';
-        autocomplete.innerHTML = '';
 
-        const hel = document.createElement('h5');
-        hel.textContent = 'Popular ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes');
-        autocomplete.appendChild(hel);
-
-        for (const x of matching) {
-          const [ mod, name, author ] = x.split('%');
-
-          let place = recom[x];
-          if (place.length > 40) place = place.slice(0, 40) + '...';
-
-          const nel = document.createElement('div');
-          nel.className = 'title-2dsDLn';
-          nel.innerHTML = `<span class="topaz-tag tag-floating">${mod}</span> ${name}${author !== 'undefined' ? ` <span class="description-30xx7u">by</span> ${author.split('#')[0]}` : ''} <span class="code-style">${place}</span>`; // sad
-
-          nel.onclick = async () => {
-            autocomplete.style.display = 'none';
-
-            el.value = '';
-
-            install(recom[x]);
-          };
-
-          autocomplete.appendChild(nel);
-        }
+        if (!document.querySelector('#topaz-repo-filtering')) document.querySelector('[aria-label="Filter"]').classList.remove('active');
+          else document.querySelector('[aria-label="Filter"]').classList.add('active');
       } else {
         autocomplete.style.display = 'none';
       }
