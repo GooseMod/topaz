@@ -929,7 +929,7 @@ const install = async (info, settings = undefined, disabled = false) => {
             }
 
             componentDidMount() {
-              if (this.ret instanceof Node) this.ref.current.appendChild(ret);
+              if (this.ret instanceof Node) this.ref.current.appendChild(this.ret);
             }
 
             render() {
