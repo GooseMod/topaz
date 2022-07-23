@@ -234,6 +234,13 @@ const Onyx = function (entityID, manifest, transformRoot) {
     context[k] = null;
   }
 
+  const forceGlobals = [ 'addEventListener', 'removeEventListener' ]; // not in keys but force in context
+
+  for (const k of forceGlobals) {
+    const orig = window[k];
+    context[k] = typeof orig === 'function' && k !== '_' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
+  }
+
   if (!context.DiscordNative) context.DiscordNative = { // basic polyfill
     crashReporter: {
       getMetadata: () => ({
