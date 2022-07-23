@@ -1138,9 +1138,11 @@ const displayMod = (mod) => {
   }
 };
 
-const mapifyBuiltin = async (builtin) => `// MAP_START|${builtin}
-${await includeRequires('', builtins[builtin])}
-// MAP_END\n\n`;
+const mapifyBuiltin = async (builtin) => {
+  return `// MAP_START|${builtin}
+${await includeRequires('', await builtins[builtin])}
+// MAP_END\n\n`
+};
 
 let transformRoot;
 const transform = async (path, code, mod) => {
