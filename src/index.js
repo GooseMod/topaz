@@ -919,6 +919,8 @@ const install = async (info, settings = undefined, disabled = false) => {
 
         for (const x of [ 'name', 'description', 'version', 'author' ]) manifest[x] = plugin['get' + x.toUpperCase()[0] + x.slice(1)]?.() ?? manifest[x] ?? '';
 
+        if (plugin.load) plugin.load();
+
         if (plugin.getSettingsPanel) plugin.__settings = {
           render: class BDSettingsWrapper extends React.PureComponent {
             constructor(props) {
