@@ -1154,17 +1154,6 @@ const transform = async (path, code, mod) => {
 
   let indexCode = await includeRequires(path, code);
 
-  /* code = Object.values(chunks).join('\n\n') + `\n// MAP_START|${'.' + path.replace(transformRoot, '')}
-${code}
-// MAP_END`; */
-
-  /* let out = await mapifyBuiltin(fullMod(mod) + '/global') +
-    ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '');
-
-  out = Object.values(chunks).join('\n\n') + '\n\n' + out + `// MAP_START|${'.' + path.replace(transformRoot, '')}
-${indexCode}
-// MAP_END`; */
-
   let out = await mapifyBuiltin(fullMod(mod) + '/global') +
   ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '') +
   Object.values(chunks).join('\n\n') + '\n\n' +
