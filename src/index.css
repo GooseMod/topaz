@@ -100,12 +100,9 @@
   font-size: 10px;
 }
 
-.topaz-settings .title-2dsDLn {
-  font-weight: 600;
-}
-
-.topaz-settings .labelRow-2jl9gK > :first-child {
+.topaz-settings h1 ~ .vertical-3aLnqW .labelRow-2jl9gK > :first-child {
   font-size: 18px;
+  font-weight: 600;
 }
 
 .topaz-loading-text {
