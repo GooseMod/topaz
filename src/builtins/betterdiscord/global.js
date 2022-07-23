@@ -123,6 +123,10 @@ BdApi = {
     return data[key];
   },
 
+  isSettingEnabled: (...path) => true,
+  disableSetting: (...path) => {},
+  enableSetting: (...path) => {},
+
 
   showConfirmationModal,
   alert: (title, content) => showConfirmationModal(title, content, { cancelText: null }),
