@@ -981,12 +981,6 @@ const install = async (info, settings = undefined, disabled = false) => {
 
         break;
 
-      case 'pc':
-        if (settings) plugin.settings.store = settings;
-        plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
-
-        break;
-
       case 'un':
         if (settings) plugin.settings.store = settings;
         plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change

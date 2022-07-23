@@ -14,34 +14,38 @@ const FluxActions = {
 class SettingsStore extends Flux.Store {
   constructor (Dispatcher, handlers) {
     super(Dispatcher, handlers);
-    this.store = {};
+    this._store = JSON.parse(topaz.storage.get(__entityID + '_pc', '{}') ?? {});
+  }
+
+  onChange() {
+    topaz.storage.set(__entityID + '_pc', JSON.stringify(this._store));
   }
 
   getSetting = (key, def) => {
-    return this.store[key] ?? def;
+    return this._store[key] ?? def;
   }
 
   updateSetting = (key, value) => {
     if (value === undefined) return this.deleteSetting(key);
 
-    this.store[key] = value;
+    this._store[key] = value;
 
-    this.onChange?.();
+    this.onChange();
 
-    return this.store[key];
+    return this._store[key];
   }
 
   toggleSetting = (key, def) => {
-    return this.updateSetting(key, !(this.store[key] ?? def));
+    return this.updateSetting(key, !(this._store[key] ?? def));
   }
 
   deleteSetting = (key) => {
-    delete this.store[key];
+    delete this._store[key];
 
-    this.onChange?.();
+    this.onChange();
   }
 
-  getKeys = () => Object.keys(this.store)
+  getKeys = () => Object.keys(this._store)
 
   // alt names for other parts
   get = this.getSetting
