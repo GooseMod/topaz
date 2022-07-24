@@ -25,7 +25,7 @@ const log = (_region, ...args) => {
   );
 };
 
-if (window.topaz) { // live reload handling
+if (window.topaz && topaz.purge) { // live reload handling
   topaz.__reloading = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
 
