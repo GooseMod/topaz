@@ -217,6 +217,7 @@ const permissionsModal = async (manifest, neededPerms) => {
 
 // we have to use function instead of class because classes force strict mode which disables with
 const Onyx = function (entityID, manifest, transformRoot) {
+  const startTime = performance.now();
   const context = {};
 
   // todo: filter elements for personal info?
@@ -411,7 +412,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
     }) : mod;
   };
 
-  topaz.log('onyx', 'created execution container successfully');
+  topaz.log('onyx', `contained ${manifest.name} in ${(performance.now() - startTime).toFixed(2)}ms`);
 };
 
 Onyx //# sourceURL=Onyx
