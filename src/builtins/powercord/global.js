@@ -259,7 +259,10 @@ powercord = {
         return undefined;
       }
     }
-  }
+  },
+
+  account: null,
+  fetchAccount: async () => {}
 };
 
 
