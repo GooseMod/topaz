@@ -220,7 +220,7 @@ const builtins = {
   '@cumcord/modules/webpack': `module.exports = cumcord.modules.webpack;`,
   '@cumcord/modules/webpackModules': `module.exports = cumcord.modules.webpack;`,
   '@cumcord/modules/common': 'module.exports = cumcord.modules.common;',
-  '@cumcord/modules/common/i18n': 'module.exports = cumcord.modules.common.i18n;',
+  ...['i18n', 'constants', 'FluxDispatcher'].reduce((acc, x) => { acc[`@cumcord/modules/common/${x}`] = `module.exports = cumcord.modules.common.${x};`; return acc; }, {}),
   '@cumcord/modules': 'module.exports = cumcord.modules;',
   '@cumcord/patcher': `module.exports = cumcord.patcher;`,
   '@cumcord/utils': `module.exports = cumcord.utils;`,
