@@ -57,6 +57,9 @@ const pc = {
     'asportnoy/powercord-role-dividers',
     'cyyynthia/total-members',
     'powercord-community/badges-everywhere|12944qwerty/badges-everywhere',
+    'E-boi/Powercord-BlurNSFW',
+    'Juby210/view-raw',
+    'ShadiestGoat/Powercord-googleit-plugin',
   ],
 
   themes: [
@@ -196,6 +199,7 @@ const cc = {
     'https://github.com/E-boi/cumcord-plugins/tree/master/userdetails',
     // 'https://github.com/E-boi/cumcord-plugins/blob/master/showconnections,
     'https://github.com/E-boi/cumcord-plugins/tree/master/betterfriendslist',
+    // 'https://github.com/E-boi/cumcord-plugins/tree/master/blurnsfw',
   ]
 };
 
