@@ -134,7 +134,7 @@ powercord = {
   api: {
     commands: {
       registerCommand: ({ command, alias, description, usage, executor }) => {
-        const getChannelId = goosemod.webpackModules.findByProps('getChannelId').getChannelId;
+        const { getChannelId } = goosemod.webpackModules.findByProps('getChannelId', 'getVoiceChannelId');
 
         // TODO: implement alias
 
