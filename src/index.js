@@ -1348,7 +1348,11 @@ log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)
     let settings = pluginsToInstall[p];
     if (typeof settings === 'object' && Object.keys(settings).length === 0) settings = undefined; // {} -> undefined
 
-    await install(p, settings, disabled[p] ?? false);
+    try {
+      await install(p, settings, disabled[p] ?? false);
+    } catch (e) {
+      console.error('Init install fail', p, e);
+    }
   }
 
   try { updateOpenSettings(); } catch { }
