@@ -42,8 +42,12 @@ class Request {
 
       topaz.log('powercord.http', 'fetch', url, opts);
 
-      const corsDont = [ 'api.spotify.com' ];
-      const resp = await fetch((corsDont.some(x => url.includes(x)) ? '' : `https://topaz-cors.goosemod.workers.dev/?`) + url, opts).catch(rej);
+      const resp = await fetch(url, opts).catch(e => {
+        if (e.stack.startsWith('TypeError')) { // possible CORS error, try with our CORS proxy
+          console.warn('Failed to fetch', url, '- trying CORS proxy');
+          return fetch(`https://topaz-cors.goosemod.workers.dev/?` + url);
+        }
+      });
 
       const body = await resp.text().catch(rej);
 
