@@ -56,7 +56,7 @@ const pc = {
     'discord-modifications/screenshare-crack',
     'asportnoy/powercord-role-dividers',
     'cyyynthia/total-members',
-    'powercord-community/badges-everywhere|12944qwerty/badges-everywhere',
+    '12944qwerty/badges-everywhere|powercord-community/badges-everywhere',
     'E-boi/Powercord-BlurNSFW',
     'Juby210/view-raw',
     'ShadiestGoat/Powercord-googleit-plugin',
