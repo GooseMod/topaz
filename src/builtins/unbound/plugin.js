@@ -1,53 +1,89 @@
 const { React, Flux, FluxDispatcher } = goosemod.webpackModules.common;
 
+const fluxPrefix = 'topaz_un_settings_' + __entityID.replace(/[^A-Za-z0-9]/g, '_');
+const FluxActions = {
+  TOGGLE_SETTING: fluxPrefix + '_toggle_setting',
+  UPDATE_SETTING: fluxPrefix + '_update_setting',
+  DELETE_SETTING: fluxPrefix + '_delete_setting',
+};
+
 class SettingsStore extends Flux.Store {
   constructor (Dispatcher, handlers) {
     super(Dispatcher, handlers);
-    this.store = {};
+    this._store = JSON.parse(topaz.storage.get(__entityID + '_un', '{}') ?? {});
   }
 
-  getSetting = (key, def) => {
-    return this.store[key] ?? def;
+  onChange() {
+    topaz.storage.set(__entityID + '_un', JSON.stringify(this._store));
   }
 
-  updateSetting = (key, value) => {
+  get = (key, def) => {
+    return this._store[key] ?? def;
+  }
+
+  update = (key, value) => {
     if (value === undefined) return this.deleteSetting(key);
 
-    this.store[key] = value;
+    this._store[key] = value;
 
-    this.onChange?.();
+    this.onChange();
 
-    return this.store[key];
+    return this._store[key];
   }
 
-  toggleSetting = (key, def) => {
-    return this.updateSetting(key, !(this.store[key] ?? def));
+  toggle = (key, def) => {
+    return this.updateSetting(key, !(this._store[key] ?? def));
   }
 
-  deleteSetting = (key) => {
-    delete this.store[key];
+  delete = (key) => {
+    delete this._store[key];
 
-    this.onChange?.();
+    this.onChange();
   }
 
-  getKeys = () => Object.keys(this.store)
+  getKeys = () => Object.keys(this._store)
 
-  // alt names for other parts
-  get = this.getSetting
-  set = this.updateSetting
-  toggle = this.toggleSetting
-  delete = this.deleteSetting
+  connectStore = connectStore
 }
+
+const connectStore = (comp) => Flux.connectStores([ settingStore ], () => ({
+  settings: settingStore.store,
+  get: settingStore.get,
+
+  set: (setting, value) => {
+    FluxDispatcher.dispatch({
+      type: FluxActions.UPDATE_SETTING,
+      setting,
+      value
+    });
+  },
+
+  toggle: (setting, defaultValue) => {
+    FluxDispatcher.dispatch({
+      type: FluxActions.TOGGLE_SETTING,
+      setting,
+      defaultValue
+    });
+  },
+
+  delete: (setting) => {
+    FluxDispatcher.dispatch({
+      type: FluxActions.DELETE_SETTING,
+      setting
+    });
+  }
+}))(comp);
+
+const settingStore = new SettingsStore(FluxDispatcher, { // always return true to update properly
+  [FluxActions.TOGGLE_SETTING]: ({ setting, defaultValue }) => settingStore.toggle(setting, defaultValue) || true,
+  [FluxActions.UPDATE_SETTING]: ({ setting, value }) => settingStore.update(setting, value) || true,
+  [FluxActions.DELETE_SETTING]: ({ setting }) => settingStore.delete(setting) || true
+});
 
 
 module.exports = class Plugin {
   constructor() {
-    this.settings = new SettingsStore(FluxDispatcher, {
-      UNBOUND_SETTINGS_UPDATE: ({ category, settings }) => updateSettings(category, settings),
-      UNBOUND_SETTING_TOGGLE: ({ category, setting, defaultValue }) => toggleSetting(category, setting, defaultValue),
-      UNBOUND_SETTING_UPDATE: ({ category, setting, value }) => updateSetting(category, setting, value),
-      UNBOUND_SETTING_DELETE: ({ category, setting }) => deleteSetting(category, setting)
-    });
+    this.settings = settingStore;
 
     this.unpatches = [];
   }
