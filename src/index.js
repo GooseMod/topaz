@@ -391,7 +391,12 @@ const makeChunk = async (root, p) => {
   const chunk = `// ${finalPath}
 let ${id} = {};
 (() => { // MAP_START|${finalPath}
-` + code.replace('module.exports =', `${id} =`).replace('export default', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`).replaceAll(/export const (.*?)=/g, (_, key) => `${id}.${key}=`) + `
+` + code
+      .replace('module.exports =', `${id}=`)
+      .replace('export default', `${id}=`)
+      .replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}${key}=`)
+      .replaceAll(/export const (.*?)=/g, (_, key) => `${id}.${key}=`)
+      .replaceAll(/export function (.*?)\(/g, (_, key) => `${id}.${key} = function(`) + `
 })(); // MAP_END`;
 
   if (shouldUpdateFetch) {
