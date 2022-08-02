@@ -980,7 +980,7 @@ const permissionsModal = async (manifest, neededPerms) => {
           },
           transitionState: e.transitionState
         },
-          ...(\`Topaz requires your permission before allowing **\${manifest.name}** to \${permsTypes}:\`).split('\\n').map((x) => React.createElement(Markdown, {
+          ...(\`Topaz requires your permission before allowing \${manifest.name} to **\${permsTypes}**:\`).split('\\n').map((x) => React.createElement(Markdown, {
             size: Text.Sizes.SIZE_16
           }, x)),
 
@@ -1017,15 +1017,17 @@ const containerParent = document.createElement('div');
 document.body.appendChild(containerParent);
 
 const createContainer = (inst) => {
+  // containerParent.innerHTML = '<object data="about:blank"></iframe>'; // make iframe
   containerParent.innerHTML = '<iframe></iframe>'; // make iframe
   const el = containerParent.children[0];
 
-  const _constructor = el.contentWindow.Function.prototype.constructor;
-  el.contentWindow.Function.prototype.constructor = function() {
+  const _constructor = el.contentWindow.Function.constructor;
+  el.contentWindow.Function.constructor = function() {
     return (_constructor.apply(inst.context, arguments)).bind(inst.context);
   };
 
-  // el.contentWindow.Function.prototype.constructor = null;
+  // el.contentWindow.Function.constructor = null;
+
 
   const ev = el.contentWindow.eval;
 
@@ -1203,6 +1205,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
     } catch { }
 
     if (keys.includes('Object')) return this.context; // Block window
+    if (keys.includes('clear') && keys.includes('get') && keys.includes('set') && keys.includes('remove') && !keys.includes('mergeDeep')) return {}; // Block localStorage
 
     const hasFlags = keys.some(x => typeof x === 'string' && Object.values(permissions).flat().some(y => x === y.split('@')[0])); // has any keys in it
     return hasFlags ? new Proxy(mod, { // make proxy only if potential
@@ -4739,7 +4742,12 @@ const makeChunk = async (root, p) => {
   const chunk = `// ${finalPath}
 let ${id} = {};
 (() => { // MAP_START|${finalPath}
-` + code.replace('module.exports =', `${id} =`).replace('export default', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`).replaceAll(/export const (.*?)=/g, (_, key) => `${id}.${key}=`) + `
+` + code
+      .replace('module.exports =', `${id}=`)
+      .replace('export default', `${id}=`)
+      .replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}${key}=`)
+      .replaceAll(/export const (.*?)=/g, (_, key) => `${id}.${key}=`)
+      .replaceAll(/export function (.*?)\(/g, (_, key) => `${id}.${key} = function(`) + `
 })(); // MAP_END`;
 
   if (shouldUpdateFetch) {
