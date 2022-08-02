@@ -395,9 +395,10 @@ let ${id} = {};
       .replace('module.exports =', `${id} =`)
       .replace('export default', `${id} =`)
       .replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}${key}=`)
-      .replaceAll(/export const (.*?)=/g, (_, key) => `${id}.${key}=`)
-      .replaceAll(/export function (.*?)\(/g, (_, key) => `${id}.${key} = function(`) + `
-})(); // MAP_END`;
+      .replaceAll(/export const (.*?)=/g, (_, key) => `const ${key}= ${id}.${key}=`)
+      .replaceAll(/export function (.*?)\(/g, (_, key) => `const ${key} = ${id}.${key} = function ${key}(`)
+      .replaceAll(/export class ([^ ]*)/g, (_, key) => `const ${key} = ${id}.${key} = class ${key}`) +
+`\n})(); // MAP_END`;
 
   if (shouldUpdateFetch) {
     fetchProgressCurrent++;
