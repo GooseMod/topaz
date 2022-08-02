@@ -285,7 +285,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
 
   context.goosemodScope = context.goosemod; // goosemod alias
 
-  context.console = unsentrify(window.console); // unsentrify console funcs
+  context.console = window.console.context ? window.console.context('topaz_plugin') : unsentrify(window.console); // use console.context or fallback on unsentrify
 
   context.window = context; // recursive global
 
