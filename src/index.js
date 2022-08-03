@@ -254,6 +254,7 @@ const builtins = {
   'path': await getBuiltin('node/path'),
   'fs': await getBuiltin('node/fs'),
   'process': await getBuiltin('node/process'),
+  'util': await getBuiltin('node/util'),
   'request': await getBuiltin('node/request'),
   'querystring': await getBuiltin('node/querystring'),
 };
