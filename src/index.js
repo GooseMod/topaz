@@ -600,11 +600,12 @@ const install = async (info, settings = undefined, disabled = false) => {
 
     tree = [];
     if (isGitHub) {
-      tree = (await (await fetch(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`)).json()).tree;
+      const treeUrl = `https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`;
+      tree = JSON.parse(fetchCache.get(treeUrl) ?? fetchCache.set(treeUrl, (await (await fetch(treeUrl)).text()))).tree;
 
       if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
 
-      console.log('tree', tree);
+      log('bundler', 'tree', tree);
     }
 
     updatePending(info, 'Fetching index...');
@@ -1235,6 +1236,23 @@ const setDisabled = (key, disabled) => {
 };
 
 const purgeCacheForPlugin = (info) => {
+  let [ repo, branch ] = info.split('@');
+  if (!branch) branch = 'HEAD'; // default to HEAD
+
+  let isGitHub = !info.startsWith('http');
+
+  let subdir;
+  if (isGitHub) { // todo: check
+    const spl = info.split('/');
+    if (spl.length > 2) { // Not just repo
+      repo = spl.slice(0, 2).join('/');
+      subdir = spl.slice(4).join('/');
+      branch = spl[3] ?? 'HEAD';
+    }
+  }
+
+  if (isGitHub && repo) fetchCache.remove(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`); // remove gh api cache
+
   finalCache.remove(info); // remove final cache
   fetchCache.keys().filter(x => x.includes(info.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).forEach(y => fetchCache.remove(y)); // remove fetch caches
 };
