@@ -75,6 +75,7 @@ BdApi = {
   findModuleByProps: Webpack.findByProps,
   findModuleByDisplayName: Webpack.findByDisplayName,
 
+  getInternalInstance: goosemod.reactUtils.getReactInstance,
 
   injectCSS: (id, css) => {
     const el = document.createElement('style');
