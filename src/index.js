@@ -393,7 +393,9 @@ const makeChunk = async (root, p) => {
 
   const chunk = `// ${finalPath}
 let ${id} = {};
-(() => { // MAP_START|${finalPath}
+(() => {
+const __dirname = '${getDir(finalPath)}';
+// MAP_START|${finalPath}
 ` + code
       .replace('module.exports =', `${id} =`)
       .replace('export default', `${id} =`)
