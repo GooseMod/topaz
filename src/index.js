@@ -258,6 +258,7 @@ const builtins = {
   'request': await getBuiltin('node/request'),
   'querystring': await getBuiltin('node/querystring'),
   'os': await getBuiltin('node/os'),
+  'url': await getBuiltin('node/url'),
 };
 
 const join = (root, p) => root + p.replace('./', '/'); // Add .jsx to empty require paths with no file extension
