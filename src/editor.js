@@ -406,7 +406,8 @@ return function Editor(props) {
           const channels = [
             '755005803303403570',
             '836694789898109009',
-            '449569809613717518'
+            '449569809613717518',
+            '1000955971650195588',
           ];
 
           const getSnippets = async (channelId) => {
