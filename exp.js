@@ -33,7 +33,7 @@ if (window.topaz && topaz.purge) { // live reload handling
 }
 
 window.topaz = {
-  version: 'alpha 10d-isoD2',
+  version: 'alpha 10d-isoD5',
   log
 };
 
