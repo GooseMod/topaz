@@ -218,35 +218,62 @@ const permissionsModal = async (manifest, neededPerms) => {
   return finalPerms;
 };
 
+const iframeGlobals = [ 'performance', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'fetch', 'addEventListener', 'removeEventListener' ];
+const passGlobals = [ 'topaz', 'goosemod', 'document', '_', 'addEventListener', 'removeEventListener', 'Node', 'Element', 'MutationEvent', 'MutationRecord' ];
+
+// did you know: using innerHTML is ~2.5x faster than appendChild for some reason (~40ms -> ~15ms), so we setup a parent just for making our iframes via this trick
+const containerParent = document.createElement('div');
+document.body.appendChild(containerParent);
+
+const createContainer = (inst) => {
+  containerParent.innerHTML = '<iframe></iframe>'; // make iframe
+  const el = containerParent.children[0];
+
+  const _constructor = el.contentWindow.Function.constructor;
+  el.contentWindow.Function.constructor = function() {
+    return (_constructor.apply(inst.context, arguments)).bind(inst.context);
+  };
+
+
+  const ev = el.contentWindow.eval;
+
+  for (const k of Object.keys(el.contentWindow)) {
+    if (!iframeGlobals.includes(k)) {
+      el.contentWindow[k] = undefined;
+      delete el.contentWindow[k];
+    }
+  }
+
+  el.remove();
+
+  return ev;
+};
+
 
 // we have to use function instead of class because classes force strict mode which disables with
 const Onyx = function (entityID, manifest, transformRoot) {
   const startTime = performance.now();
   const context = {};
 
-  // todo: filter elements for personal info?
-  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'performance', 'fetch', 'clearTimeout', 'setImmediate', 'location' ];
-
   // nullify (delete) all keys in window to start except allowlist
-  for (const k of Object.keys(window)) { // for (const k of Reflect.ownKeys(window)) {
-    if (allowGlobals.includes(k)) {
-      const orig = window[k];
-      context[k] = typeof orig === 'function' && k !== '_' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
-
-      continue;
-    }
-
-    context[k] = null;
-  }
-
-  const forceGlobals = [ 'addEventListener', 'removeEventListener' ]; // not in keys but force in context
-
-  for (const k of forceGlobals) {
-    const orig = window[k];
+  for (const k of passGlobals) {
+    let orig = window[k];
     context[k] = typeof orig === 'function' && k !== '_' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
   }
 
-  if (!context.DiscordNative) context.DiscordNative = { // basic polyfill
+  context.MutationObserver = function(callback) { // janky wrapper because Chromium breaks with disconnected iframe
+    const obs = new window.MutationObserver((mutations) => {
+      callback(mutations);
+    });
+
+    this.observe = obs.observe.bind(obs);
+    this.disconnect = obs.disconnect.bind(obs);
+    this.takeRecords = obs.takeRecords.bind(obs);
+
+    return this;
+  };
+
+  context.DiscordNative = { // basic polyfill
     crashReporter: {
       getMetadata: () => ({
         user_id: this.safeWebpack(goosemod.webpackModules.findByProps('getCurrentUser')).getCurrentUser().id
@@ -287,7 +314,12 @@ const Onyx = function (entityID, manifest, transformRoot) {
 
   context.console = window.console.context ? window.console.context('topaz_plugin') : unsentrify(window.console); // use console.context or fallback on unsentrify
 
+  context.location = { // mock location
+    href: window.location.href
+  };
+
   context.window = context; // recursive global
+  context.globalThis = context;
 
   // mock node
   context.global = context;
@@ -309,25 +341,30 @@ const Onyx = function (entityID, manifest, transformRoot) {
   // custom globals
   context.__entityID = entityID;
 
-
   this.entityID = entityID;
   this.manifest = manifest;
-  this.context = Object.assign(context);
+  this.context = Object.seal(Object.freeze(Object.assign({}, context)));
+
+  const containedEval = createContainer(this);
 
   let predictedPerms = [];
   this.eval = function (_code) {
-    let code = _code + `\n\n;module.exports\n //# sourceURL=${makeSourceURL(this.manifest.name)}\n`;
-    code += this.MapGen(code, transformRoot, this.manifest.name);
-
     // basic static code analysis for predicting needed permissions
     // const objectPredictBlacklist = [ 'clyde' ];
     // predictedPerms = Object.keys(permissions).filter(x => permissions[x].some(y => [...code.matchAll(new RegExp(`([^. 	]*?)\\.${y}`, 'g'))].some(z => z && !objectPredictBlacklist.includes(z[1].toLowerCase()))));
     // topaz.log('onyx', 'predicted perms for', this.manifest.name, predictedPerms);
 
-    let exported;
-    with (this.context) {
-      exported = eval(code);
-    }
+    const argumentContext = Object.keys(this.context).filter(x => !x.match(/^[0-9]/) && !x.match(/[-,]/));
+
+    let code = `(function (${argumentContext}) {
+${_code}\n\n
+;return module.exports;
+});
+//# sourceURL=${makeSourceURL(this.manifest.name)}`;
+
+    code += '\n' + this.MapGen(code, transformRoot, this.manifest.name);
+
+    let exported = containedEval.bind(this.context)(code).apply(this.context, argumentContext.map(x => this.context[x]));
 
     return exported;
   };
@@ -385,7 +422,8 @@ const Onyx = function (entityID, manifest, transformRoot) {
       keys = Reflect.ownKeys(mod).concat(Reflect.ownKeys(mod.__proto__ ?? {}));
     } catch { }
 
-    // if (keys.includes('Blob')) throw new Error('Onyx blocked access to window in Webpack', mod); // block window
+    if (keys.includes('Object')) return this.context; // Block window
+    if (keys.includes('clear') && keys.includes('get') && keys.includes('set') && keys.includes('remove') && !keys.includes('mergeDeep')) return {}; // Block localStorage
 
     const hasFlags = keys.some(x => typeof x === 'string' && Object.values(permissions).flat().some(y => x === y.split('@')[0])); // has any keys in it
     return hasFlags ? new Proxy(mod, { // make proxy only if potential
