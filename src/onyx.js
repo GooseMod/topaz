@@ -326,7 +326,6 @@ const Onyx = function (entityID, manifest, transformRoot) {
   context.module = {
     exports: {}
   };
-  context.__dirname = '/home/topaz/plugin';
   context.process = {
     versions: {
       electron: '13.6.6'
