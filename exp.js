@@ -792,7 +792,11 @@ manager.add();
 
 manager`);
 
-const Onyx = eval(`const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) => { acc[x] = obj[x].__sentry_original__ ?? obj[x]; return acc; }, {});
+const Onyx = eval(`const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) => {
+  const sub = obj[x].__REACT_DEVTOOLS_ORIGINAL_METHOD__ ?? obj[x];
+  acc[x] = sub.__sentry_original__ ?? sub;
+  return acc;
+}, {});
 const makeSourceURL = (name) => \`\${name} | Topaz\`.replace(/ /g, '%20');
 const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
@@ -980,7 +984,7 @@ const permissionsModal = async (manifest, neededPerms) => {
           },
           transitionState: e.transitionState
         },
-          ...(\`Topaz requires your permission before allowing \${manifest.name} to **\${permsTypes}**:\`).split('\\n').map((x) => React.createElement(Markdown, {
+          ...(\`Topaz requires your permission before allowing **\${manifest.name}** to \${permsTypes}:\`).split('\\n').map((x) => React.createElement(Markdown, {
             size: Text.Sizes.SIZE_16
           }, x)),
 
@@ -1009,15 +1013,13 @@ const permissionsModal = async (manifest, neededPerms) => {
 };
 
 const iframeGlobals = [ 'performance', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'fetch', 'addEventListener', 'removeEventListener' ];
-const passGlobals = [ 'topaz', 'goosemod', 'document', '_', 'addEventListener', 'removeEventListener' ];
+const passGlobals = [ 'topaz', 'goosemod', 'document', '_', 'addEventListener', 'removeEventListener', 'Node', 'Element', 'MutationEvent', 'MutationRecord' ];
 
-// did you know: using innerHTML is ~2.5x faster than appendChild for some reason (~40ms -> ~15ms)
-// so we setup a parent just for making our iframes via this trick
+// did you know: using innerHTML is ~2.5x faster than appendChild for some reason (~40ms -> ~15ms), so we setup a parent just for making our iframes via this trick
 const containerParent = document.createElement('div');
 document.body.appendChild(containerParent);
 
 const createContainer = (inst) => {
-  // containerParent.innerHTML = '<object data="about:blank"></iframe>'; // make iframe
   containerParent.innerHTML = '<iframe></iframe>'; // make iframe
   const el = containerParent.children[0];
 
@@ -1025,8 +1027,6 @@ const createContainer = (inst) => {
   el.contentWindow.Function.constructor = function() {
     return (_constructor.apply(inst.context, arguments)).bind(inst.context);
   };
-
-  // el.contentWindow.Function.constructor = null;
 
 
   const ev = el.contentWindow.eval;
@@ -1054,6 +1054,18 @@ const Onyx = function (entityID, manifest, transformRoot) {
     let orig = window[k];
     context[k] = typeof orig === 'function' && k !== '_' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
   }
+
+  context.MutationObserver = function(callback) { // janky wrapper because Chromium breaks with disconnected iframe
+    const obs = new window.MutationObserver((mutations) => {
+      callback(mutations);
+    });
+
+    this.observe = obs.observe.bind(obs);
+    this.disconnect = obs.disconnect.bind(obs);
+    this.takeRecords = obs.takeRecords.bind(obs);
+
+    return this;
+  };
 
   context.DiscordNative = { // basic polyfill
     crashReporter: {
@@ -1094,7 +1106,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
 
   context.goosemodScope = context.goosemod; // goosemod alias
 
-  context.console = unsentrify(window.console); // unsentrify console funcs
+  context.console = window.console.context ? window.console.context('topaz_plugin') : unsentrify(window.console); // use console.context or fallback on unsentrify
 
   context.location = { // mock location
     href: window.location.href
@@ -3262,6 +3274,7 @@ BdApi = {
   findModuleByProps: Webpack.findByProps,
   findModuleByDisplayName: Webpack.findByDisplayName,
 
+  getInternalInstance: goosemod.reactUtils.getReactInstance,
 
   injectCSS: (id, css) => {
     const el = document.createElement('style');
@@ -3366,7 +3379,7 @@ BdApi = {
   get 'betterdiscord/libs/zeres'() { // patch official
     return new Promise(async res => {
       const out = (await (await fetch('https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js')).text())
-        .replace('static async processUpdateCheck(pluginName, updateLink) {', 'static async processUpdateCheck(pluginName, updateLink) { return Promise.resolve(this.removeUpdateNotice(pluginName));') // disable update checks
+        .replace('static async hasUpdate(updateLink) {', 'static async hasUpdate(updateLink) { return Promise.resolve(false);') // disable updating
         .replace('this.listeners = new Set();', 'this.listeners = {};') // webpack patches to use our API
         .replace('static addListener(listener) {', 'static addListener(listener) { const id = Math.random().toString().slice(2); const int = setInterval(() => { for (const m of goosemod.webpackModules.all()) { if (m) listener(m); } }, 5000); listener._listenerId = id; return listeners[id] = () => clearInterval(int);')
         .replace('static removeListener(listener) {', 'static removeListener(listener) { listeners[listener._listenerId]?.(); delete listeners[listener._listenerId]; return;')
@@ -4601,7 +4614,50 @@ module.exports = {
   platform: 'linux',
   env: {
     HOME: '/home/topaz'
+  },
+
+  hrtime: (toDiff) => {
+    const stamp = Math.floor(performance.now());
+    const sec = Math.floor(stamp / 1000);
+    const nano = (stamp % 1000) * 1000 * 1000;
+
+    if (!toDiff) return [ sec, nano ];
+
+    return [ Math.abs(sec - toDiff[0]), Math.abs(nano - toDiff[1]) ]
   }
+};`,
+  'util': `const formatString = msg => {
+  let char = "'";
+  if (msg.includes("'")) char = '"';
+  if (char === '"' && msg.includes('"')) char = '\`';
+  if (char === '\`' && msg.includes('\`')) msg = msg.replaceAll('\`', '\\\\\`');
+
+  return char + msg + char;
+};
+
+const objectKey = key => {
+  if (key.match(/[^0-9a-zA-Z_]/)) return formatString(key);
+  return key;
+};
+
+const inspect = msg => {
+  if (msg === null) return 'null';
+  if (msg === undefined) return 'undefined';
+
+  if (msg === true) return 'true';
+  if (msg === false) return 'false';
+
+  if (typeof msg === 'string') return formatString(msg);
+
+  if (Array.isArray(msg)) return \`[ \${msg.map(x => inspect(x)).join(', ')} ]\`;
+
+  if (typeof msg === 'object') return \`{ \${Object.keys(msg).map(x => \`\${objectKey(x)}: \${inspect(msg[x])}\`).join(', ')} }\`;
+
+  return msg;
+};
+
+module.exports = {
+  inspect
 };`,
   'request': `module.exports = {};`,
   'querystring': `module.exports = {
@@ -4743,12 +4799,13 @@ const makeChunk = async (root, p) => {
 let ${id} = {};
 (() => { // MAP_START|${finalPath}
 ` + code
-      .replace('module.exports =', `${id}=`)
-      .replace('export default', `${id}=`)
+      .replace('module.exports =', `${id} =`)
+      .replace('export default', `${id} =`)
       .replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}${key}=`)
-      .replaceAll(/export const (.*?)=/g, (_, key) => `${id}.${key}=`)
-      .replaceAll(/export function (.*?)\(/g, (_, key) => `${id}.${key} = function(`) + `
-})(); // MAP_END`;
+      .replaceAll(/export const (.*?)=/g, (_, key) => `const ${key}= ${id}.${key}=`)
+      .replaceAll(/export function (.*?)\(/g, (_, key) => `const ${key} = ${id}.${key} = function ${key}(`)
+      .replaceAll(/export class ([^ ]*)/g, (_, key) => `const ${key} = ${id}.${key} = class ${key}`) +
+`\n})(); // MAP_END`;
 
   if (shouldUpdateFetch) {
     fetchProgressCurrent++;
@@ -4949,11 +5006,12 @@ const install = async (info, settings = undefined, disabled = false) => {
 
     tree = [];
     if (isGitHub) {
-      tree = (await (await fetch(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`)).json()).tree;
+      const treeUrl = `https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`;
+      tree = JSON.parse(fetchCache.get(treeUrl) ?? fetchCache.set(treeUrl, (await (await fetch(treeUrl)).text()))).tree;
 
       if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
 
-      console.log('tree', tree);
+      log('bundler', 'tree', tree);
     }
 
     updatePending(info, 'Fetching index...');
@@ -5534,8 +5592,8 @@ const transform = async (path, code, mod) => {
   let indexCode = await includeRequires(path, code);
 
   let out = await mapifyBuiltin(fullMod(mod) + '/global') +
-  ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '') +
   Object.values(chunks).join('\n\n') + '\n\n' +
+  ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '') +
     `// MAP_START|${'.' + path.replace(transformRoot, '')}
 ${replaceLast(indexCode, 'export default', 'module.exports =').replaceAll(/export const (.*?)=/g, (_, key) => `module.exports.${key}=`)}
 // MAP_END`;
@@ -5584,6 +5642,23 @@ const setDisabled = (key, disabled) => {
 };
 
 const purgeCacheForPlugin = (info) => {
+  let [ repo, branch ] = info.split('@');
+  if (!branch) branch = 'HEAD'; // default to HEAD
+
+  let isGitHub = !info.startsWith('http');
+
+  let subdir;
+  if (isGitHub) { // todo: check
+    const spl = info.split('/');
+    if (spl.length > 2) { // Not just repo
+      repo = spl.slice(0, 2).join('/');
+      subdir = spl.slice(4).join('/');
+      branch = spl[3] ?? 'HEAD';
+    }
+  }
+
+  if (isGitHub && repo) fetchCache.remove(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`); // remove gh api cache
+
   finalCache.remove(info); // remove final cache
   fetchCache.keys().filter(x => x.includes(info.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).forEach(y => fetchCache.remove(y)); // remove fetch caches
 };
