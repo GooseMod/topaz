@@ -176,7 +176,7 @@ const builtins = {
   get 'betterdiscord/libs/zeres'() { // patch official
     return new Promise(async res => {
       const out = (await (await fetch('https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js')).text())
-        .replace('static async processUpdateCheck(pluginName, updateLink) {', 'static async processUpdateCheck(pluginName, updateLink) { return Promise.resolve(this.removeUpdateNotice(pluginName));') // disable update checks
+        .replace('static async hasUpdate(updateLink) {', 'static async hasUpdate(updateLink) { return Promise.resolve(false);') // disable updating
         .replace('this.listeners = new Set();', 'this.listeners = {};') // webpack patches to use our API
         .replace('static addListener(listener) {', 'static addListener(listener) { const id = Math.random().toString().slice(2); const int = setInterval(() => { for (const m of goosemod.webpackModules.all()) { if (m) listener(m); } }, 5000); listener._listenerId = id; return listeners[id] = () => clearInterval(int);')
         .replace('static removeListener(listener) {', 'static removeListener(listener) { listeners[listener._listenerId]?.(); delete listeners[listener._listenerId]; return;')
