@@ -238,7 +238,7 @@ powercord = {
     },
 
     notices: {
-      sendToast: (_id, { header, content, type, buttons }) => goosemod.showToast(content), // todo: improve to use all given
+      sendToast: (_id, { header, content, type, buttons, timeout }) => goosemod.showToast(content, { subtext: header, type, timeout }), // todo: improve to use all given
       sendAnnouncement: (_id, { color, message, button: { text: buttonText, onClick } }) => goosemod.patcher.notices.patch(message, buttonText, onClick, color ?? 'brand'),
     },
 
