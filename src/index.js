@@ -405,7 +405,7 @@ const __dirname = '${getDir(finalPath)}';
 ` + code
       .replace('module.exports =', `${id} =`)
       .replace('export default', `${id} =`)
-      .replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}${key}=`)
+      .replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`)
       .replaceAll(/export const (.*?)=/g, (_, key) => `const ${key}= ${id}.${key}=`)
       .replaceAll(/export function (.*?)\(/g, (_, key) => `const ${key} = ${id}.${key} = function ${key}(`)
       .replaceAll(/export class ([^ ]*)/g, (_, key) => `const ${key} = ${id}.${key} = class ${key}`) +
