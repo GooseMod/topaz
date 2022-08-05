@@ -218,8 +218,8 @@ const permissionsModal = async (manifest, neededPerms) => {
   return finalPerms;
 };
 
-const iframeGlobals = [ 'performance', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'fetch', 'addEventListener', 'removeEventListener' ];
-const passGlobals = [ 'topaz', 'goosemod', 'document', '_', 'addEventListener', 'removeEventListener', 'Node', 'Element', 'MutationEvent', 'MutationRecord' ];
+const iframeGlobals = [ 'performance', ];
+const passGlobals = [ 'topaz', 'goosemod', 'fetch', 'document', '_', 'TextEncoder', 'TextDecoder', 'addEventListener', 'removeEventListener', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'Node', 'Element', 'MutationEvent', 'MutationRecord', 'addEventListener', 'removeEventListener', 'URL' ];
 
 // did you know: using innerHTML is ~2.5x faster than appendChild for some reason (~40ms -> ~15ms), so we setup a parent just for making our iframes via this trick
 const containerParent = document.createElement('div');
