@@ -361,6 +361,8 @@ const autoImportReact = (code) => { // auto import react for jsx if not imported
 const makeChunk = async (root, p) => {
   // console.log('makeChunk', p);
 
+  if (p.endsWith('/') && builtins[p.slice(0, -1)]) p = p.slice(0, -1);
+
   const shouldUpdateFetch = !builtins[p];
   if (shouldUpdateFetch) {
     fetchProgressTotal++;
@@ -369,7 +371,6 @@ const makeChunk = async (root, p) => {
 
   const joined = (root + '/' + p).replace(transformRoot, '');
   let resPath = builtins[p] ? p : resolvePath(joined).slice(1);
-  if (builtins[p + '/']) resPath = p.slice(0, -1);
 
   const resolved = await resolveFileFromTree(resPath);
   console.log('CHUNK', genId(resPath), '|', root.replace(transformRoot, ''), p, '|', joined, resPath, resolved);
