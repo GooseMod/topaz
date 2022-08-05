@@ -175,7 +175,7 @@ const builtins = {
 
   get 'betterdiscord/libs/zeres'() { // patch official
     return new Promise(async res => {
-      const out = (await (await fetch('https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js')).text())
+      const out = await fetchCache.fetch('https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js')
         .replace('static async hasUpdate(updateLink) {', 'static async hasUpdate(updateLink) { return Promise.resolve(false);') // disable updating
         .replace('this.listeners = new Set();', 'this.listeners = {};') // webpack patches to use our API
         .replace('static addListener(listener) {', 'static addListener(listener) { const id = Math.random().toString().slice(2); const int = setInterval(() => { for (const m of goosemod.webpackModules.all()) { if (m) listener(m); } }, 5000); listener._listenerId = id; return listeners[id] = () => clearInterval(int);')
@@ -269,6 +269,10 @@ class Cache {
     this.store = {};
 
     this.load();
+  }
+
+  async fetch(url) {
+    return this.get(url) ?? this.set(url, await (await fetch(url)).text());
   }
 
   get(key, def) {
@@ -604,8 +608,7 @@ const install = async (info, settings = undefined, disabled = false) => {
 
     tree = [];
     if (isGitHub) {
-      const treeUrl = `https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`;
-      tree = JSON.parse(fetchCache.get(treeUrl) ?? fetchCache.set(treeUrl, (await (await fetch(treeUrl)).text()))).tree;
+      tree = JSON.parse(await fetchCache.fetch(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`)).tree;
 
       if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
 
