@@ -1189,9 +1189,11 @@ const transform = async (path, code, mod) => {
 
   let indexCode = await includeRequires(path, code);
 
+  const subGlobal = ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : ''); // do above so added to chunks
+
   let out = await mapifyBuiltin(fullMod(mod) + '/global') +
   Object.values(chunks).join('\n\n') + '\n\n' +
-  ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '') +
+  subGlobal +
     `// MAP_START|${'.' + path.replace(transformRoot, '')}
 ${replaceLast(indexCode, 'export default', 'module.exports =').replaceAll(/export const (.*?)=/g, (_, key) => `module.exports.${key}=`)}
 // MAP_END`;
