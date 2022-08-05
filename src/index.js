@@ -175,14 +175,15 @@ const builtins = {
 
   get 'betterdiscord/libs/zeres'() { // patch official
     return new Promise(async res => {
-      const out = await fetchCache.fetch('https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js')
+      const out = (await fetchCache.fetch('https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js'))
         .replace('static async hasUpdate(updateLink) {', 'static async hasUpdate(updateLink) { return Promise.resolve(false);') // disable updating
         .replace('this.listeners = new Set();', 'this.listeners = {};') // webpack patches to use our API
-        .replace('static addListener(listener) {', 'static addListener(listener) { const id = Math.random().toString().slice(2); const int = setInterval(() => { for (const m of goosemod.webpackModules.all()) { if (m) listener(m); } }, 5000); listener._listenerId = id; return listeners[id] = () => clearInterval(int);')
-        .replace('static removeListener(listener) {', 'static removeListener(listener) { listeners[listener._listenerId]?.(); delete listeners[listener._listenerId]; return;')
+        .replace('static addListener(listener) {', 'static addListener(listener) { console.log(listener); const id = Math.random().toString().slice(2); const int = setInterval(() => { for (const m of goosemod.webpackModules.all()) { if (m) listener(m); } }, 5000); listener._listenerId = id; return this.listeners[id] = () => { clearInterval(int); delete this.listeners[listener._listenerId]; }')
+        .replace('static removeListener(listener) {', 'static removeListener(listener) { this.listeners[listener._listenerId]?.(); return;')
         .replace('static getModule(filter, first = true) {', `static getModule(filter, first = true) { return goosemod.webpackModules[first ? 'find' : 'findAll'](filter);`)
         .replace('static getByIndex(index) {', 'static getByIndex(index) { return goosemod.webpackModules.findByModuleId(index);')
         .replace('static getAllModules() { return goosemod.webpackModules.all().reduce((acc, x, i) => { acc[i] = x; return acc; }, {});')
+        .replace('static pushChildPatch(caller, moduleToPatch, functionName, callback, options = {}) {', `static pushChildPatch(caller, moduleToPatch, functionName, callback, options = {}) { return BdApi.Patcher[options.type ?? 'after'](caller, this.resolveModule(moduleToPatch), functionName, callback);`) // use our patcher
         .replace('module.exports.ZeresPluginLibrary = __webpack_exports__["default"];', '(new __webpack_exports__["default"]).load();') // load library on creation, disable export
         .replace('this.__ORIGINAL_PUSH__ = window[this.chunkName].push;', 'return;') // disable webpack push patching
         .replace('showChangelog(footer) {', 'showChangelog(footer) { return;') // disable changelogs
