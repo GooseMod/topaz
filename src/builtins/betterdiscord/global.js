@@ -1,5 +1,4 @@
 let BdApi;
-
 (() => {
 const cssEls = {};
 const unpatches = {};
@@ -69,7 +68,7 @@ const showConfirmationModal = async (title, content, { onConfirm, onCancel, conf
     else onCancel?.();
 };
 
-BdApi = {
+BdApi = window.BdApi = {
   findModule: Webpack.find,
   findAllModules: Webpack.findAll,
   findModuleByProps: Webpack.findByProps,
