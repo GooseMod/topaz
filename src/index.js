@@ -2336,7 +2336,7 @@ class Settings extends React.PureComponent {
       const infoFromRecom = (x) => x.endsWith('.plugin.js') ? x.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '') : x.replace('https://github.com/', '');
       const matching = Object.keys(recom).filter((x) => !plugins[infoFromRecom(recom[x])] && fuzzySearch.test(x) && autocompleteFiltering.mods[x.split('%')[0].toLowerCase()] !== false);
 
-      if (!init && matching.length > 0) {
+      if (!init) {
         ReactDOM.render(React.createElement(React.Fragment, {},
           React.createElement('h5', {},
             'Popular ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes'),
