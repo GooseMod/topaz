@@ -1020,7 +1020,8 @@ const containerParent = document.createElement('div');
 document.body.appendChild(containerParent);
 
 const createContainer = (inst) => {
-  containerParent.innerHTML = '<iframe></iframe>'; // make iframe
+  containerParent.innerHTML = \`<object data="about:blank"></object>\`;
+  // containerParent.innerHTML = '<iframe></iframe>'; // make iframe
   const el = containerParent.children[0];
 
   const _constructor = el.contentWindow.Function.constructor;
@@ -3410,7 +3411,9 @@ BdApi = window.BdApi = {
         .replace('Internal.getWebModuleReq = function () {', 'Internal.getWebModuleReq = function () { return Internal.getWebModuleReq.req = () => {};')
         //.replace('module.exports = (_', 'module.expor')
         .replace(/\}\)\(\);$/, `})();
-(new module.exports()).load();`)
+(new module.exports()).load();`);
+
+      console.log('AAAAAA', out.split('\n').slice(-10));
 
       delete builtins['betterdiscord/libs/bdfdb']; // overwrite getter with output
       builtins['betterdiscord/libs/bdfdb'] = out;
