@@ -1,5 +1,6 @@
 module.exports = {
   readdirSync: path => [],
+  writeFile: (path, data, cb) => {},
 
   readFileSync: (path, encoding) => {
     const isRepo = __entityID.split('/').length === 2;
