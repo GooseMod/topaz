@@ -257,6 +257,7 @@ const builtins = {
   'process': await getBuiltin('node/process'),
   'util': await getBuiltin('node/util'),
   'request': await getBuiltin('node/request'),
+  'https': await getBuiltin('node/https'),
   'querystring': await getBuiltin('node/querystring'),
   'os': await getBuiltin('node/os'),
   'url': await getBuiltin('node/url'),
