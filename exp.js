@@ -1020,8 +1020,7 @@ const containerParent = document.createElement('div');
 document.body.appendChild(containerParent);
 
 const createContainer = (inst) => {
-  containerParent.innerHTML = \`<object data="about:blank"></object>\`;
-  // containerParent.innerHTML = '<iframe></iframe>'; // make iframe
+  containerParent.innerHTML = window.BdApi ? \`<object data="about:blank"></object>\` : '<iframe></iframe>'; // make iframe. use object (bit slower) if BD is also installed as it breaks sandboxing
   const el = containerParent.children[0];
 
   const _constructor = el.contentWindow.Function.constructor;
@@ -4994,7 +4993,7 @@ const __dirname = '${getDir(finalPath)}';
 ` + code
       .replace('module.exports =', `${id} =`)
       .replace('export default', `${id} =`)
-      .replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}${key}=`)
+      .replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`)
       .replaceAll(/export const (.*?)=/g, (_, key) => `const ${key}= ${id}.${key}=`)
       .replaceAll(/export function (.*?)\(/g, (_, key) => `const ${key} = ${id}.${key} = function ${key}(`)
       .replaceAll(/export class ([^ ]*)/g, (_, key) => `const ${key} = ${id}.${key} = class ${key}`) +
