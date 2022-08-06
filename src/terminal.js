@@ -56,12 +56,13 @@ const openTerminal = (e) => {
   };
 
   const echo = (text, final = true) => {
+    const atEnd = out.scrollHeight - out.clientHeight - out.scrollTop < 50; // check before adding since too much text will scroll
+
     out.innerHTML += '<br>';
     out.innerHTML += text.replaceAll('\n', '<br>');
 
     if (final) out.innerHTML += '<br><br>> ';
-
-    if (out.scrollHeight - out.clientHeight - out.scrollTop < 50) out.scrollTop = 999999;
+    if (atEnd) out.scrollTop = 999999;
   };
 
   const help = () => {
