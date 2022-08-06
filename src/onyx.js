@@ -423,6 +423,8 @@ ${_code}\n\n
       return mimic(Reflect.get(target, prop, reciever));
     };
 
+    if (mod === undefined) return undefined;
+
     let keys = [];
     try {
       keys = Reflect.ownKeys(mod).concat(Reflect.ownKeys(mod.__proto__ ?? {}));
