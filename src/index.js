@@ -1377,6 +1377,10 @@ window.topaz = {
   log
 };
 
+const cssEl = document.createElement('style');
+cssEl.appendChild(document.createTextNode(await (await fetch('http://localhost:1337/src/index.css')).text()));
+document.head.appendChild(cssEl);
+
 log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)}ms`);
 
 (async () => {
@@ -2571,9 +2575,6 @@ let settingsUnpatch = goosemod.patcher.patch(goosemod.webpackModules.findByDispl
   return sections;
 });
 
-const cssEl = document.createElement('style');
-cssEl.appendChild(document.createTextNode(await (await fetch('http://localhost:1337/src/index.css')).text()));
-document.head.appendChild(cssEl);
 
 const msgModule = goosemod.webpackModules.findByProps('sendMessage');
 const msgUnpatch = goosemod.patcher.patch(msgModule, 'sendMessage', ([ _channelId, { content } ]) => {
