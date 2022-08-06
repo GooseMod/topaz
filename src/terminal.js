@@ -1,8 +1,8 @@
 const closeTerminal = () => document.querySelector('.topaz-terminal')?.remove?.();
 
 const openTerminal = (e) => {
-  if (e) if (!e.ctrlKey || !e.altKey || e.key !== 't') return;
   if (document.querySelector('.topaz-terminal')) return closeTerminal();
+  if (e) if (/* !e.ctrlKey || */ !e.altKey || e.key !== 't') return;
 
   const term = document.createElement('div');
   term.className = 'topaz-terminal';
