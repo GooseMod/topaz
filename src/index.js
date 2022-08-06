@@ -1350,6 +1350,8 @@ window.topaz = {
     cssEl.remove();
     attrs.remove();
 
+    if (typeof Terminal !== 'undefined') Terminal();
+
     msgUnpatch();
     settingsUnpatch();
   },
@@ -2575,6 +2577,7 @@ let settingsUnpatch = goosemod.patcher.patch(goosemod.webpackModules.findByDispl
   return sections;
 });
 
+const Terminal = eval(await (await fetch('http://localhost:1337/src/terminal.js')).text());
 
 const msgModule = goosemod.webpackModules.findByProps('sendMessage');
 const msgUnpatch = goosemod.patcher.patch(msgModule, 'sendMessage', ([ _channelId, { content } ]) => {
