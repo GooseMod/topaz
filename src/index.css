@@ -779,11 +779,11 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 
 .topaz-terminal {
   position: absolute;
-  width: 600px;
   background: var(--background-floating);
   box-shadow: var(--elevation-high);
   z-index: 99999;
-  height: 400px;
+  width: 700px;
+  height: 500px;
   top: 30px;
   left: 200px;
   display: flex;
