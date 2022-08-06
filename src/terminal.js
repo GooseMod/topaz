@@ -173,7 +173,7 @@ const openTerminal = (e) => {
         case 'cache':
           switch (info) {
             case 'status':
-              echo(`Fetch cache entries: ${fetchCache.keys().length}\nFinal cache entries: ${finalCache.keys().length}`);
+              echo(`<b><u>Fetch</u></b>\nEntries: <b>${topaz.internal.fetchCache.keys().length}</b>\n\n<b><u>Final</u></b>\nEntries: <b>${topaz.internal.finalCache.keys().length}</b>`);
               break;
 
             case 'purge':
