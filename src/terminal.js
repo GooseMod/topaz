@@ -1,8 +1,10 @@
 const closeTerminal = () => document.querySelector('.topaz-terminal')?.remove?.();
 
 const openTerminal = (e) => {
-  if (document.querySelector('.topaz-terminal')) return closeTerminal();
   if (e) if (/* !e.ctrlKey || */ !e.altKey || e.key !== 't') return;
+
+  const alreadyOpen = document.querySelector('.topaz-terminal');
+  if (e && alreadyOpen) return closeTerminal();
 
   const term = document.createElement('div');
   term.className = 'topaz-terminal';
@@ -34,7 +36,18 @@ const openTerminal = (e) => {
     term.style.top = storedPos[1] + 'px';
   }
 
+  let oldOut;
+  if (alreadyOpen) {
+    oldOut = document.querySelector('.topaz-terminal > :last-child');
+    out.innerHTML = oldOut.innerHTML;
+  }
+
   document.body.appendChild(term);
+
+  if (oldOut) {
+    out.scrollTop = oldOut.scrollTop;
+    document.querySelectorAll('.topaz-terminal')[0].remove();
+  }
 
   const selectLast = () => {
     const sel = window.getSelection();
@@ -166,7 +179,7 @@ const openTerminal = (e) => {
           break;
 
         case 'reload':
-          echo('Reloading Topaz...', false);
+          echo('Reloading Topaz...');
           topaz.reloadTopaz();
           break;
 
@@ -234,11 +247,9 @@ const openTerminal = (e) => {
 
 document.addEventListener('keydown', openTerminal);
 if (document.querySelector('.topaz-terminal')) {
-  closeTerminal();
   openTerminal();
 }
 
 () => { // topaz purge handler
   document.removeEventListener('keydown', openTerminal);
-  closeTerminal();
 };
