@@ -244,6 +244,13 @@ const createContainer = (inst) => {
     }
   }
 
+  const realWindow = window;
+  Object.defineProperty(el.contentWindow, "event", {
+    get: function() {
+      return realWindow.event;
+    }
+  });
+
   el.remove();
 
   return ev;
