@@ -71,10 +71,12 @@ const openTerminal = (e) => {
       [ 'reinstall [link]', 'Reinstalls given plugin/theme' ],
       [ 'enable [link]', 'Enables given plugin/theme' ],
       [ 'disable [link]', 'Disables given plugin/theme' ],
-      [],
       [ 'installed', 'Outputs installed plugins and themes' ],
+      [],
       [ 'cache [status|purge]', 'Manage Topaz\'s cache' ],
       [ 'reload', 'Reload Topaz' ],
+      [],
+      [ 'refresh', 'Refresh Discord' ],
       [],
       [ 'clear', 'Clear terminal' ],
       [ 'help', 'Lists commands' ],
@@ -182,6 +184,11 @@ const openTerminal = (e) => {
         case 'reload':
           echo('Reloading Topaz...');
           topaz.reloadTopaz();
+          break;
+
+        case 'refresh':
+          echo('Refreshing...');
+          location.reload();
           break;
 
         case 'clear':
