@@ -1013,7 +1013,7 @@ const permissionsModal = async (manifest, neededPerms) => {
 };
 
 const iframeGlobals = [ 'performance', ];
-const passGlobals = [ 'topaz', 'goosemod', 'fetch', 'document', '_', 'TextEncoder', 'TextDecoder', 'addEventListener', 'removeEventListener', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'Node', 'Element', 'MutationEvent', 'MutationRecord', 'addEventListener', 'removeEventListener', 'URL' ];
+const passGlobals = [ 'topaz', 'goosemod', 'fetch', 'document', '_', 'TextEncoder', 'TextDecoder', 'addEventListener', 'removeEventListener', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'Node', 'Element', 'MutationEvent', 'MutationRecord', 'addEventListener', 'removeEventListener', 'URL', 'setImmediate', 'NodeList', 'getComputedStyle' ];
 
 // did you know: using innerHTML is ~2.5x faster than appendChild for some reason (~40ms -> ~15ms), so we setup a parent just for making our iframes via this trick
 const containerParent = document.createElement('div');
@@ -1038,6 +1038,13 @@ const createContainer = (inst) => {
     }
   }
 
+  const realWindow = window;
+  Object.defineProperty(el.contentWindow, "event", {
+    get: function() {
+      return realWindow.event;
+    }
+  });
+
   el.remove();
 
   return ev;
@@ -1052,7 +1059,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
   // nullify (delete) all keys in window to start except allowlist
   for (const k of passGlobals) {
     let orig = window[k];
-    context[k] = typeof orig === 'function' && k !== '_' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
+    context[k] = typeof orig === 'function' && k !== '_' && k !== 'NodeList' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
   }
 
   context.MutationObserver = function(callback) { // janky wrapper because Chromium breaks with disconnected iframe
@@ -1210,18 +1217,20 @@ const Onyx = function (entityID, manifest, transformRoot) {
       return mimic(Reflect.get(target, prop, reciever));
     };
 
+    if (mod === undefined) return undefined;
+
     let keys = [];
     try {
       keys = Reflect.ownKeys(mod).concat(Reflect.ownKeys(mod.__proto__ ?? {}));
     } catch { }
 
-    if (keys.includes('Object')) return this.context; // Block window
+    if (keys.includes('Object')) return context; // Block window
     if (keys.includes('clear') && keys.includes('get') && keys.includes('set') && keys.includes('remove') && !keys.includes('mergeDeep')) return {}; // Block localStorage
 
     const hasFlags = keys.some(x => typeof x === 'string' && Object.values(permissions).flat().some(y => x === y.split('@')[0])); // has any keys in it
     return hasFlags ? new Proxy(mod, { // make proxy only if potential
       get: (target, prop, reciever) => {
-        const givenPermissions = JSON.parse(topaz.storage.get('permissions') ?? '{}')[this.entityID] ?? {};
+        const givenPermissions = JSON.parse(topaz.storage.get('permissions') ?? '{}')[entityID] ?? {};
         const complexPerms = complexMap.filter(x => x[1] === prop);
 
         if (complexPerms.length !== 0) {
@@ -2682,6 +2691,7 @@ module.exports = {
   FormItem,
   Divider
 };`,
+  ...['FormItem'].reduce((acc, x) => { acc[`powercord/components/settings/${x}`] = `module.exports = require('powercord/components/settings').${x};`; return acc; }, {}),
   'powercord/components/modal': `const { React } = goosemod.webpackModules.common;
 
 const mod = goosemod.webpackModules.findByProps('ModalRoot');
@@ -3382,7 +3392,7 @@ BdApi = window.BdApi = {
       const out = (await fetchCache.fetch('https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js'))
         .replace('static async hasUpdate(updateLink) {', 'static async hasUpdate(updateLink) { return Promise.resolve(false);') // disable updating
         .replace('this.listeners = new Set();', 'this.listeners = {};') // webpack patches to use our API
-        .replace('static addListener(listener) {', 'static addListener(listener) { console.log(listener); const id = Math.random().toString().slice(2); const int = setInterval(() => { for (const m of goosemod.webpackModules.all()) { if (m) listener(m); } }, 5000); listener._listenerId = id; return this.listeners[id] = () => { clearInterval(int); delete this.listeners[listener._listenerId]; }')
+        .replace('static addListener(listener) {', 'static addListener(listener) { const id = Math.random().toString().slice(2); const int = setInterval(() => { for (const m of goosemod.webpackModules.all()) { if (m) listener(m); } }, 5000); listener._listenerId = id; return this.listeners[id] = () => { clearInterval(int); delete this.listeners[listener._listenerId]; }')
         .replace('static removeListener(listener) {', 'static removeListener(listener) { this.listeners[listener._listenerId]?.(); return;')
         .replace('static getModule(filter, first = true) {', `static getModule(filter, first = true) { return goosemod.webpackModules[first ? 'find' : 'findAll'](filter);`)
         .replace('static getByIndex(index) {', 'static getByIndex(index) { return goosemod.webpackModules.findByModuleId(index);')
@@ -3403,16 +3413,61 @@ BdApi = window.BdApi = {
   get 'betterdiscord/libs/bdfdb'() {
     return new Promise(async res => {
       const out = (await fetchCache.fetch('https://raw.githubusercontent.com/mwittrien/BetterDiscordAddons/master/Library/0BDFDB.plugin.js'))
-        .replace('BDFDB.PluginUtils.hasUpdateCheck = function (url) {', 'BDFDB.PluginUtils.hasUpdateCheck = function (url) { return false;')
+        .replace('BDFDB.PluginUtils.hasUpdateCheck = function (url) {', 'BDFDB.PluginUtils.hasUpdateCheck = function (url) { return false;') // disable updates
         .replace('BDFDB.PluginUtils.checkUpdate = function (pluginName, url) {', 'BDFDB.PluginUtils.checkUpdate = function (pluginName, url) { return Promise.resolve(0);')
         .replace('BDFDB.PluginUtils.showUpdateNotice = function (pluginName, url) {', 'BDFDB.PluginUtils.showUpdateNotice = function (pluginName, url) { return;')
-        .replace('let all = typeof config.all != "boolean" ? false : config.all;', `let all = typeof config.all != "boolean" ? false : config.all; return goosemod.webpackModules[all ? 'findAll' : 'find'](filter);`)
+        .replace('let all = typeof config.all != "boolean" ? false : config.all;', `let all = typeof config.all != "boolean" ? false : config.all;
+let out = goosemod.webpackModules[all ? 'findAll' : 'find'](m => filter(m) || (m.type && filter(m.type)));
+if (out) out = filter(out) ?? out;
+return out;`) // use our own webpack
         .replace('Internal.getWebModuleReq = function () {', 'Internal.getWebModuleReq = function () { return Internal.getWebModuleReq.req = () => {};')
-        //.replace('module.exports = (_', 'module.expor')
-        .replace(/\}\)\(\);$/, `})();
-(new module.exports()).load();`);
+        .replace('this && this !== window', 'this && !this.performance')
+        .replace('const chunkName = "webpackChunkdiscord_app";', `
+const moduleHandler = (exports) => {
+  const removedTypes = [];
+  for (const type in PluginStores.chunkObserver) {
+    const foundModule = PluginStores.chunkObserver[type].filter(exports) || exports.default && PluginStores.chunkObserver[type].filter(exports.default);
+    if (foundModule) {
+      Internal.patchComponent(PluginStores.chunkObserver[type].query, PluginStores.chunkObserver[type].config.exported ? foundModule : exports, PluginStores.chunkObserver[type].config);
+      removedTypes.push(type);
+      break;
+    }
+  }
+  while (removedTypes.length) delete PluginStores.chunkObserver[removedTypes.pop()];
+  let found = false, funcString = exports && exports.default && typeof exports.default == "function" && exports.default.toString();
+  if (funcString && funcString.indexOf(".page") > -1 && funcString.indexOf(".section") > -1 && funcString.indexOf(".objectType") > -1) {
+    const returnValue = exports.default({});
+    if (returnValue && returnValue.props && returnValue.props.object == BDFDB.DiscordConstants.AnalyticsObjects.CONTEXT_MENU) {
+      for (const type in PluginStores.contextChunkObserver) {
+        if (PluginStores.contextChunkObserver[type].filter(returnValue.props.children)) {
+          exports.__BDFDB_ContextMenuWrapper_Patch_Name = exports.__BDFDB_ContextMenu_Patch_Name;
+          found = true;
+          if (PluginStores.contextChunkObserver[type].modules.indexOf(exports) == -1) PluginStores.contextChunkObserver[type].modules.push(exports);
+          for (const plugin of PluginStores.contextChunkObserver[type].query) Internal.patchContextMenu(plugin, type, exports);
+          break;
+        }
+      }
+    }
+  }
+  if (!found) for (const type in PluginStores.contextChunkObserver) {
+    if (PluginStores.contextChunkObserver[type].filter(exports)) {
+      if (PluginStores.contextChunkObserver[type].modules.indexOf(exports) == -1) PluginStores.contextChunkObserver[type].modules.push(exports);
+      for (const plugin of PluginStores.contextChunkObserver[type].query) Internal.patchContextMenu(plugin, type, exports);
+      break;
+    }
+  }
+};
 
-      console.log('AAAAAA', out.split('\n').slice(-10));
+const int = setInterval(() => {
+  // for (const m of goosemod.webpackModules.all()) { if (m) moduleHandler(m); }
+}, 5000);
+
+for (const m of goosemod.webpackModules.all()) { if (m) moduleHandler(m); }
+
+Internal.removeChunkObserver = () => clearInterval(int);
+return;`)
+        .replace(/\}\)\(\);\n$/, `})();
+(new module.exports()).load();`); // make and load it
 
       delete builtins['betterdiscord/libs/bdfdb']; // overwrite getter with output
       builtins['betterdiscord/libs/bdfdb'] = out;
@@ -4632,6 +4687,7 @@ module.exports = {
 };`,
   'fs': `module.exports = {
   readdirSync: path => [],
+  writeFile: (path, data, cb) => {},
 
   readFileSync: (path, encoding) => {
     const isRepo = __entityID.split('/').length === 2;
@@ -4948,6 +5004,8 @@ const autoImportReact = (code) => { // auto import react for jsx if not imported
 const makeChunk = async (root, p) => {
   // console.log('makeChunk', p);
 
+  if (p.endsWith('/') && builtins[p.slice(0, -1)]) p = p.slice(0, -1);
+
   const shouldUpdateFetch = !builtins[p];
   if (shouldUpdateFetch) {
     fetchProgressTotal++;
@@ -4956,7 +5014,6 @@ const makeChunk = async (root, p) => {
 
   const joined = (root + '/' + p).replace(transformRoot, '');
   let resPath = builtins[p] ? p : resolvePath(joined).slice(1);
-  if (builtins[p + '/']) resPath = p.slice(0, -1);
 
   const resolved = await resolveFileFromTree(resPath);
   console.log('CHUNK', genId(resPath), '|', root.replace(transformRoot, ''), p, '|', joined, resPath, resolved);
@@ -5784,7 +5841,7 @@ const transform = async (path, code, mod) => {
 
   // do above so added to chunks
   const subGlobal = ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '')
-    + (code.includes('BDFDB') ? await mapifyBuiltin('betterdiscord/libs/bdfdb') : '');
+    + (code.includes('BDFDB_Global') ? await mapifyBuiltin('betterdiscord/libs/bdfdb') : '');
 
   let out = await mapifyBuiltin(fullMod(mod) + '/global') +
   Object.values(chunks).join('\n\n') + '\n\n' +
@@ -5938,6 +5995,8 @@ window.topaz = {
     cssEl.remove();
     attrs.remove();
 
+    if (typeof Terminal !== 'undefined') Terminal();
+
     msgUnpatch();
     settingsUnpatch();
   },
@@ -5964,6 +6023,827 @@ window.topaz = {
 
   log
 };
+
+const cssEl = document.createElement('style');
+cssEl.appendChild(document.createTextNode(`#topaz-repo-filtering, #topaz-repo-autocomplete {
+  position: absolute;
+  z-index: 999;
+  background: var(--background-floating);
+  max-height: 280px;
+  overflow-y: auto;
+  border-radius: 0 0 3px 3px;
+}
+
+#topaz-repo-filtering > :not(:first-child) {
+  margin: 0 8px;
+}
+
+#topaz-repo-filtering .divider-_0um2u {
+  display: none;
+}
+
+#topaz-repo-filtering .container-1zDvAE {
+  margin-bottom: 8px;
+}
+
+#topaz-repo-filtering .h5-2RwDNl {
+  margin-bottom: 8px;
+}
+
+#topaz-repo-filtering > :first-child {
+  margin-bottom: 10px;
+}
+
+#topaz-repo-filtering .container-1zDvAE .title-2dsDLn {
+  color: var(--text-normal);
+}
+
+#topaz-repo-autocomplete > h5, #topaz-repo-filtering > :first-child {
+  padding: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
+  font-family: var(--font-display);
+  color: var(--header-secondary);
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--background-primary);
+}
+
+#topaz-repo-autocomplete > h5 > button {
+  float: right;
+  width: 24px;
+  height: 24px;
+  margin-top: -4px;
+}
+
+#topaz-repo-autocomplete > h5 > button.active {
+  color: var(--interactive-active);
+}
+
+#topaz-repo-autocomplete > h5 > button[aria-label="Filter"] svg {
+  transform: scale(1.2);
+  width: 16px;
+  height: 16px;
+}
+
+#topaz-repo-autocomplete > div {
+  padding: 12px;
+  border-bottom: 2px solid var(--background-primary);
+  color: var(--header-secondary);
+  cursor: pointer;
+}
+
+#topaz-repo-autocomplete .title-2dsDLn {
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+#topaz-repo-autocomplete .code-style {
+  float: right;
+
+  font-family: var(--font-code);
+  font-weight: 400;
+  font-size: 10px;
+}
+
+#topaz-repo-autocomplete > div:hover {
+  background: var(--background-secondary);
+}
+
+#topaz-repo-filtering {
+  border-radius: 6px;
+  width: 240px;
+  box-shadow: var(--elevation-stroke), var(--elevation-medium);
+}
+
+
+.topaz-settings > [role="tablist"] {
+  margin-bottom: 20px;
+}
+
+.topaz-settings .topaz-version {
+  margin-left: 6px;
+  font-family: var(--font-code);
+  font-size: 10px;
+}
+
+.topaz-settings h1 ~ .vertical-3aLnqW .labelRow-2jl9gK > :first-child {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.topaz-loading-text {
+  display: flex;
+  flex: unset;
+  height: 40px;
+  min-width: 200px;
+  justify-content: flex-end;
+}
+
+.topaz-loading-text > :first-child {
+  width: 24px;
+  height: 24px;
+  margin-right: 12px;
+  margin-top: 10px;
+}
+
+.topaz-loading-text > :last-child {
+  width: 160px;
+}
+
+.topaz-loading-text > :last-child > :last-child {
+  display: block;
+  font-size: 12px;
+}
+
+.topaz-settings div[style="display: flex; justify-content: space-between;"] {
+  position: relative;
+  /* margin-bottom: 10px; */
+}
+
+.topaz-settings div[style="display: flex; justify-content: space-between;"] > div:first-child {
+  width: 80%;
+}
+
+.topaz-plugin-icons {
+  position: absolute;
+  /* top: 36px; */
+  bottom: -12px;
+  right: 0px;
+
+  display: flex;
+  gap: 4px;
+}
+
+.topaz-settings button[aria-label^="Uninstall"]:hover,
+.topaz-settings button[aria-label^="Reinstall"]:hover {
+  background: hsla(359,calc(var(--saturation-factor, 1)*82.6%),59.4%,0.6);
+}
+
+.topaz-tag {
+  padding: 2px 8px;
+  margin-right: 6px;
+  border-radius: 8px;
+
+  font-size: 14px;
+  vertical-align: top;
+
+  color: var(--text-normal);
+  background: var(--background-floating);
+}
+
+.topaz-tag.tag-floating {
+  background: var(--background-modifier-hover);
+}
+
+#app-mount .root-g14mjS:not([class^="carousel"]) {
+  background: var(--background-primary);
+}
+
+#app-mount .root-g14mjS:not([class^="carousel"]) .separator-2lLxgC {
+  box-shadow: unset;
+  -webkit-box-shadow: unset;
+  border-bottom: thin solid var(--background-modifier-accent);
+}
+
+.topaz-modal-content {
+  padding-top: 20px;
+}
+
+.topaz-permissions-page .breadcrumbs-2uP7wU, .topaz-settings-page .breadcrumbs-2uP7wU {
+  margin-bottom: 20px;
+}
+
+.topaz-permissions-page > div > div:last-child .divider-_0um2u, .topaz-permissions-modal-content > div > div:last-child .divider-_0um2u {
+  display: none;
+}
+
+.topaz-permission-label {
+  color: var(--text-normal);
+  font-weight: 400;
+}
+
+.topaz-nomax-tooltip {
+  max-width: unset !important;
+}
+
+.topaz-permission-danger-icon {
+  display: inline-block;
+  vertical-align: top;
+
+  color: var(--status-danger-background);
+  margin-right: 6px;
+}
+
+.topaz-permission-danger-icon + span {
+  vertical-align: bottom;
+}
+
+div + .topaz-permission-choice {
+  margin-top: 20px;
+}
+
+.topaz-permission-choice {
+  margin-top: 10px;
+}
+
+.topaz-permission-choice .size14-k_3Hy4 {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.topaz-permission-reset {
+  float: right;
+}
+
+.topaz-permission-summary {
+  display: inline-block;
+  line-height: 32px;
+  font-size: 24px;
+  font-weight: 500;
+  margin-bottom: 30px;
+}
+
+body .footer-31IekZ { /* Fix modal footers using special var */
+  background: var(--background-secondary);
+}
+
+.topaz-permissions-page .divider-_0um2u, .topaz-permissions-modal-content .divider-_0um2u {
+  margin-top: 20px;
+  margin-bottom: 16px;
+}
+
+.topaz-settings .divider-q3P9HC {
+  display: inline-flex;
+  vertical-align: middle;
+  margin: 0 20px;
+  margin-right: 12px;
+}
+
+.topaz-settings h5 + .dividerDefault-3C2-ws {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.topaz-settings > h5:nth-child(3) button {
+  float: right;
+  width: 28px;
+  top: -6px;
+  height: 28px;
+}
+
+
+.topaz-settings .topPill-3DJJNV {
+  display: inline-flex;
+}
+
+.topaz-settings [aria-controls="settings-tab"] {
+  position: absolute;
+  right: 108px;
+}
+
+.topaz-settings [aria-controls="reload-tab"], .topaz-settings [aria-controls="changelog-tab"] {
+  position: absolute;
+  right: 64px;
+
+  padding: 0;
+  margin: 0;
+
+  width: 24px;
+  height: 24px;
+
+  cursor: default;
+}
+
+.topaz-settings [aria-controls="changelog-tab"] {
+  right: 32px;
+}
+
+.topaz-settings [aria-controls="reload-tab"] > button:hover {
+  color: var(--status-danger);
+  background: none;
+}
+
+.topaz-settings [aria-controls="changelog-tab"] > button:hover {
+  color: var(--interactive-hover);
+  background: none;
+}
+
+.topaz-settings [aria-controls="reload-tab"]:hover, .topaz-settings [aria-controls="changelog-tab"]:hover {
+  background: none !important;
+  cursor: unset !important;
+}
+
+.topaz-settings {
+  --input-background: var(--background-secondary);
+}
+
+.topaz-pc-modal-jank {
+  width: auto !important;
+  max-width: initial !important;
+  min-height: initial !important;
+}
+
+.topaz-editor-focus .contentColumn-1C7as6.contentColumnDefault-3eyv5o {
+  max-width: calc(100vw - 270px);
+  padding-bottom: 0;
+}
+
+.contentColumn-1C7as6.contentColumnDefault-3eyv5o {
+  transition: max-width .5s;
+}
+
+.topaz-editor-focus .contentRegion-3HkfJJ {
+  flex: 1 1 80%;
+}
+
+.contentRegion-3HkfJJ {
+  transition: flex .5s;
+}
+
+.topaz-editor-focus .sidebarRegion-1VBisG {
+  flex: 1 0 0;
+}
+
+.sidebarRegion-1VBisG {
+  transition: flex .5s;
+}
+
+.topaz-editor-focus .toolsContainer-25FL6V {
+  top: -50px;
+}
+
+.toolsContainer-25FL6V {
+  transition: top .5s;
+}
+
+.topaz-editor-focus .contentRegionScroller-2_GT_N {
+  overflow: visible;
+}
+
+.topaz-editor > * {
+  width: 100%;
+}
+
+.topaz-editor-focus .topaz-editor > * {
+  width: calc(100vw - 308px) !important;
+}
+
+.topaz-editor > section {
+  height: 88vh !important;
+}
+
+.topaz-editor-no-files {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  gap: 12px;
+
+  background: var(--background-tertiary);
+}
+
+.topaz-editor-no-files > :first-child {
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 24px;
+  font-family: var(--font-display);
+  color: var(--header-primary);
+}
+
+.topaz-editor-no-files > :nth-child(2) {
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--text-normal);
+}
+
+.topaz-editor-no-files svg {
+  vertical-align: text-bottom;
+  color: var(--text-muted);
+
+  margin: 0 2px;
+}
+
+.topaz-editor > [role="tablist"] {
+  overflow: auto hidden;
+}
+
+.topaz-editor > [role="tablist"] > [aria-controls^="#"] {
+  position: absolute;
+  right: 0px;
+  padding: 3px;
+}
+
+.topaz-editor > [role="tablist"] > [aria-controls^="#new-tab"], .topaz-editor > [role="tablist"] > [aria-controls^="#library-tab"] {
+  right: unset;
+  position: unset;
+
+  padding: 8px 6px;
+}
+
+.topaz-editor > [role="tablist"] > [aria-controls="#settings-tab"] {
+  border-radius: 0 8px 0 0;
+}
+
+.topaz-editor > [role="tablist"] > [aria-controls="#reload-tab"] {
+  right: 40px;
+  border-radius: 8px 0 0 0;
+  border-left: none;
+}
+
+.topaz-editor > [role="tablist"] > div {
+  background: var(--background-secondary-alt);
+
+  padding: 8px 4px 8px 12px;
+  height: 40px;
+}
+
+.topaz-editor > [role="tablist"] > div > input {
+  background: none;
+  border: none;
+
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+
+  cursor: default;
+}
+
+.topaz-editor > [role="tablist"] > div > input:active {
+  cursor: text;
+}
+
+.topaz-editor input[type="text"]::-webkit-search-decoration,
+.topaz-editor input[type="text"]::-webkit-search-cancel-button,
+.topaz-editor input[type="text"]::-webkit-search-results-button,
+.topaz-editor input[type="text"]::-webkit-search-results-decoration {
+  display: none;
+}
+
+.topaz-editor > [role="tablist"] > * > [aria-haspopup="listbox"] {
+  padding: 0;
+  background: none;
+  border: none;
+
+  margin-left: -6px;
+  margin-right: 4px;
+}
+
+.topaz-editor > [role="tablist"] > * > [aria-haspopup="listbox"] > :last-child {
+  display: none;
+}
+
+
+
+.topaz-file-popout {
+  width: 140px !important;
+  overflow: visible !important;
+  max-height: unset !important;
+}
+
+.topaz-file-popout [aria-selected="true"] {
+  padding-right: 32px;
+}
+
+.topaz-file-popout [aria-selected="true"] > svg {
+  position: absolute;
+  right: 6px;
+}
+
+.topaz-file-popout [data-list-item-id\$="-"] {
+  background: var(--background-primary);
+  height: 2px;
+  margin: 10px 12px;
+  padding: 0;
+
+  pointer-events: none;
+}
+
+.topaz-file-popout .option-2eIyOn:focus:not(:hover):not([aria-selected="true"]) { /* Fix first option being highlighted for some reason */
+  background-color: unset;
+  color: var(--interactive-normal);
+}
+
+.topaz-editor > [role="tablist"] > * > input {
+  flex-grow: 1;
+  text-align: left;
+}
+
+.topaz-editor > [role="tablist"] > * > :last-child:not(:first-child) {
+  margin-left: 6px;
+}
+
+.topaz-editor > [role="tablist"] > * {
+  flex-shrink: 0;
+}
+
+.topaz-editor > [role="tablist"] > * > [aria-label="Delete"] svg {
+  width: 18px;
+  height: 18px;
+}
+
+.topaz-editor > [role="tablist"] > * > [aria-label="Delete"]:hover {
+  color: var(--status-danger);
+}
+
+.topaz-editor > [role="tablist"] > div:not(:first-child) {
+  border-left: 1px solid var(--background-secondary);
+}
+
+.topaz-editor > [role="tablist"] > div[aria-selected="true"] {
+  background: var(--background-floating);
+}
+
+.topaz-editor-page {
+  top: -30px;
+  position: relative;
+}
+
+/* Rounding edges for bprder files */
+.topaz-editor > [role="tablist"] > div:first-child { /* First */
+  border-radius: 8px 0 0 0;
+}
+
+.topaz-editor > [role="tablist"] > div:nth-last-child(3) { /* Last */
+  border-radius: 0 8px 0 0;
+}
+
+.topaz-snippets > .topaz-editor {
+  display: flex;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] {
+  flex-direction: column;
+  background: var(--background-secondary-alt);
+  width: 260px !important;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > * {
+  border-radius: 0 !important;
+  border-bottom: none;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > :not([aria-controls^="#"]) {
+  border-left: 2px solid transparent;
+  padding: 8px 4px 8px 16px;
+  border-bottom: 1px solid var(--background-primary) !important;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > .selected-g-kMVV {
+  border-left-color: var(--control-brand-foreground);
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls^="#"] {
+  bottom: 0;
+  border-left: none;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#settings-tab"] {
+  border-radius: 8px 0 0 0 !important;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#new-tab"], .topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#library-tab"] {
+  width: 50%;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#new-tab"] button, .topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#library-tab"] button {
+  width: 100%;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#library-tab"] {
+  position: relative;
+  left: 50%;
+  transform: translateY(-100%);
+  border-left: 1px solid var(--background-secondary);
+}
+
+
+.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#reload-tab"] {
+  display: none;
+}
+
+.topaz-snippets > .topaz-editor > section {
+  width: calc(100% - 260px) !important;
+}
+
+.topaz-snippets > .topaz-editor > [role="tablist"] .input-2XRLou {
+  position: relative;
+  top: -3px;
+  left: -4px;
+}
+
+/* Hide some elements for Simple UI */
+.topaz-simple .topaz-tag { /* Mod tag */
+  display: none;
+}
+
+.topaz-simple .topaz-tag + span { /* Plugin version */
+  display: none;
+}
+
+.topaz-simple [aria-label="Reinstall"] { /* Reinstall button */
+  display: none;
+}
+
+.topaz-simple [aria-label="Open Link"] { /* Open Link button */
+  display: none;
+}
+
+.topaz-simple [aria-label="Permissions"] { /* Permissions button */
+  display: none;
+}
+
+.topaz-simple [aria-label="Edit"] { /* Edit button */
+  display: none;
+}
+
+#topaz-repo-autocomplete.topaz-simple .code-style { /* Hide repos in autocomplete */
+  display: none;
+}
+
+.topaz-snippets-tooltip-bottom {
+  transform: translateY(100%) !important;
+  top: 44px;
+}
+
+.topaz-snippets-tooltip-bottom [class^="tooltipPointer"] {
+  top: -10px;
+}
+
+.topaz-snippets-library-header {
+  display: flex;
+}
+
+.topaz-snippets-library-header [role="tablist"] {
+  display: inline-flex;
+  margin-left: 20px;
+  flex-grow: 1;
+  position: relative;
+}
+
+
+.topaz-snippet {
+  box-shadow: var(--elevation-medium);
+  background: var(--background-secondary-alt);
+  padding: 10px;
+  width: 50%;
+  border-radius: 8px;
+
+  position: relative;
+
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.topaz-snippet > :first-child {
+  width: calc(100% + 20px);
+  margin-top: -10px;
+  margin-left: -10px;
+
+  object-fit: contain;
+  background: var(--background-tertiary);
+  height: 200px;
+
+  border-radius: 8px 8px 0 0;
+}
+
+.topaz-snippet h2 {
+  margin: 8px 0;
+
+  font-size: 18px;
+  position: relative;
+}
+
+.topaz-snippet > h2 div {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  border-radius: 20px;
+
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.topaz-snippet > h2 div > img {
+  border-radius: 50%;
+}
+
+.topaz-snippet > h2 div > span {
+  color: var(--header-primary);
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.topaz-snippet > h2 > span {
+  width: 75%;
+  display: inline-block;
+}
+
+.topaz-snippet .paragraph-9M861H {
+  margin-bottom: 0 !important;
+  word-break: break-word;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.topaz-snippet > :last-child {
+  display: flex;
+  gap: 20px;
+
+  margin-top: auto;
+}
+
+.topaz-snippet > :last-child > :last-child:not(:first-child) {
+  padding: 2px 6px;
+  min-width: 0;
+}
+
+.topaz-snippet > :last-child > :last-child:not(:first-child) svg {
+  transform: scaleX(-1);
+}
+
+.topaz-snippet-container {
+  overflow: hidden scroll;
+  padding-right: 8px;
+  display: grid;
+  grid-template-columns: calc(50% - 26px) calc(50% - 26px);
+  gap: 40px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.topaz-theme-setting-toggle > :last-child {
+  display: none;
+}
+
+.topaz-changelog-advanced {
+  position: absolute;
+  right: 60px;
+  top: 19px;
+}
+
+.topaz-changelog-advanced .control-1fl03- {
+  margin-left: 8px;
+}
+
+.topaz-changelog-advanced .divider-_0um2u {
+  display: none;
+}
+
+.topaz-terminal {
+  position: absolute;
+  width: 600px;
+  background: var(--background-floating);
+  box-shadow: var(--elevation-high);
+  z-index: 99999;
+  height: 400px;
+  top: 30px;
+  left: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.topaz-terminal > :first-child {
+  background: var(--background-tertiary);
+  padding: 16px;
+  color: var(--header-primary);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.topaz-terminal > :first-child > :last-child {
+  cursor: pointer;
+  font-size: 28px;
+  float: right;
+  height: 0;
+  margin-top: -4px;
+}
+
+.topaz-terminal > :last-child {
+  padding: 8px;
+  font-size: 14px;
+  color: var(--text-normal);
+  font-family: var(--font-code);
+  white-space: pre-wrap;
+  flex-grow: 1;
+  overflow: auto;
+}`));
+document.head.appendChild(cssEl);
 
 log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)}ms`);
 
@@ -7159,786 +8039,250 @@ let settingsUnpatch = goosemod.patcher.patch(goosemod.webpackModules.findByDispl
   return sections;
 });
 
-const cssEl = document.createElement('style');
-cssEl.appendChild(document.createTextNode(`#topaz-repo-filtering, #topaz-repo-autocomplete {
-  position: absolute;
-  z-index: 999;
-  background: var(--background-floating);
-  max-height: 280px;
-  overflow-y: auto;
-  border-radius: 0 0 3px 3px;
-}
-
-#topaz-repo-filtering > :not(:first-child) {
-  margin: 0 8px;
-}
-
-#topaz-repo-filtering .divider-_0um2u {
-  display: none;
-}
-
-#topaz-repo-filtering .container-1zDvAE {
-  margin-bottom: 8px;
-}
-
-#topaz-repo-filtering .h5-2RwDNl {
-  margin-bottom: 8px;
-}
-
-#topaz-repo-filtering > :first-child {
-  margin-bottom: 10px;
-}
-
-#topaz-repo-filtering .container-1zDvAE .title-2dsDLn {
-  color: var(--text-normal);
-}
-
-#topaz-repo-autocomplete > h5, #topaz-repo-filtering > :first-child {
-  padding: 8px;
-  font-weight: 600;
-  font-size: 12px;
-  line-height: 16px;
-  font-family: var(--font-display);
-  color: var(--header-secondary);
-  text-transform: uppercase;
-  border-bottom: 2px solid var(--background-primary);
-}
-
-#topaz-repo-autocomplete > h5 > button {
-  float: right;
-  width: 24px;
-  height: 24px;
-  margin-top: -4px;
-}
-
-#topaz-repo-autocomplete > h5 > button.active {
-  color: var(--interactive-active);
-}
-
-#topaz-repo-autocomplete > h5 > button[aria-label="Filter"] svg {
-  transform: scale(1.2);
-  width: 16px;
-  height: 16px;
-}
-
-#topaz-repo-autocomplete > div {
-  padding: 12px;
-  border-bottom: 2px solid var(--background-primary);
-  color: var(--header-secondary);
-  cursor: pointer;
-}
-
-#topaz-repo-autocomplete .title-2dsDLn {
-  font-weight: 600;
-  color: var(--text-normal);
-}
-
-#topaz-repo-autocomplete .code-style {
-  float: right;
-
-  font-family: var(--font-code);
-  font-weight: 400;
-  font-size: 10px;
-}
-
-#topaz-repo-autocomplete > div:hover {
-  background: var(--background-secondary);
-}
-
-#topaz-repo-filtering {
-  border-radius: 6px;
-  width: 240px;
-  box-shadow: var(--elevation-stroke), var(--elevation-medium);
-}
-
-
-.topaz-settings > [role="tablist"] {
-  margin-bottom: 20px;
-}
-
-.topaz-settings .topaz-version {
-  margin-left: 6px;
-  font-family: var(--font-code);
-  font-size: 10px;
-}
-
-.topaz-settings h1 ~ .vertical-3aLnqW .labelRow-2jl9gK > :first-child {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.topaz-loading-text {
-  display: flex;
-  flex: unset;
-  height: 40px;
-  min-width: 200px;
-  justify-content: flex-end;
-}
-
-.topaz-loading-text > :first-child {
-  width: 24px;
-  height: 24px;
-  margin-right: 12px;
-  margin-top: 10px;
-}
-
-.topaz-loading-text > :last-child {
-  width: 160px;
-}
-
-.topaz-loading-text > :last-child > :last-child {
-  display: block;
-  font-size: 12px;
-}
-
-.topaz-settings div[style="display: flex; justify-content: space-between;"] {
-  position: relative;
-  /* margin-bottom: 10px; */
-}
-
-.topaz-settings div[style="display: flex; justify-content: space-between;"] > div:first-child {
-  width: 80%;
-}
-
-.topaz-plugin-icons {
-  position: absolute;
-  /* top: 36px; */
-  bottom: -12px;
-  right: 0px;
-
-  display: flex;
-  gap: 4px;
-}
-
-.topaz-settings button[aria-label^="Uninstall"]:hover,
-.topaz-settings button[aria-label^="Reinstall"]:hover {
-  background: hsla(359,calc(var(--saturation-factor, 1)*82.6%),59.4%,0.6);
-}
-
-.topaz-tag {
-  padding: 2px 8px;
-  margin-right: 6px;
-  border-radius: 8px;
-
-  font-size: 14px;
-  vertical-align: top;
-
-  color: var(--text-normal);
-  background: var(--background-floating);
-}
-
-.topaz-tag.tag-floating {
-  background: var(--background-modifier-hover);
-}
-
-#app-mount .root-g14mjS:not([class^="carousel"]) {
-  background: var(--background-primary);
-}
-
-#app-mount .root-g14mjS:not([class^="carousel"]) .separator-2lLxgC {
-  box-shadow: unset;
-  -webkit-box-shadow: unset;
-  border-bottom: thin solid var(--background-modifier-accent);
-}
-
-.topaz-modal-content {
-  padding-top: 20px;
-}
-
-.topaz-permissions-page .breadcrumbs-2uP7wU, .topaz-settings-page .breadcrumbs-2uP7wU {
-  margin-bottom: 20px;
-}
-
-.topaz-permissions-page > div > div:last-child .divider-_0um2u, .topaz-permissions-modal-content > div > div:last-child .divider-_0um2u {
-  display: none;
-}
-
-.topaz-permission-label {
-  color: var(--text-normal);
-  font-weight: 400;
-}
-
-.topaz-nomax-tooltip {
-  max-width: unset !important;
-}
-
-.topaz-permission-danger-icon {
-  display: inline-block;
-  vertical-align: top;
-
-  color: var(--status-danger-background);
-  margin-right: 6px;
-}
-
-.topaz-permission-danger-icon + span {
-  vertical-align: bottom;
-}
-
-div + .topaz-permission-choice {
-  margin-top: 20px;
-}
-
-.topaz-permission-choice {
-  margin-top: 10px;
-}
-
-.topaz-permission-choice .size14-k_3Hy4 {
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.topaz-permission-reset {
-  float: right;
-}
-
-.topaz-permission-summary {
-  display: inline-block;
-  line-height: 32px;
-  font-size: 24px;
-  font-weight: 500;
-  margin-bottom: 30px;
-}
-
-body .footer-31IekZ { /* Fix modal footers using special var */
-  background: var(--background-secondary);
-}
-
-.topaz-permissions-page .divider-_0um2u, .topaz-permissions-modal-content .divider-_0um2u {
-  margin-top: 20px;
-  margin-bottom: 16px;
-}
-
-.topaz-settings .divider-q3P9HC {
-  display: inline-flex;
-  vertical-align: middle;
-  margin: 0 20px;
-  margin-right: 12px;
-}
-
-.topaz-settings h5 + .dividerDefault-3C2-ws {
-  margin-top: 0;
-  margin-bottom: 20px;
-}
-
-.topaz-settings > h5:nth-child(3) button {
-  float: right;
-  width: 28px;
-  top: -6px;
-  height: 28px;
-}
-
-
-.topaz-settings .topPill-3DJJNV {
-  display: inline-flex;
-}
-
-.topaz-settings [aria-controls="settings-tab"] {
-  position: absolute;
-  right: 108px;
-}
-
-.topaz-settings [aria-controls="reload-tab"], .topaz-settings [aria-controls="changelog-tab"] {
-  position: absolute;
-  right: 64px;
-
-  padding: 0;
-  margin: 0;
-
-  width: 24px;
-  height: 24px;
-
-  cursor: default;
-}
-
-.topaz-settings [aria-controls="changelog-tab"] {
-  right: 32px;
-}
-
-.topaz-settings [aria-controls="reload-tab"] > button:hover {
-  color: var(--status-danger);
-  background: none;
-}
-
-.topaz-settings [aria-controls="changelog-tab"] > button:hover {
-  color: var(--interactive-hover);
-  background: none;
-}
-
-.topaz-settings [aria-controls="reload-tab"]:hover, .topaz-settings [aria-controls="changelog-tab"]:hover {
-  background: none !important;
-  cursor: unset !important;
-}
-
-.topaz-settings {
-  --input-background: var(--background-secondary);
-}
-
-.topaz-pc-modal-jank {
-  width: auto !important;
-  max-width: initial !important;
-  min-height: initial !important;
-}
-
-.topaz-editor-focus .contentColumn-1C7as6.contentColumnDefault-3eyv5o {
-  max-width: calc(100vw - 270px);
-  padding-bottom: 0;
-}
-
-.contentColumn-1C7as6.contentColumnDefault-3eyv5o {
-  transition: max-width .5s;
-}
-
-.topaz-editor-focus .contentRegion-3HkfJJ {
-  flex: 1 1 80%;
-}
-
-.contentRegion-3HkfJJ {
-  transition: flex .5s;
-}
-
-.topaz-editor-focus .sidebarRegion-1VBisG {
-  flex: 1 0 0;
-}
-
-.sidebarRegion-1VBisG {
-  transition: flex .5s;
-}
-
-.topaz-editor-focus .toolsContainer-25FL6V {
-  top: -50px;
-}
-
-.toolsContainer-25FL6V {
-  transition: top .5s;
-}
-
-.topaz-editor-focus .contentRegionScroller-2_GT_N {
-  overflow: visible;
-}
-
-.topaz-editor > * {
-  width: 100%;
-}
-
-.topaz-editor-focus .topaz-editor > * {
-  width: calc(100vw - 308px) !important;
-}
-
-.topaz-editor > section {
-  height: 88vh !important;
-}
-
-.topaz-editor-no-files {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-
-  gap: 12px;
-
-  background: var(--background-tertiary);
-}
-
-.topaz-editor-no-files > :first-child {
-  font-weight: 500;
-  font-size: 20px;
-  line-height: 24px;
-  font-family: var(--font-display);
-  color: var(--header-primary);
-}
-
-.topaz-editor-no-files > :nth-child(2) {
-  font-weight: 500;
-  font-size: 16px;
-  line-height: 20px;
-  color: var(--text-normal);
-}
-
-.topaz-editor-no-files svg {
-  vertical-align: text-bottom;
-  color: var(--text-muted);
-
-  margin: 0 2px;
-}
-
-.topaz-editor > [role="tablist"] {
-  overflow: auto hidden;
-}
-
-.topaz-editor > [role="tablist"] > [aria-controls^="#"] {
-  position: absolute;
-  right: 0px;
-  padding: 3px;
-}
-
-.topaz-editor > [role="tablist"] > [aria-controls^="#new-tab"], .topaz-editor > [role="tablist"] > [aria-controls^="#library-tab"] {
-  right: unset;
-  position: unset;
-
-  padding: 8px 6px;
-}
-
-.topaz-editor > [role="tablist"] > [aria-controls="#settings-tab"] {
-  border-radius: 0 8px 0 0;
-}
-
-.topaz-editor > [role="tablist"] > [aria-controls="#reload-tab"] {
-  right: 40px;
-  border-radius: 8px 0 0 0;
-  border-left: none;
-}
-
-.topaz-editor > [role="tablist"] > div {
-  background: var(--background-secondary-alt);
-
-  padding: 8px 4px 8px 12px;
-  height: 40px;
-}
-
-.topaz-editor > [role="tablist"] > div > input {
-  background: none;
-  border: none;
-
-  color: inherit;
-  font-size: inherit;
-  font-weight: inherit;
-
-  padding: 0;
-  margin: 0;
-  min-width: 0;
-
-  cursor: default;
-}
-
-.topaz-editor > [role="tablist"] > div > input:active {
-  cursor: text;
-}
-
-.topaz-editor input[type="text"]::-webkit-search-decoration,
-.topaz-editor input[type="text"]::-webkit-search-cancel-button,
-.topaz-editor input[type="text"]::-webkit-search-results-button,
-.topaz-editor input[type="text"]::-webkit-search-results-decoration {
-  display: none;
-}
-
-.topaz-editor > [role="tablist"] > * > [aria-haspopup="listbox"] {
-  padding: 0;
-  background: none;
-  border: none;
-
-  margin-left: -6px;
-  margin-right: 4px;
-}
-
-.topaz-editor > [role="tablist"] > * > [aria-haspopup="listbox"] > :last-child {
-  display: none;
-}
-
-
-
-.topaz-file-popout {
-  width: 140px !important;
-  overflow: visible !important;
-  max-height: unset !important;
-}
-
-.topaz-file-popout [aria-selected="true"] {
-  padding-right: 32px;
-}
-
-.topaz-file-popout [aria-selected="true"] > svg {
-  position: absolute;
-  right: 6px;
-}
-
-.topaz-file-popout [data-list-item-id\$="-"] {
-  background: var(--background-primary);
-  height: 2px;
-  margin: 10px 12px;
-  padding: 0;
-
-  pointer-events: none;
-}
-
-.topaz-file-popout .option-2eIyOn:focus:not(:hover):not([aria-selected="true"]) { /* Fix first option being highlighted for some reason */
-  background-color: unset;
-  color: var(--interactive-normal);
-}
-
-.topaz-editor > [role="tablist"] > * > input {
-  flex-grow: 1;
-  text-align: left;
-}
-
-.topaz-editor > [role="tablist"] > * > :last-child:not(:first-child) {
-  margin-left: 6px;
-}
-
-.topaz-editor > [role="tablist"] > * {
-  flex-shrink: 0;
-}
-
-.topaz-editor > [role="tablist"] > * > [aria-label="Delete"] svg {
-  width: 18px;
-  height: 18px;
-}
-
-.topaz-editor > [role="tablist"] > * > [aria-label="Delete"]:hover {
-  color: var(--status-danger);
-}
-
-.topaz-editor > [role="tablist"] > div:not(:first-child) {
-  border-left: 1px solid var(--background-secondary);
-}
-
-.topaz-editor > [role="tablist"] > div[aria-selected="true"] {
-  background: var(--background-floating);
-}
-
-.topaz-editor-page {
-  top: -30px;
-  position: relative;
-}
-
-/* Rounding edges for bprder files */
-.topaz-editor > [role="tablist"] > div:first-child { /* First */
-  border-radius: 8px 0 0 0;
-}
-
-.topaz-editor > [role="tablist"] > div:nth-last-child(3) { /* Last */
-  border-radius: 0 8px 0 0;
-}
-
-.topaz-snippets > .topaz-editor {
-  display: flex;
-}
-
-.topaz-snippets > .topaz-editor > [role="tablist"] {
-  flex-direction: column;
-  background: var(--background-secondary-alt);
-  width: 260px !important;
-}
-
-.topaz-snippets > .topaz-editor > [role="tablist"] > * {
-  border-radius: 0 !important;
-  border-bottom: none;
-}
-
-.topaz-snippets > .topaz-editor > [role="tablist"] > :not([aria-controls^="#"]) {
-  border-left: 2px solid transparent;
-  padding: 8px 4px 8px 16px;
-  border-bottom: 1px solid var(--background-primary) !important;
-}
-
-.topaz-snippets > .topaz-editor > [role="tablist"] > .selected-g-kMVV {
-  border-left-color: var(--control-brand-foreground);
-}
-
-.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls^="#"] {
-  bottom: 0;
-  border-left: none;
-}
-
-.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#settings-tab"] {
-  border-radius: 8px 0 0 0 !important;
-}
-
-.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#new-tab"], .topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#library-tab"] {
-  width: 50%;
-}
-
-.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#new-tab"] button, .topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#library-tab"] button {
-  width: 100%;
-}
-
-.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#library-tab"] {
-  position: relative;
-  left: 50%;
-  transform: translateY(-100%);
-  border-left: 1px solid var(--background-secondary);
-}
-
-
-.topaz-snippets > .topaz-editor > [role="tablist"] > [aria-controls="#reload-tab"] {
-  display: none;
-}
-
-.topaz-snippets > .topaz-editor > section {
-  width: calc(100% - 260px) !important;
-}
-
-.topaz-snippets > .topaz-editor > [role="tablist"] .input-2XRLou {
-  position: relative;
-  top: -3px;
-  left: -4px;
-}
-
-/* Hide some elements for Simple UI */
-.topaz-simple .topaz-tag { /* Mod tag */
-  display: none;
-}
-
-.topaz-simple .topaz-tag + span { /* Plugin version */
-  display: none;
-}
-
-.topaz-simple [aria-label="Reinstall"] { /* Reinstall button */
-  display: none;
-}
-
-.topaz-simple [aria-label="Open Link"] { /* Open Link button */
-  display: none;
-}
-
-.topaz-simple [aria-label="Permissions"] { /* Permissions button */
-  display: none;
-}
-
-.topaz-simple [aria-label="Edit"] { /* Edit button */
-  display: none;
-}
-
-#topaz-repo-autocomplete.topaz-simple .code-style { /* Hide repos in autocomplete */
-  display: none;
-}
-
-.topaz-snippets-tooltip-bottom {
-  transform: translateY(100%) !important;
-  top: 44px;
-}
-
-.topaz-snippets-tooltip-bottom [class^="tooltipPointer"] {
-  top: -10px;
-}
-
-.topaz-snippets-library-header {
-  display: flex;
-}
-
-.topaz-snippets-library-header [role="tablist"] {
-  display: inline-flex;
-  margin-left: 20px;
-  flex-grow: 1;
-  position: relative;
-}
-
-
-.topaz-snippet {
-  box-shadow: var(--elevation-medium);
-  background: var(--background-secondary-alt);
-  padding: 10px;
-  width: 50%;
-  border-radius: 8px;
-
-  position: relative;
-
-  width: 100%;
-  height: 100%;
-
-  display: flex;
-  flex-direction: column;
-}
-
-.topaz-snippet > :first-child {
-  width: calc(100% + 20px);
-  margin-top: -10px;
-  margin-left: -10px;
-
-  object-fit: contain;
-  background: var(--background-tertiary);
-  height: 200px;
-
-  border-radius: 8px 8px 0 0;
-}
-
-.topaz-snippet h2 {
-  margin: 8px 0;
-
-  font-size: 18px;
-  position: relative;
-}
-
-.topaz-snippet > h2 div {
-  align-items: center;
-  display: inline-flex;
-  gap: 6px;
-  border-radius: 20px;
-
-  position: absolute;
-  right: 0;
-  top: 0;
-}
-
-.topaz-snippet > h2 div > img {
-  border-radius: 50%;
-}
-
-.topaz-snippet > h2 div > span {
-  color: var(--header-primary);
-  font-size: 16px;
-  line-height: 16px;
-}
-
-.topaz-snippet > h2 > span {
-  width: 75%;
-  display: inline-block;
-}
-
-.topaz-snippet .paragraph-9M861H {
-  margin-bottom: 0 !important;
-  word-break: break-word;
-
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.topaz-snippet > :last-child {
-  display: flex;
-  gap: 20px;
-
-  margin-top: auto;
-}
-
-.topaz-snippet > :last-child > :last-child:not(:first-child) {
-  padding: 2px 6px;
-  min-width: 0;
-}
-
-.topaz-snippet > :last-child > :last-child:not(:first-child) svg {
-  transform: scaleX(-1);
-}
-
-.topaz-snippet-container {
-  overflow: hidden scroll;
-  padding-right: 8px;
-  display: grid;
-  grid-template-columns: calc(50% - 26px) calc(50% - 26px);
-  gap: 40px;
-  width: 100%;
-  box-sizing: border-box;
-  overflow: visible;
-}
-
-.topaz-theme-setting-toggle > :last-child {
-  display: none;
-}
-
-.topaz-changelog-advanced {
-  position: absolute;
-  right: 60px;
-  top: 19px;
-}
-
-.topaz-changelog-advanced .control-1fl03- {
-  margin-left: 8px;
-}
-
-.topaz-changelog-advanced .divider-_0um2u {
-  display: none;
-}`));
-document.head.appendChild(cssEl);
+const Terminal = eval(`const closeTerminal = () => document.querySelector('.topaz-terminal')?.remove?.();
+
+const openTerminal = (e) => {
+  if (e) if (!e.ctrlKey || !e.altKey || e.key !== 't') return;
+  if (document.querySelector('.topaz-terminal')) return closeTerminal();
+
+  const term = document.createElement('div');
+  term.className = 'topaz-terminal';
+
+  const header = document.createElement('div');
+  header.textContent = 'Topaz Terminal';
+
+  const closeButton = document.createElement('div');
+  closeButton.textContent = '✖';
+
+  closeButton.onclick = () => closeTerminal();
+
+  header.appendChild(closeButton);
+
+  const out = document.createElement('div');
+  out.contentEditable = true;
+  out.autocapitalize = false;
+  out.autocomplete = false;
+  out.spellcheck = false;
+  out.innerHTML = 'Welcome to the Topaz Terminal, here you can quickly and directly interface with Topaz internals.<br>';
+
+  out.className = [ScrollerClasses.thin, ScrollerClasses.fade].join(' ');
+
+  term.append(header, out);
+
+  const storedPos = Storage.get('terminal_position');
+  if (storedPos) {
+    term.style.left = storedPos[0] + 'px';
+    term.style.top = storedPos[1] + 'px';
+  }
+
+  document.body.appendChild(term);
+
+  const selectLast = () => {
+    const sel = window.getSelection();
+    sel.collapse(out.lastChild, out.lastChild.textContent.length);
+    out.focus();
+  };
+
+  const echo = (text, final = true) => {
+    out.innerHTML += '<br>';
+    out.innerHTML += text.replaceAll('\\n', '<br>');
+
+    if (final) out.innerHTML += '<br><br>> ';
+
+    if (out.scrollHeight - out.clientHeight - out.scrollTop < 50) out.scrollTop = 999999;
+  };
+
+  const help = () => {
+    const commands = [
+      [ 'uninstall [link]', 'Uninstalls given plugin/theme' ],
+      [ 'reinstall [link]', 'Reinstalls given plugin/theme' ],
+      [ 'enable [link]', 'Enables given plugin/theme' ],
+      [ 'disable [link]', 'Disables given plugin/theme' ],
+      [],
+      [ 'installed', 'Outputs installed plugins and themes' ],
+      [ 'cache [status|purge]', 'Manage Topaz\\'s cache' ],
+      [ 'reload', 'Reload Topaz' ],
+      [],
+      [ 'clear', 'Clear terminal' ],
+      [ 'help', 'Lists commands' ],
+      [ 'exit', 'Exits terminal' ]
+    ];
+
+    let longestCommand = 0;
+    for (const x of commands) if (x[0]?.length > longestCommand) longestCommand = x[0].length;
+
+    echo('<b><u>Commands</u></b>\\n' + commands.map(x => x[0] ? \`<b>\${x[0]}</b>\${' '.repeat((longestCommand - x[0].length) + 6)}\${x[1]}\` : '').join('\\n'));
+  };
+
+  help();
+
+  out.onclick = e => {
+    console.log(e);
+    selectLast();
+  };
+
+  out.onkeydown = e => {
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key === 'Backspace') {
+      const newOut = out.innerHTML.slice(0, -1);
+      if (newOut.slice(-4) !== '&gt;') out.innerHTML = newOut;
+    }
+
+    if (e.key === 'Enter') {
+      const txt = out.textContent;
+      const cmd = txt.slice(txt.lastIndexOf('> ') + 2);
+
+      const command = cmd.split(' ')[0];
+      const extra = cmd.split(' ').slice(1);
+
+      const info = extra[0];
+
+      switch (command) {
+        case 'uninstall':
+          if (info === 'all') {
+            echo(\`Uninstalling all...\`, false);
+            topaz.uninstallAll();
+            echo('Uninstalled all');
+            break;
+          }
+
+          if (!plugins[info]) {
+            echo(\`\${info} not installed!\`);
+            break;
+          }
+
+          echo(\`Uninstalling <b>\${info}</b>...\`, false);
+          topaz.uninstall(info);
+          echo(\`Uninstalled <b>\${info}</b>\`);
+          break;
+
+        case 'reinstall':
+          if (!plugins[info]) {
+            echo(\`\${info} not installed!\`);
+            break;
+          }
+
+          echo(\`Reinstalling <b>\${info}</b>...\`, false);
+          topaz.reload(info);
+          echo(\`Reinstalled <b>\${info}</b>\`);
+          break;
+
+        case 'enable':
+          if (!plugins[info]) {
+            echo(\`\${info} not installed!\`);
+            break;
+          }
+
+          topaz.enable(info);
+          echo(\`Enabled <b>\${info}</b>\`);
+          break;
+
+        case 'disable':
+          if (!plugins[info]) {
+            echo(\`\${info} not installed!\`);
+            break;
+          }
+
+          topaz.disable(info);
+          echo(\`Disabled <b>\${info}</b>\`);
+          break;
+
+        case 'installed':
+          echo(\`\${topaz.getInstalled().map(x => \`<b>\${x}</b>\`).join('\\n')}\`);
+          break;
+
+        case 'cache':
+          switch (info) {
+            case 'status':
+              echo(\`Fetch cache entries: \${fetchCache.keys().length}\\nFinal cache entries: \${finalCache.keys().length}\`);
+              break;
+
+            case 'purge':
+              fetchCache.purge();
+              finalCache.purge();
+              echo('Purged caches');
+              break;
+          }
+
+          break;
+
+        case 'reload':
+          echo('Reloading Topaz...', false);
+          topaz.reloadTopaz();
+          break;
+
+        case 'clear':
+          out.innerHTML = '> ';
+          break;
+
+        case 'exit':
+          closeTerminal();
+          break;
+
+        case 'debug':
+          break;
+
+        case 'help':
+          help();
+          break;
+
+        default:
+          if (cmd.includes('/')) { // install
+            echo(\`Installing <b>\${cmd}</b>...\`, false);
+            topaz.install(cmd);
+            echo(\`Installed <b>\${cmd}</b>\`);
+          } else { // unknown
+            echo(\`Unknown command <b>\${cmd}</b>, use <b>help</b> to view available commands\`);
+          }
+          break;
+      }
+    }
+
+    if (e.key.length === 1) out.innerHTML += e.key;
+
+    selectLast();
+    e.preventDefault();
+    return false;
+  };
+
+  selectLast();
+
+  header.onmousedown = e => {
+    e.preventDefault();
+    let lastPos = [ e.clientX, e.clientY ];
+
+    document.onmouseup = () => {
+      document.onmousemove = null;
+      document.onmouseup = null;
+    };
+
+    document.onmousemove = e => {
+      e.preventDefault();
+
+      const deltaX = lastPos[0] - e.clientX;
+      const deltaY = lastPos[1] - e.clientY;
+
+      lastPos = [ e.clientX, e.clientY ];
+
+      const pos = [ term.offsetLeft - deltaX, term.offsetTop - deltaY ];
+      term.style.left = pos[0] + 'px';
+      term.style.top = pos[1] + 'px';
+
+      Storage.set('terminal_position', pos);
+    };
+  };
+};
+
+document.addEventListener('keydown', openTerminal);
+if (document.querySelector('.topaz-terminal')) {
+  closeTerminal();
+  openTerminal();
+}
+
+() => { // topaz purge handler
+  document.removeEventListener('keydown', openTerminal);
+  closeTerminal();
+};`);
 
 const msgModule = goosemod.webpackModules.findByProps('sendMessage');
 const msgUnpatch = goosemod.patcher.patch(msgModule, 'sendMessage', ([ _channelId, { content } ]) => {
