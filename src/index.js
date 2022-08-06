@@ -1369,6 +1369,7 @@ window.topaz = {
 
     plugins,
     fetchCache,
+    finalCache,
     builtins
   },
 

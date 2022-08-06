@@ -120,7 +120,7 @@ const openTerminal = (e) => {
             break;
           }
 
-          if (!plugins[info]) {
+          if (!topaz.internal.plugins[info]) {
             echo(`${info} not installed!`);
             break;
           }
@@ -131,7 +131,7 @@ const openTerminal = (e) => {
           break;
 
         case 'reinstall':
-          if (!plugins[info]) {
+          if (!topaz.internal.plugins[info]) {
             echo(`${info} not installed!`);
             break;
           }
@@ -142,7 +142,7 @@ const openTerminal = (e) => {
           break;
 
         case 'enable':
-          if (!plugins[info]) {
+          if (!topaz.internal.plugins[info]) {
             echo(`${info} not installed!`);
             break;
           }
@@ -152,7 +152,7 @@ const openTerminal = (e) => {
           break;
 
         case 'disable':
-          if (!plugins[info]) {
+          if (!topaz.internal.plugins[info]) {
             echo(`${info} not installed!`);
             break;
           }
