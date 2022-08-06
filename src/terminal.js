@@ -67,7 +67,7 @@ const openTerminal = (e) => {
 
   const help = () => {
     const commands = [
-      [ 'uninstall [link]', 'Uninstalls given plugin/theme' ],
+      [ 'uninstall [link|all]', 'Uninstalls given plugin/theme or all' ],
       [ 'reinstall [link]', 'Reinstalls given plugin/theme' ],
       [ 'enable [link]', 'Enables given plugin/theme' ],
       [ 'disable [link]', 'Disables given plugin/theme' ],
