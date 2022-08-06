@@ -219,7 +219,7 @@ const permissionsModal = async (manifest, neededPerms) => {
 };
 
 const iframeGlobals = [ 'performance', ];
-const passGlobals = [ 'topaz', 'goosemod', 'fetch', 'document', '_', 'TextEncoder', 'TextDecoder', 'addEventListener', 'removeEventListener', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'Node', 'Element', 'MutationEvent', 'MutationRecord', 'addEventListener', 'removeEventListener', 'URL' ];
+const passGlobals = [ 'topaz', 'goosemod', 'fetch', 'document', '_', 'TextEncoder', 'TextDecoder', 'addEventListener', 'removeEventListener', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'Node', 'Element', 'MutationEvent', 'MutationRecord', 'addEventListener', 'removeEventListener', 'URL', 'setImmediate', 'NodeList', 'getComputedStyle' ];
 
 // did you know: using innerHTML is ~2.5x faster than appendChild for some reason (~40ms -> ~15ms), so we setup a parent just for making our iframes via this trick
 const containerParent = document.createElement('div');
@@ -265,7 +265,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
   // nullify (delete) all keys in window to start except allowlist
   for (const k of passGlobals) {
     let orig = window[k];
-    context[k] = typeof orig === 'function' && k !== '_' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
+    context[k] = typeof orig === 'function' && k !== '_' && k !== 'NodeList' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
   }
 
   context.MutationObserver = function(callback) { // janky wrapper because Chromium breaks with disconnected iframe
