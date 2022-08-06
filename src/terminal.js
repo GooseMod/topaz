@@ -163,7 +163,12 @@ const openTerminal = (e) => {
           break;
 
         case 'installed':
-          echo(`${topaz.getInstalled().map(x => `<b>${x}</b>`).join('\n')}`);
+          const modules = Object.values(topaz.internal.plugins);
+
+          const plugins = modules.filter(x => !x.__theme).map(x => x.manifest.name);
+          const themes = modules.filter(x => x.__theme).map(x => x.manifest.name);
+
+          echo(`<b><u>${themes.length} Theme${themes.length === 1 ? '' : 's'}</u></b>\n${themes.join('\n')}\n\n<b><u>${plugins.length} Plugin${plugins.length === 1 ? '' : 's'}</u></b>\n${plugins.join('\n')}`);
           break;
 
         case 'cache':
