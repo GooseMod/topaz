@@ -86,7 +86,7 @@ const openTerminal = (e) => {
     let longestCommand = 0;
     for (const x of commands) if (x[0]?.length > longestCommand) longestCommand = x[0].length;
 
-    echo('<b><u>Commands</u></b>\n' + commands.map(x => x[0] ? `<b>${x[0]}</b>${' '.repeat((longestCommand - x[0].length) + 6)}${x[1]}` : '').join('\n'));
+    echo('<b><u>Commands</u></b>\n' + commands.map(x => x[0] ? `<b>${x[0]}</b>${' '.repeat((longestCommand - x[0].length) + 6)}${x[1]}` : '').join('\n') + `\n\nEnter any link/GH repo to install a plugin/theme`);
   };
 
   help();
