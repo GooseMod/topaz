@@ -32,8 +32,8 @@ const openTerminal = (e) => {
 
   const storedPos = Storage.get('terminal_position');
   if (storedPos) {
-    term.style.left = storedPos[0] + 'px';
-    term.style.top = storedPos[1] + 'px';
+    term.style.left = Math.min(0, storedPos[0]) + 'px';
+    term.style.top = Math.min(0, storedPos[1]) + 'px';
   }
 
   let oldOut;
