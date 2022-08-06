@@ -428,13 +428,13 @@ ${_code}\n\n
       keys = Reflect.ownKeys(mod).concat(Reflect.ownKeys(mod.__proto__ ?? {}));
     } catch { }
 
-    if (keys.includes('Object')) return this.context; // Block window
+    if (keys.includes('Object')) return context; // Block window
     if (keys.includes('clear') && keys.includes('get') && keys.includes('set') && keys.includes('remove') && !keys.includes('mergeDeep')) return {}; // Block localStorage
 
     const hasFlags = keys.some(x => typeof x === 'string' && Object.values(permissions).flat().some(y => x === y.split('@')[0])); // has any keys in it
     return hasFlags ? new Proxy(mod, { // make proxy only if potential
       get: (target, prop, reciever) => {
-        const givenPermissions = JSON.parse(topaz.storage.get('permissions') ?? '{}')[this.entityID] ?? {};
+        const givenPermissions = JSON.parse(topaz.storage.get('permissions') ?? '{}')[entityID] ?? {};
         const complexPerms = complexMap.filter(x => x[1] === prop);
 
         if (complexPerms.length !== 0) {
