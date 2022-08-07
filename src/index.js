@@ -550,7 +550,7 @@ const resolveFileFromTree = async (path) => {
 
         console.log('PACKAGE', package.main);
 
-        res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/' + package.main))?.path;
+        res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/' + package.main.toLowerCase()))?.path;
       }
     }
   } else res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
