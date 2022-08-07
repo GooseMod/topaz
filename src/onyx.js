@@ -219,7 +219,7 @@ const permissionsModal = async (manifest, neededPerms) => {
 };
 
 const iframeGlobals = [ 'performance', ];
-const passGlobals = [ 'topaz', 'goosemod', 'fetch', 'document', '_', 'TextEncoder', 'TextDecoder', 'addEventListener', 'removeEventListener', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'Node', 'Element', 'MutationEvent', 'MutationRecord', 'addEventListener', 'removeEventListener', 'URL', 'setImmediate', 'NodeList', 'getComputedStyle', 'XMLHttpRequest', 'ArrayBuffer', 'Response', 'IntersectionObserver', 'WebAssembly' ];
+const passGlobals = [ 'topaz', 'goosemod', 'fetch', 'document', '_', 'TextEncoder', 'TextDecoder', 'addEventListener', 'removeEventListener', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'Node', 'Element', 'MutationEvent', 'MutationRecord', 'IntersectionObserverEntry', 'addEventListener', 'removeEventListener', 'URL', 'setImmediate', 'NodeList', 'getComputedStyle', 'XMLHttpRequest', 'ArrayBuffer', 'Response' ];
 
 // did you know: using innerHTML is ~2.5x faster than appendChild for some reason (~40ms -> ~15ms), so we setup a parent just for making our iframes via this trick
 const containerParent = document.createElement('div');
@@ -268,17 +268,20 @@ const Onyx = function (entityID, manifest, transformRoot) {
     context[k] = typeof orig === 'function' && k !== '_' && k !== 'NodeList' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
   }
 
-  context.MutationObserver = function(callback) { // janky wrapper because Chromium breaks with disconnected iframe
-    const obs = new window.MutationObserver((mutations) => {
-      callback(mutations);
-    });
+  const observers = [ 'MutationObserver', 'IntersectionObserver' ];
+  for (const k of observers) { // janky wrappers because Chromium breaks with disconnected iframe
+    context[k] = function(callback) {
+      const obs = new window[k]((mutations) => {
+        callback(mutations);
+      });
 
-    this.observe = obs.observe.bind(obs);
-    this.disconnect = obs.disconnect.bind(obs);
-    this.takeRecords = obs.takeRecords.bind(obs);
+      this.observe = obs.observe.bind(obs);
+      this.disconnect = obs.disconnect.bind(obs);
+      this.takeRecords = obs.takeRecords.bind(obs);
 
-    return this;
-  };
+      return this;
+    };
+  }
 
   context.DiscordNative = { // basic polyfill
     crashReporter: {
