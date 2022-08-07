@@ -7803,7 +7803,7 @@ class Settings extends React.PureComponent {
 
         ReactDOM.render(React.createElement(FilterPopout), popout);
 
-        const checkClick = e => {
+        /* const checkClick = e => {
           el.focus();
           if (e.path.some(x => x.id === 'topaz-repo-filtering')) return;
 
@@ -7816,7 +7816,7 @@ class Settings extends React.PureComponent {
           document.removeEventListener('click', checkClick);
         };
 
-        setTimeout(() => document.addEventListener('click', checkClick), 100);
+        setTimeout(() => document.addEventListener('click', checkClick), 100); */
       };
 
       const removeFilterPopout = () => {
@@ -7851,7 +7851,8 @@ class Settings extends React.PureComponent {
 
 
       if (!el.placeholder) {
-        el.placeholder = 'GitHub repo / URL';
+        const placeholder = 'GitHub repo / URL';
+        el.placeholder = placeholder;
 
         el.onkeydown = async (e) => {
           if (e.keyCode !== 13) return;
@@ -7863,18 +7864,17 @@ class Settings extends React.PureComponent {
           install(info);
         };
 
-        el.onfocus = () => textInputHandler(el.value ?? '');
+        el.onfocus = () => {
+          textInputHandler(el.value ?? '');
 
-        el.onblur = (e) => {
-          console.log('blur', e, window.event);
+          document.onclick = e => {
+            if (e.target.placeholder !== placeholder && !e.path.some(x => x.id === 'topaz-repo-autocomplete') && !e.path.some(x => x.id === 'topaz-repo-filtering')) setTimeout(() => {
+              removeFilterPopout();
+              document.querySelector('#topaz-repo-autocomplete').style.display = 'none';
 
-          const checkIfInFilterPopout = el => el && (el.id === 'topaz-repo-filtering' || checkIfInFilterPopout(el.parentElement));
-          if (e.relatedTarget?.ariaLabel === 'Filter' || checkIfInFilterPopout(e.relatedTarget)) return; // Filter button clicked, ignore
-
-          setTimeout(() => {
-            removeFilterPopout();
-            autocomplete.style.display = 'none';
-          }, 100);
+              document.onclick = null;
+            }, 10);
+          };
         };
       }
 
