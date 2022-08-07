@@ -20,6 +20,8 @@ const encode = (x) => { // base64 vlq
 };
 
 const makeMap = (output, root, name) => {
+  if (topaz.debug) return '';
+
   const startTime = performance.now();
 
   const sources = [];

@@ -3,7 +3,7 @@ const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) => {
   acc[x] = sub.__sentry_original__ ?? sub;
   return acc;
 }, {});
-const makeSourceURL = (name) => `${name} | Topaz`.replace(/ /g, '%20');
+const makeSourceURL = (name) => topaz.debug ? ('Onyx' + Math.random().toString().slice(2)) : `${name} | Topaz`.replace(/ /g, '%20');
 const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
 // discord's toast for simplicity
