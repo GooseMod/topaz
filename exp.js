@@ -25,6 +25,8 @@ const log = (_region, ...args) => {
   );
 };
 
+if (console.context) window.console = console.context(); // Resets console to normal, removing custom methods patched by various things (Sentry, React DevTools) as it's annoying for stack traces
+
 if (window.topaz && topaz.purge) { // live reload handling
   topaz.__reloading = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
@@ -790,7 +792,7 @@ const Onyx = eval(`const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) 
   acc[x] = sub.__sentry_original__ ?? sub;
   return acc;
 }, {});
-const makeSourceURL = (name) => \`\${name} | Topaz\`.replace(/ /g, '%20');
+const makeSourceURL = (name) => topaz.debug ? ('Onyx' + Math.random().toString().slice(2)) : \`\${name} | Topaz\`.replace(/ /g, '%20');
 const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
 // discord's toast for simplicity
@@ -1006,7 +1008,7 @@ const permissionsModal = async (manifest, neededPerms) => {
 };
 
 const iframeGlobals = [ 'performance', ];
-const passGlobals = [ 'topaz', 'goosemod', 'fetch', 'document', '_', 'TextEncoder', 'TextDecoder', 'addEventListener', 'removeEventListener', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'Node', 'Element', 'MutationEvent', 'MutationRecord', 'IntersectionObserverEntry', 'addEventListener', 'removeEventListener', 'URL', 'setImmediate', 'NodeList', 'getComputedStyle', 'XMLHttpRequest', 'ArrayBuffer', 'Response', 'WebAssembly' ];
+const passGlobals = [ 'topaz', 'goosemod', 'fetch', 'document', '_', 'TextEncoder', 'TextDecoder', 'addEventListener', 'removeEventListener', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'Node', 'Element', 'MutationEvent', 'MutationRecord', 'IntersectionObserverEntry', 'addEventListener', 'removeEventListener', 'URL', 'setImmediate', 'NodeList', 'getComputedStyle', 'XMLHttpRequest', 'ArrayBuffer', 'Response' ];
 
 // did you know: using innerHTML is ~2.5x faster than appendChild for some reason (~40ms -> ~15ms), so we setup a parent just for making our iframes via this trick
 const containerParent = document.createElement('div');
@@ -1278,7 +1280,8 @@ const encode = (x) => { // base64 vlq
 };
 
 const makeMap = (output, root, name) => {
-  return '';
+  if (topaz.debug) return '';
+
   const startTime = performance.now();
 
   const sources = [];
@@ -5970,7 +5973,7 @@ const topazSettings = JSON.parse(Storage.get('settings') ?? 'null') ?? {
   modalPages: false
 };
 
-const savePlugins = () => !topaz.__reloading && Storage.set('plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = {}; return acc; }, {})));
+const savePlugins = () => !topaz.__reloading && Storage.set('plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
 
 const setDisabled = (key, disabled) => {
   const store = JSON.parse(Storage.get('disabled') ?? '{}');
@@ -7806,21 +7809,6 @@ class Settings extends React.PureComponent {
         }
 
         ReactDOM.render(React.createElement(FilterPopout), popout);
-
-        /* const checkClick = e => {
-          el.focus();
-          if (e.path.some(x => x.id === 'topaz-repo-filtering')) return;
-
-          removeFilterPopout();
-          if (!e.path.some(x => x.id === 'topaz-repo-autocomplete')) {
-            autocomplete.style.display = 'none';
-            el.blur();
-          }
-
-          document.removeEventListener('click', checkClick);
-        };
-
-        setTimeout(() => document.addEventListener('click', checkClick), 100); */
       };
 
       const removeFilterPopout = () => {
@@ -7933,7 +7921,6 @@ class Settings extends React.PureComponent {
             return React.createElement('div', {
               className: 'title-2dsDLn',
               onClick: () => {
-                console.log('click', recom[x]);
                 autocomplete.style.display = 'none';
                 el.value = '';
                 install(recom[x]);
@@ -8384,6 +8371,8 @@ Enter any link/GH repo to install a plugin/theme\`);
           break;
 
         case 'debug':
+          topaz.debug = !topaz.debug;
+          echo(\`Debug <b>\${topaz.debug ? 'ON' : 'OFF'}</b> for this session\`);
           break;
 
         case 'help':
