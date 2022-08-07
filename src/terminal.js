@@ -183,7 +183,17 @@ ${spacedColumns(plugins)}`);
         case 'cache':
           switch (info) {
             case 'status':
-              echo(`<b><u>Fetch</u></b>\nEntries: <b>${topaz.internal.fetchCache.keys().length}</b>\n\n<b><u>Final</u></b>\nEntries: <b>${topaz.internal.finalCache.keys().length}</b>`);
+              const cacheStatus = (cache) => spacedColumns([
+                [ 'Entries', cache.keys().length ],
+                [ 'Size', (new Blob([ Object.values(cache.store).join('') ]).size / 1024).toFixed(2) + 'KB']
+              ]);
+
+              echo(`<b><u>Fetch</u></b>
+${cacheStatus(topaz.internal.fetchCache)}
+
+
+<b><u>Final</u></b>
+${cacheStatus(topaz.internal.finalCache)}`);
               break;
 
             case 'purge':
