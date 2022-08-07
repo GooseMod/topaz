@@ -1836,7 +1836,7 @@ class Plugin extends React.PureComponent {
             const plugin = plugins[entityID];
             const getUrl = file => plugin.__root + '/' + file;
 
-            const files = fetchCache.keys().filter(x => x.includes(entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {});
+            const files = fetchCache.keys().filter(x => !x.includes('api.github.com') && x.includes(entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {});
 
             openSub(manifest.name, 'editor', React.createElement(await Editor.Component, {
               files,
