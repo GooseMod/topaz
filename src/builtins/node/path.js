@@ -14,4 +14,6 @@ const resolve = (x) => {
 module.exports = {
   join: (...parts) => resolve(parts.join('/')),
   resolve: (...parts) => resolve(parts.join('/')), // todo: implement resolve properly (root / overwrite)
+
+  isAbsolute: p => p.startsWith('/') || !!p.match(/^[A-Z]:\\/)
 };
