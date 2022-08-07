@@ -51,14 +51,16 @@ module.exports = {
     const useLayoutEffect = current.useLayoutEffect;
     const useRef = current.useRef;
     const useCallback = current.useCallback;
+    const useContext = current.useContext;
 
     current.useMemo = method => method();
     current.useState = val => [ val, () => null ];
     current.useReducer = val => [ val, () => null ];
-    current.useEffect = () => null;
-    current.useLayoutEffect = () => null;
-    current.useRef = () => ({});
+    current.useEffect = () => {};
+    current.useLayoutEffect = () => {};
+    current.useRef = () => ({ current: null });
     current.useCallback = cb => cb;
+    current.useContext = ctx => ctx._currentValue;
 
     const res = method(...args);
 
@@ -69,6 +71,7 @@ module.exports = {
     current.useLayoutEffect = useLayoutEffect;
     current.useRef = useRef;
     current.useCallback = useCallback;
+    current.useContext = useContext;
 
     return res;
   },
