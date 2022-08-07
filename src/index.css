@@ -801,18 +801,20 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 
 .topaz-terminal > :first-child > :last-child {
   cursor: pointer;
-  font-size: 28px;
+  font-size: 24px;
   float: right;
   height: 0;
-  margin-top: -4px;
+  margin-top: -2px;
 }
 
 .topaz-terminal > :last-child {
-  padding: 8px;
+  padding: 6px;
   font-size: 14px;
   color: var(--text-normal);
   font-family: var(--font-code);
   white-space: pre-wrap;
+  word-break: break-all;
   flex-grow: 1;
   overflow: auto;
+  padding-right: 0;
 }
