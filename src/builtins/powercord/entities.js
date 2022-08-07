@@ -17,6 +17,10 @@ class Plugin {
     console.error(this.entityID, ...args);
   }
 
+  warn(...args) {
+    console.warn(this.entityID, ...args);
+  }
+
   log(...args) {
     console.log(this.entityID, ...args);
   }
