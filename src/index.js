@@ -1046,9 +1046,6 @@ const install = async (info, settings = undefined, disabled = false) => {
         break;
 
       case 'un':
-        if (settings) plugin.settings.store = settings;
-        plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
-
         if (plugin.getSettingsPanel) plugin.__settings = {
           render: plugin.getSettingsPanel(),
           props: {
