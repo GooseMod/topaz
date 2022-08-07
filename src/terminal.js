@@ -122,8 +122,7 @@ Enter any link/GH repo to install a plugin/theme`);
         case 'uninstall':
           if (info === 'all') {
             echo(`Uninstalling all...`, false);
-            topaz.uninstallAll();
-            echo('Uninstalled all');
+            topaz.uninstallAll().then(() => echo('Uninstalled all'));
             break;
           }
 
@@ -133,8 +132,7 @@ Enter any link/GH repo to install a plugin/theme`);
           }
 
           echo(`Uninstalling <b>${info}</b>...`, false);
-          topaz.uninstall(info);
-          echo(`Uninstalled <b>${info}</b>`);
+          topaz.uninstall(info).then(() => echo(`Uninstalled <b>${info}</b>`));
           break;
 
         case 'reinstall':
@@ -144,8 +142,7 @@ Enter any link/GH repo to install a plugin/theme`);
           }
 
           echo(`Reinstalling <b>${info}</b>...`, false);
-          topaz.reload(info);
-          echo(`Reinstalled <b>${info}</b>`);
+          topaz.reload(info).then(() => echo(`Reinstalled <b>${info}</b>`));
           break;
 
         case 'enable':
@@ -226,8 +223,7 @@ ${spacedColumns(plugins)}`);
         default:
           if (cmd.includes('/')) { // install
             echo(`Installing <b>${cmd}</b>...`, false);
-            topaz.install(cmd);
-            echo(`Installed <b>${cmd}</b>`);
+            topaz.install(cmd).then(() => echo(`Installed <b>${cmd}</b>`));
           } else { // unknown
             echo(`Unknown command <b>${cmd}</b>, use <b>help</b> to view available commands`);
           }
