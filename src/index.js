@@ -399,6 +399,8 @@ const makeChunk = async (root, p) => {
     };`;
   }
 
+  code = await replaceAsync(code, /require\.resolve\(['"`](.*?)['"`]\)/g, async (_, toRes) => '`' + await resolveFileFromTree(toRes) + '`');
+
   const chunk = `// ${finalPath}
 let ${id} = {};
 (() => {
