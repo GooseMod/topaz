@@ -790,7 +790,7 @@ const Onyx = eval(`const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) 
   acc[x] = sub.__sentry_original__ ?? sub;
   return acc;
 }, {});
-const makeSourceURL = (name) => Math.random().toString().slice(2); // \`\${name} | Topaz\`.replace(/ /g, '%20');
+const makeSourceURL = (name) => \`\${name} | Topaz\`.replace(/ /g, '%20');
 const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
 // discord's toast for simplicity
@@ -2241,6 +2241,10 @@ const builtins = {
     console.error(this.entityID, ...args);
   }
 
+  warn(...args) {
+    console.warn(this.entityID, ...args);
+  }
+
   log(...args) {
     console.log(this.entityID, ...args);
   }
@@ -2371,14 +2375,16 @@ module.exports = {
     const useLayoutEffect = current.useLayoutEffect;
     const useRef = current.useRef;
     const useCallback = current.useCallback;
+    const useContext = current.useContext;
 
     current.useMemo = method => method();
     current.useState = val => [ val, () => null ];
     current.useReducer = val => [ val, () => null ];
-    current.useEffect = () => null;
-    current.useLayoutEffect = () => null;
-    current.useRef = () => ({});
+    current.useEffect = () => {};
+    current.useLayoutEffect = () => {};
+    current.useRef = () => ({ current: null });
     current.useCallback = cb => cb;
+    current.useContext = ctx => ctx._currentValue;
 
     const res = method(...args);
 
@@ -2389,6 +2395,7 @@ module.exports = {
     current.useLayoutEffect = useLayoutEffect;
     current.useRef = useRef;
     current.useCallback = useCallback;
+    current.useContext = useContext;
 
     return res;
   },
@@ -5755,9 +5762,6 @@ const install = async (info, settings = undefined, disabled = false) => {
         break;
 
       case 'un':
-        if (settings) plugin.settings.store = settings;
-        plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
-
         if (plugin.getSettingsPanel) plugin.__settings = {
           render: plugin.getSettingsPanel(),
           props: {
@@ -5966,7 +5970,7 @@ const topazSettings = JSON.parse(Storage.get('settings') ?? 'null') ?? {
   modalPages: false
 };
 
-const savePlugins = () => !topaz.__reloading && Storage.set('plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = plugins[x].settings?.store ?? {}; return acc; }, {})));
+const savePlugins = () => !topaz.__reloading && Storage.set('plugins', JSON.stringify(Object.keys(plugins).reduce((acc, x) => { acc[x] = {}; return acc; }, {})));
 
 const setDisabled = (key, disabled) => {
   const store = JSON.parse(Storage.get('disabled') ?? '{}');
