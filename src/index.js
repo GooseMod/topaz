@@ -199,6 +199,72 @@ const builtins = {
     });
   },
 
+  get 'betterdiscord/libs/bdfdb'() {
+    return new Promise(async res => {
+      const out = (await fetchCache.fetch('https://raw.githubusercontent.com/mwittrien/BetterDiscordAddons/master/Library/0BDFDB.plugin.js'))
+        .replace('BDFDB.PluginUtils.hasUpdateCheck = function (url) {', 'BDFDB.PluginUtils.hasUpdateCheck = function (url) { return false;') // disable updates
+        .replace('BDFDB.PluginUtils.checkUpdate = function (pluginName, url) {', 'BDFDB.PluginUtils.checkUpdate = function (pluginName, url) { return Promise.resolve(0);')
+        .replace('BDFDB.PluginUtils.showUpdateNotice = function (pluginName, url) {', 'BDFDB.PluginUtils.showUpdateNotice = function (pluginName, url) { return;')
+        .replace('let all = typeof config.all != "boolean" ? false : config.all;', `let all = typeof config.all != "boolean" ? false : config.all;
+let out = goosemod.webpackModules[all ? 'findAll' : 'find'](m => filter(m) || (m.type && filter(m.type)));
+if (out) out = filter(out) ?? out;
+return out;`) // use our own webpack
+        .replace('Internal.getWebModuleReq = function () {', 'Internal.getWebModuleReq = function () { return Internal.getWebModuleReq.req = () => {};')
+        .replace('this && this !== window', 'this && !this.performance')
+        .replace('const chunkName = "webpackChunkdiscord_app";', `
+const moduleHandler = (exports) => {
+  const removedTypes = [];
+  for (const type in PluginStores.chunkObserver) {
+    const foundModule = PluginStores.chunkObserver[type].filter(exports) || exports.default && PluginStores.chunkObserver[type].filter(exports.default);
+    if (foundModule) {
+      Internal.patchComponent(PluginStores.chunkObserver[type].query, PluginStores.chunkObserver[type].config.exported ? foundModule : exports, PluginStores.chunkObserver[type].config);
+      removedTypes.push(type);
+      break;
+    }
+  }
+  while (removedTypes.length) delete PluginStores.chunkObserver[removedTypes.pop()];
+  let found = false, funcString = exports && exports.default && typeof exports.default == "function" && exports.default.toString();
+  if (funcString && funcString.indexOf(".page") > -1 && funcString.indexOf(".section") > -1 && funcString.indexOf(".objectType") > -1) {
+    const returnValue = exports.default({});
+    if (returnValue && returnValue.props && returnValue.props.object == BDFDB.DiscordConstants.AnalyticsObjects.CONTEXT_MENU) {
+      for (const type in PluginStores.contextChunkObserver) {
+        if (PluginStores.contextChunkObserver[type].filter(returnValue.props.children)) {
+          exports.__BDFDB_ContextMenuWrapper_Patch_Name = exports.__BDFDB_ContextMenu_Patch_Name;
+          found = true;
+          if (PluginStores.contextChunkObserver[type].modules.indexOf(exports) == -1) PluginStores.contextChunkObserver[type].modules.push(exports);
+          for (const plugin of PluginStores.contextChunkObserver[type].query) Internal.patchContextMenu(plugin, type, exports);
+          break;
+        }
+      }
+    }
+  }
+  if (!found) for (const type in PluginStores.contextChunkObserver) {
+    if (PluginStores.contextChunkObserver[type].filter(exports)) {
+      if (PluginStores.contextChunkObserver[type].modules.indexOf(exports) == -1) PluginStores.contextChunkObserver[type].modules.push(exports);
+      for (const plugin of PluginStores.contextChunkObserver[type].query) Internal.patchContextMenu(plugin, type, exports);
+      break;
+    }
+  }
+};
+
+const int = setInterval(() => {
+  // for (const m of goosemod.webpackModules.all()) { if (m) moduleHandler(m); }
+}, 5000);
+
+for (const m of goosemod.webpackModules.all()) { if (m) moduleHandler(m); }
+
+Internal.removeChunkObserver = () => clearInterval(int);
+return;`)
+        .replace(/\}\)\(\);\n$/, `})();
+(new module.exports()).load();`); // make and load it
+
+      delete builtins['betterdiscord/libs/bdfdb']; // overwrite getter with output
+      builtins['betterdiscord/libs/bdfdb'] = out;
+
+      res(out);
+    });
+  },
+
   'drdiscord/global': await getBuiltin('drdiscord/global'),
 
   'velocity/global': await getBuiltin('velocity/global'),
@@ -1217,7 +1283,9 @@ const transform = async (path, code, mod) => {
 
   let indexCode = await includeRequires(path, code);
 
-  const subGlobal = ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : ''); // do above so added to chunks
+  // do above so added to chunks
+  const subGlobal = ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '')
+    + (code.includes('BDFDB_Global') ? await mapifyBuiltin('betterdiscord/libs/bdfdb') : '');
 
   let out = await mapifyBuiltin(fullMod(mod) + '/global') +
   Object.values(chunks).join('\n\n') + '\n\n' +
