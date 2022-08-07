@@ -23,8 +23,8 @@ const permissions = {
   // friends_check_blocked: [ 'isBlocked' ],
   status_readstatus: [ 'getStatus', 'isMobileOnline' ],
   status_readactivities: [ 'findActivity', 'getActivities', 'getActivityMetadata', 'getAllApplicationActivities', 'getApplicationActivity', 'getPrimaryActivity' ],
-  clipboard_write: [],
-  clipboard_read: [ 'copy', 'writeText' ]
+  clipboard_read: [],
+  clipboard_write: [ 'copy', 'writeText' ]
 };
 
 const complexMap = Object.keys(permissions).reduce((acc, x) => acc.concat(permissions[x].filter(y => y.includes('@')).map(y => [ x, ...y.split('@') ])), []);
