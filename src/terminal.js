@@ -65,6 +65,13 @@ const openTerminal = (e) => {
     if (atEnd) out.scrollTop = 999999;
   };
 
+  const spacedColumns = (cols) => {
+    let longest = 0;
+    for (const x of cols) if (x[0]?.length > longest) longest = x[0].length;
+
+    return cols.map(x => x[0] ? `<b>${x[0]}</b>${' '.repeat((longest - x[0].length) + 6)}${x[1]}` : '').join('\n');
+  };
+
   const help = () => {
     const commands = [
       [ 'uninstall [link|all]', 'Uninstalls given plugin/theme or all' ],
@@ -83,10 +90,10 @@ const openTerminal = (e) => {
       [ 'exit', 'Exits terminal' ]
     ];
 
-    let longestCommand = 0;
-    for (const x of commands) if (x[0]?.length > longestCommand) longestCommand = x[0].length;
+    echo(`<b><u>Commands</u></b>
+${spacedColumns(commands)}
 
-    echo('<b><u>Commands</u></b>\n' + commands.map(x => x[0] ? `<b>${x[0]}</b>${' '.repeat((longestCommand - x[0].length) + 6)}${x[1]}` : '').join('\n') + `\n\nEnter any link/GH repo to install a plugin/theme`);
+Enter any link/GH repo to install a plugin/theme`);
   };
 
   if (!alreadyOpen) help();
@@ -164,10 +171,16 @@ const openTerminal = (e) => {
         case 'installed':
           const modules = Object.values(topaz.internal.plugins);
 
-          const plugins = modules.filter(x => !x.__theme).map(x => x.manifest.name);
-          const themes = modules.filter(x => x.__theme).map(x => x.manifest.name);
+          const niceEntity = x => x.replace('https://raw.githubusercontent.com/', '').replace('/master/', ' > ').replace('/HEAD/', ' > ');
 
-          echo(`<b><u>${themes.length} Theme${themes.length === 1 ? '' : 's'}</u></b>\n${themes.join('\n')}\n\n<b><u>${plugins.length} Plugin${plugins.length === 1 ? '' : 's'}</u></b>\n${plugins.join('\n')}`);
+          const plugins = modules.filter(x => !x.__theme).map(x => [ x.manifest.name, niceEntity(x.__entityID) ]);
+          const themes = modules.filter(x => x.__theme).map(x => [ x.manifest.name, niceEntity(x.__entityID) ]);
+
+          echo(`<b><u>${themes.length} Theme${themes.length === 1 ? '' : 's'}</u></b>
+${spacedColumns(themes)}
+
+<b><u>${plugins.length} Plugin${plugins.length === 1 ? '' : 's'}</u></b>
+${spacedColumns(plugins)}`);
           break;
 
         case 'cache':
