@@ -403,15 +403,22 @@ const makeChunk = async (root, p) => {
 let ${id} = {};
 (() => {
 const __dirname = '${getDir(finalPath)}';
+let module = {
+  exports: {}
+};
+let { exports } = module;
+
 // MAP_START|${finalPath}
 ` + code
-      .replace('module.exports =', `${id} =`)
-      .replace('export default', `${id} =`)
-      .replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`)
-      .replaceAll(/export const (.*?)=/g, (_, key) => `const ${key}= ${id}.${key}=`)
-      .replaceAll(/export function (.*?)\(/g, (_, key) => `const ${key} = ${id}.${key} = function ${key}(`)
-      .replaceAll(/export class ([^ ]*)/g, (_, key) => `const ${key} = ${id}.${key} = class ${key}`) +
-`\n})(); // MAP_END`;
+      // .replace(/module\.exports ?=/, `${id} =`)
+      .replace('export default', `module.exports =`)
+      // .replaceAll(/(module\.)?exports\.(.*?)/g, (_, _mod, key) => `${id}.${key}`)
+      .replaceAll(/export const (.*?)=/g, (_, key) => `const ${key} = exports.${key}=`)
+      .replaceAll(/export function (.*?)\(/g, (_, key) => `const ${key} = exports.${key} = function ${key}(`)
+      .replaceAll(/export class ([^ ]*)/g, (_, key) => `const ${key} = exports.${key} = class ${key}`) +
+`\n// MAP_END
+${id} = module.exports;
+})();`;
 
   if (shouldUpdateFetch) {
     fetchProgressCurrent++;
