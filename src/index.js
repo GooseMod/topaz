@@ -555,6 +555,19 @@ const resolveFileFromTree = async (path) => {
     }
   } else res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
 
+  const lastPart = path.split('/').pop();
+  if (!res && tree.find(x => x.type === 'tree' && x.path.toLowerCase().startsWith('node_modules/' + lastPart))) {
+    const depRoot = `node_modules/${lastPart}`;
+    const packagePath = depRoot + '/package.json';
+
+    const package = JSON.parse(await getCode(transformRoot, './' + packagePath));
+
+    if (package.main.startsWith('/')) package.main = package.main.slice(1);
+    if (package.main.startsWith('./')) package.main = package.main.slice(2);
+
+    res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(depRoot.toLowerCase() + '/' + package.main.toLowerCase()))?.path;
+  }
+
   if (!builtins[path] && (path.startsWith('powercord/') || path.startsWith('@'))) {
     console.warn('Missing builtin', path);
     lastError = `Missing builtin: ${path}`;
