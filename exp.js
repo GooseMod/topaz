@@ -76,13 +76,6 @@ const store = await new Promise(res => {
 
     const store = {};
 
-    topaz.log('storage', 'trying to port local storage -> idb');
-    for (const key of Object.keys(localStorage).filter(x => x.startsWith('topaz_'))) {
-      console.log(key);
-      store[key.slice('topaz_'.length)] = localStorage.getItem(key);
-      localStorage.removeItem(key);
-    }
-
     objectStore.add(store, 'store');
 
     topaz.log('storage', 'inited db', store);
@@ -797,7 +790,7 @@ const Onyx = eval(`const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) 
   acc[x] = sub.__sentry_original__ ?? sub;
   return acc;
 }, {});
-const makeSourceURL = (name) => \`\${name} | Topaz\`.replace(/ /g, '%20');
+const makeSourceURL = (name) => Math.random().toString().slice(2); // \`\${name} | Topaz\`.replace(/ /g, '%20');
 const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
 // discord's toast for simplicity
@@ -817,8 +810,8 @@ const permissions = {
   // friends_check_blocked: [ 'isBlocked' ],
   status_readstatus: [ 'getStatus', 'isMobileOnline' ],
   status_readactivities: [ 'findActivity', 'getActivities', 'getActivityMetadata', 'getAllApplicationActivities', 'getApplicationActivity', 'getPrimaryActivity' ],
-  clipboard_write: [],
-  clipboard_read: [ 'copy', 'writeText' ]
+  clipboard_read: [],
+  clipboard_write: [ 'copy', 'writeText' ]
 };
 
 const complexMap = Object.keys(permissions).reduce((acc, x) => acc.concat(permissions[x].filter(y => y.includes('@')).map(y => [ x, ...y.split('@') ])), []);
@@ -1013,7 +1006,7 @@ const permissionsModal = async (manifest, neededPerms) => {
 };
 
 const iframeGlobals = [ 'performance', ];
-const passGlobals = [ 'topaz', 'goosemod', 'fetch', 'document', '_', 'TextEncoder', 'TextDecoder', 'addEventListener', 'removeEventListener', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'Node', 'Element', 'MutationEvent', 'MutationRecord', 'addEventListener', 'removeEventListener', 'URL', 'setImmediate', 'NodeList', 'getComputedStyle' ];
+const passGlobals = [ 'topaz', 'goosemod', 'fetch', 'document', '_', 'TextEncoder', 'TextDecoder', 'addEventListener', 'removeEventListener', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'Node', 'Element', 'MutationEvent', 'MutationRecord', 'IntersectionObserverEntry', 'addEventListener', 'removeEventListener', 'URL', 'setImmediate', 'NodeList', 'getComputedStyle', 'XMLHttpRequest', 'ArrayBuffer', 'Response', 'WebAssembly' ];
 
 // did you know: using innerHTML is ~2.5x faster than appendChild for some reason (~40ms -> ~15ms), so we setup a parent just for making our iframes via this trick
 const containerParent = document.createElement('div');
@@ -1062,17 +1055,20 @@ const Onyx = function (entityID, manifest, transformRoot) {
     context[k] = typeof orig === 'function' && k !== '_' && k !== 'NodeList' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
   }
 
-  context.MutationObserver = function(callback) { // janky wrapper because Chromium breaks with disconnected iframe
-    const obs = new window.MutationObserver((mutations) => {
-      callback(mutations);
-    });
+  const observers = [ 'MutationObserver', 'IntersectionObserver' ];
+  for (const k of observers) { // janky wrappers because Chromium breaks with disconnected iframe
+    context[k] = function(callback) {
+      const obs = new window[k]((mutations) => {
+        callback(mutations);
+      });
 
-    this.observe = obs.observe.bind(obs);
-    this.disconnect = obs.disconnect.bind(obs);
-    this.takeRecords = obs.takeRecords.bind(obs);
+      this.observe = obs.observe.bind(obs);
+      this.disconnect = obs.disconnect.bind(obs);
+      this.takeRecords = obs.takeRecords.bind(obs);
 
-    return this;
-  };
+      return this;
+    };
+  }
 
   context.DiscordNative = { // basic polyfill
     crashReporter: {
@@ -4674,35 +4670,104 @@ demon = {
   'path': `const resolve = (x) => {
   let ind;
   if (x.startsWith('./')) x = x.substring(2);
-  x = x.replaceAll('./', '/').replaceAll('//', '/'); // example/./test -> example/test
+  x = x.replaceAll('/./', '/').replaceAll('//', '/'); // example/./test -> example/test
 
-  while (ind = x.indexOf('../') !== -1) x = x.slice(0, ind) + x.slice(ind + 3); // example/test/../sub -> example/sub
+  while ((ind = x.indexOf('../')) !== -1) {
+      const priorSlash = x.lastIndexOf('/', ind - 4);
+      x = x.slice(0, priorSlash === -1 ? 0 : (priorSlash + 1)) + x.slice(ind + 3); // example/test/../sub -> example/sub
+  }
 
   return x;
 };
 
 module.exports = {
   join: (...parts) => resolve(parts.join('/')),
-  resolve: (...parts) => resolve(parts.join('/')) // todo: implement resolve properly (root / overwrite)
+  resolve: (...parts) => resolve(parts.join('/')), // todo: implement resolve properly (root / overwrite)
+
+  isAbsolute: p => p.startsWith('/') || !!p.match(/^[A-Z]:\\\\/)
 };`,
-  'fs': `module.exports = {
-  readdirSync: path => [],
+  'fs': `const strToBuf = str => {
+  const buf = new ArrayBuffer(str.length);
+  const bufView = new Uint8Array(buf);
+
+  for (let i = 0; i < str.length; i++) {
+    bufView[i] = str.charCodeAt(i);
+  }
+
+  return buf;
+};
+
+const syncRequest = (url, useBuffer) => {
+  let resp = topaz.internal.fetchCache.get(url);
+
+  if (!resp) {
+    const request = new XMLHttpRequest();
+    request.open('GET', url, false);
+    if (useBuffer) request.overrideMimeType('text\\/plain; charset=x-user-defined');
+    request.send(null);
+
+    if (request.status !== 200) return;
+
+    resp = request.responseText;
+    topaz.internal.fetchCache.set(url, resp);
+  }
+
+  return resp;
+};
+
+module.exports = {
+  readdirSync: path => {
+    const isRepo = __entityID.split('/').length === 2;
+
+    topaz.log('fs.readdirSync', path);
+
+    if (isRepo) {
+      const url = \`https://api.github.com/repos/\${__entityID}/contents/\${path}\`;
+
+      const resp = syncRequest(url, false);
+
+      if (!resp) return [];
+
+      return JSON.parse(resp).map(x => x.name);
+    }
+
+    return [];
+  },
   writeFile: (path, data, cb) => {},
 
   readFileSync: (path, encoding) => {
     const isRepo = __entityID.split('/').length === 2;
 
+    topaz.log('fs.readFileSync', path, encoding);
+
     if (isRepo) {
       const url = \`https://raw.githubusercontent.com/\${__entityID}/HEAD/\${path}\`;
-      console.log('fs read', url);
+      const useBuffer = encoding == null;
 
-      /* const request = new XMLHttpRequest();
-      request.open('GET', url, false);
-      request.send(null);
+      const resp = syncRequest(url, useBuffer);
 
-      if (request.status === 200) {
-        console.log(request.responseText);
-      } */
+      if (useBuffer) {
+        const buffer = strToBuf(resp);
+
+        buffer.toString = function() { return new TextDecoder().decode(this); };
+        buffer.buffer = buffer;
+
+        return buffer;
+      } else return resp;
+    }
+  },
+
+  promises: {
+    readFile: async (path, encoding) => {
+      topaz.log('fs.promises.readFile', path, encoding);
+
+      const isRepo = __entityID.split('/').length === 2;
+
+      if (isRepo) {
+        const url = \`https://raw.githubusercontent.com/\${__entityID}/HEAD/\${path}\`;
+
+        return await (await fetch(url)).text();
+      }
     }
   }
 };`,
@@ -5042,19 +5107,28 @@ const makeChunk = async (root, p) => {
     };`;
   }
 
+  code = await replaceAsync(code, /require\.resolve\(['"`](.*?)['"`]\)/g, async (_, toRes) => '`' + await resolveFileFromTree(toRes) + '`');
+
   const chunk = `// ${finalPath}
 let ${id} = {};
 (() => {
 const __dirname = '${getDir(finalPath)}';
+let module = {
+  exports: {}
+};
+let { exports } = module;
+
 // MAP_START|${finalPath}
 ` + code
-      .replace('module.exports =', `${id} =`)
-      .replace('export default', `${id} =`)
-      .replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`)
-      .replaceAll(/export const (.*?)=/g, (_, key) => `const ${key}= ${id}.${key}=`)
-      .replaceAll(/export function (.*?)\(/g, (_, key) => `const ${key} = ${id}.${key} = function ${key}(`)
-      .replaceAll(/export class ([^ ]*)/g, (_, key) => `const ${key} = ${id}.${key} = class ${key}`) +
-`\n})(); // MAP_END`;
+      // .replace(/module\.exports ?=/, `${id} =`)
+      .replace('export default', `module.exports =`)
+      // .replaceAll(/(module\.)?exports\.(.*?)/g, (_, _mod, key) => `${id}.${key}`)
+      .replaceAll(/export const (.*?)=/g, (_, key) => `const ${key} = exports.${key}=`)
+      .replaceAll(/export function (.*?)\(/g, (_, key) => `const ${key} = exports.${key} = function ${key}(`)
+      .replaceAll(/export class ([^ ]*)/g, (_, key) => `const ${key} = exports.${key} = class ${key}`) +
+`\n// MAP_END
+${id} = module.exports;
+})();`;
 
   if (shouldUpdateFetch) {
     fetchProgressCurrent++;
@@ -5193,10 +5267,23 @@ const resolveFileFromTree = async (path) => {
 
         console.log('PACKAGE', package.main);
 
-        res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/' + package.main))?.path;
+        res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/' + package.main.toLowerCase()))?.path;
       }
     }
   } else res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
+
+  const lastPart = path.split('/').pop();
+  if (!res && tree.find(x => x.type === 'tree' && x.path.toLowerCase().startsWith('node_modules/' + lastPart))) {
+    const depRoot = `node_modules/${lastPart}`;
+    const packagePath = depRoot + '/package.json';
+
+    const package = JSON.parse(await getCode(transformRoot, './' + packagePath));
+
+    if (package.main.startsWith('/')) package.main = package.main.slice(1);
+    if (package.main.startsWith('./')) package.main = package.main.slice(2);
+
+    res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(depRoot.toLowerCase() + '/' + package.main.toLowerCase()))?.path;
+  }
 
   if (!builtins[path] && (path.startsWith('powercord/') || path.startsWith('@'))) {
     console.warn('Missing builtin', path);
@@ -5205,6 +5292,7 @@ const resolveFileFromTree = async (path) => {
     console.warn('Failed to resolve', path);
     lastError = `Failed to resolve: ${path}`;
   }
+
 
   return res ? ('./' + res) : undefined;
 };
@@ -6014,6 +6102,7 @@ window.topaz = {
 
     plugins,
     fetchCache,
+    finalCache,
     builtins
   },
 
@@ -6806,11 +6895,11 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 
 .topaz-terminal {
   position: absolute;
-  width: 600px;
   background: var(--background-floating);
   box-shadow: var(--elevation-high);
   z-index: 99999;
-  height: 400px;
+  width: 700px;
+  height: 500px;
   top: 30px;
   left: 200px;
   display: flex;
@@ -6828,20 +6917,22 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 
 .topaz-terminal > :first-child > :last-child {
   cursor: pointer;
-  font-size: 28px;
+  font-size: 24px;
   float: right;
   height: 0;
-  margin-top: -4px;
+  margin-top: -2px;
 }
 
 .topaz-terminal > :last-child {
-  padding: 8px;
+  padding: 6px;
   font-size: 14px;
   color: var(--text-normal);
   font-family: var(--font-code);
   white-space: pre-wrap;
+  word-break: break-all;
   flex-grow: 1;
   overflow: auto;
+  padding-right: 0;
 }`));
 document.head.appendChild(cssEl);
 
@@ -7297,7 +7388,7 @@ class Plugin extends React.PureComponent {
             const plugin = plugins[entityID];
             const getUrl = file => plugin.__root + '/' + file;
 
-            const files = fetchCache.keys().filter(x => x.includes(entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {});
+            const files = fetchCache.keys().filter(x => !x.includes('api.github.com') && x.includes(entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {});
 
             openSub(manifest.name, 'editor', React.createElement(await Editor.Component, {
               files,
@@ -8042,8 +8133,10 @@ let settingsUnpatch = goosemod.patcher.patch(goosemod.webpackModules.findByDispl
 const Terminal = eval(`const closeTerminal = () => document.querySelector('.topaz-terminal')?.remove?.();
 
 const openTerminal = (e) => {
-  if (e) if (!e.ctrlKey || !e.altKey || e.key !== 't') return;
-  if (document.querySelector('.topaz-terminal')) return closeTerminal();
+  if (e) if (/* !e.ctrlKey || */ !e.altKey || e.key !== 't') return;
+
+  const alreadyOpen = document.querySelector('.topaz-terminal');
+  if (e && alreadyOpen) return closeTerminal();
 
   const term = document.createElement('div');
   term.className = 'topaz-terminal';
@@ -8071,11 +8164,22 @@ const openTerminal = (e) => {
 
   const storedPos = Storage.get('terminal_position');
   if (storedPos) {
-    term.style.left = storedPos[0] + 'px';
-    term.style.top = storedPos[1] + 'px';
+    term.style.left = Math.max(0, storedPos[0]) + 'px';
+    term.style.top = Math.max(0, storedPos[1]) + 'px';
+  }
+
+  let oldOut;
+  if (alreadyOpen) {
+    oldOut = document.querySelector('.topaz-terminal > :last-child');
+    out.innerHTML = oldOut.innerHTML;
   }
 
   document.body.appendChild(term);
+
+  if (oldOut) {
+    out.scrollTop = oldOut.scrollTop;
+    document.querySelectorAll('.topaz-terminal')[0].remove();
+  }
 
   const selectLast = () => {
     const sel = window.getSelection();
@@ -8084,40 +8188,49 @@ const openTerminal = (e) => {
   };
 
   const echo = (text, final = true) => {
+    const atEnd = out.scrollHeight - out.clientHeight - out.scrollTop < 50; // check before adding since too much text will scroll
+
     out.innerHTML += '<br>';
     out.innerHTML += text.replaceAll('\\n', '<br>');
 
     if (final) out.innerHTML += '<br><br>> ';
+    if (atEnd) out.scrollTop = 999999;
+  };
 
-    if (out.scrollHeight - out.clientHeight - out.scrollTop < 50) out.scrollTop = 999999;
+  const spacedColumns = (cols) => {
+    let longest = 0;
+    for (const x of cols) if (x[0]?.length > longest) longest = x[0].length;
+
+    return cols.map(x => x[0] ? \`<b>\${x[0]}</b>\${' '.repeat((longest - x[0].length) + 6)}\${x[1]}\` : '').join('\\n');
   };
 
   const help = () => {
     const commands = [
-      [ 'uninstall [link]', 'Uninstalls given plugin/theme' ],
+      [ 'uninstall [link|all]', 'Uninstalls given plugin/theme or all' ],
       [ 'reinstall [link]', 'Reinstalls given plugin/theme' ],
       [ 'enable [link]', 'Enables given plugin/theme' ],
       [ 'disable [link]', 'Disables given plugin/theme' ],
-      [],
       [ 'installed', 'Outputs installed plugins and themes' ],
+      [],
       [ 'cache [status|purge]', 'Manage Topaz\\'s cache' ],
       [ 'reload', 'Reload Topaz' ],
+      [],
+      [ 'refresh', 'Refresh Discord' ],
       [],
       [ 'clear', 'Clear terminal' ],
       [ 'help', 'Lists commands' ],
       [ 'exit', 'Exits terminal' ]
     ];
 
-    let longestCommand = 0;
-    for (const x of commands) if (x[0]?.length > longestCommand) longestCommand = x[0].length;
+    echo(\`<b><u>Commands</u></b>
+\${spacedColumns(commands)}
 
-    echo('<b><u>Commands</u></b>\\n' + commands.map(x => x[0] ? \`<b>\${x[0]}</b>\${' '.repeat((longestCommand - x[0].length) + 6)}\${x[1]}\` : '').join('\\n'));
+Enter any link/GH repo to install a plugin/theme\`);
   };
 
-  help();
+  if (!alreadyOpen) help();
 
   out.onclick = e => {
-    console.log(e);
     selectLast();
   };
 
@@ -8141,34 +8254,31 @@ const openTerminal = (e) => {
         case 'uninstall':
           if (info === 'all') {
             echo(\`Uninstalling all...\`, false);
-            topaz.uninstallAll();
-            echo('Uninstalled all');
+            topaz.uninstallAll().then(() => echo('Uninstalled all'));
             break;
           }
 
-          if (!plugins[info]) {
+          if (!topaz.internal.plugins[info]) {
             echo(\`\${info} not installed!\`);
             break;
           }
 
           echo(\`Uninstalling <b>\${info}</b>...\`, false);
-          topaz.uninstall(info);
-          echo(\`Uninstalled <b>\${info}</b>\`);
+          topaz.uninstall(info).then(() => echo(\`Uninstalled <b>\${info}</b>\`));
           break;
 
         case 'reinstall':
-          if (!plugins[info]) {
+          if (!topaz.internal.plugins[info]) {
             echo(\`\${info} not installed!\`);
             break;
           }
 
           echo(\`Reinstalling <b>\${info}</b>...\`, false);
-          topaz.reload(info);
-          echo(\`Reinstalled <b>\${info}</b>\`);
+          topaz.reload(info).then(() => echo(\`Reinstalled <b>\${info}</b>\`));
           break;
 
         case 'enable':
-          if (!plugins[info]) {
+          if (!topaz.internal.plugins[info]) {
             echo(\`\${info} not installed!\`);
             break;
           }
@@ -8178,7 +8288,7 @@ const openTerminal = (e) => {
           break;
 
         case 'disable':
-          if (!plugins[info]) {
+          if (!topaz.internal.plugins[info]) {
             echo(\`\${info} not installed!\`);
             break;
           }
@@ -8188,13 +8298,40 @@ const openTerminal = (e) => {
           break;
 
         case 'installed':
-          echo(\`\${topaz.getInstalled().map(x => \`<b>\${x}</b>\`).join('\\n')}\`);
+          const modules = Object.values(topaz.internal.plugins);
+
+          const niceEntity = x => x.replace('https://raw.githubusercontent.com/', '').replace('/master/', ' > ').replace('/HEAD/', ' > ');
+
+          const plugins = modules.filter(x => !x.__theme).map(x => [ x.manifest.name, niceEntity(x.__entityID) ]);
+          const themes = modules.filter(x => x.__theme).map(x => [ x.manifest.name, niceEntity(x.__entityID) ]);
+
+          echo(\`<b><u>\${themes.length} Theme\${themes.length === 1 ? '' : 's'}</u></b>
+\${spacedColumns(themes)}
+
+<b><u>\${plugins.length} Plugin\${plugins.length === 1 ? '' : 's'}</u></b>
+\${spacedColumns(plugins)}\`);
           break;
 
         case 'cache':
           switch (info) {
             case 'status':
-              echo(\`Fetch cache entries: \${fetchCache.keys().length}\\nFinal cache entries: \${finalCache.keys().length}\`);
+              const getKb = x => (new Blob([ Array.isArray(x) ? x.join('') : x ]).size / 1024);
+              const cacheStatus = (cache) => spacedColumns([
+                [ 'Entries', cache.keys().length ],
+                [ 'Size', getKb(Object.values(cache.store).join('')).toFixed(2) + 'KB'],
+                [],
+                ...Object.values(topaz.internal.plugins).map(x => {
+                  const [ entries, size ] = cache.keys().filter(y => y.includes(x.__entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { acc[0]++; acc[1] += getKb(fetchCache.get(x)); return acc; }, [0, 0]);
+                  return [ x.manifest.name, \`\${entries} entries, \${size.toFixed(2)}KB\` ];
+                })
+              ]);
+
+              echo(\`<b><u>Fetch</u></b>
+\${cacheStatus(topaz.internal.fetchCache)}
+
+
+<b><u>Final</u></b>
+\${cacheStatus(topaz.internal.finalCache)}\`);
               break;
 
             case 'purge':
@@ -8207,8 +8344,13 @@ const openTerminal = (e) => {
           break;
 
         case 'reload':
-          echo('Reloading Topaz...', false);
+          echo('Reloading Topaz...');
           topaz.reloadTopaz();
+          break;
+
+        case 'refresh':
+          echo('Refreshing...');
+          location.reload();
           break;
 
         case 'clear':
@@ -8229,8 +8371,7 @@ const openTerminal = (e) => {
         default:
           if (cmd.includes('/')) { // install
             echo(\`Installing <b>\${cmd}</b>...\`, false);
-            topaz.install(cmd);
-            echo(\`Installed <b>\${cmd}</b>\`);
+            topaz.install(cmd).then(() => echo(\`Installed <b>\${cmd}</b>\`));
           } else { // unknown
             echo(\`Unknown command <b>\${cmd}</b>, use <b>help</b> to view available commands\`);
           }
@@ -8275,13 +8416,11 @@ const openTerminal = (e) => {
 
 document.addEventListener('keydown', openTerminal);
 if (document.querySelector('.topaz-terminal')) {
-  closeTerminal();
   openTerminal();
 }
 
 () => { // topaz purge handler
   document.removeEventListener('keydown', openTerminal);
-  closeTerminal();
 };`);
 
 const msgModule = goosemod.webpackModules.findByProps('sendMessage');
