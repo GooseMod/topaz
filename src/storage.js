@@ -37,13 +37,6 @@ const store = await new Promise(res => {
 
     const store = {};
 
-    topaz.log('storage', 'trying to port local storage -> idb');
-    for (const key of Object.keys(localStorage).filter(x => x.startsWith('topaz_'))) {
-      console.log(key);
-      store[key.slice('topaz_'.length)] = localStorage.getItem(key);
-      localStorage.removeItem(key);
-    }
-
     objectStore.add(store, 'store');
 
     topaz.log('storage', 'inited db', store);
