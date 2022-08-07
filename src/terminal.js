@@ -245,6 +245,8 @@ ${cacheStatus(topaz.internal.finalCache)}`);
           break;
 
         case 'debug':
+          topaz.debug = !topaz.debug;
+          echo(`Debug <b>${topaz.debug ? 'ON' : 'OFF'}</b> for this session`);
           break;
 
         case 'help':
