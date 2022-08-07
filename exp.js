@@ -7866,6 +7866,8 @@ class Settings extends React.PureComponent {
         el.onfocus = () => textInputHandler(el.value ?? '');
 
         el.onblur = (e) => {
+          console.log('blur', e, window.event);
+
           const checkIfInFilterPopout = el => el && (el.id === 'topaz-repo-filtering' || checkIfInFilterPopout(el.parentElement));
           if (e.relatedTarget?.ariaLabel === 'Filter' || checkIfInFilterPopout(e.relatedTarget)) return; // Filter button clicked, ignore
 
@@ -7927,6 +7929,7 @@ class Settings extends React.PureComponent {
             return React.createElement('div', {
               className: 'title-2dsDLn',
               onClick: () => {
+                console.log('click', recom[x]);
                 autocomplete.style.display = 'none';
                 el.value = '';
                 install(recom[x]);
@@ -8314,17 +8317,32 @@ Enter any link/GH repo to install a plugin/theme\`);
 
         case 'cache':
           switch (info) {
-            case 'status':
-              const getKb = x => (new Blob([ Array.isArray(x) ? x.join('') : x ]).size / 1024);
-              const cacheStatus = (cache) => spacedColumns([
-                [ 'Entries', cache.keys().length ],
-                [ 'Size', getKb(Object.values(cache.store).join('')).toFixed(2) + 'KB'],
-                [],
-                ...Object.values(topaz.internal.plugins).map(x => {
-                  const [ entries, size ] = cache.keys().filter(y => y.includes(x.__entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { acc[0]++; acc[1] += getKb(fetchCache.get(x)); return acc; }, [0, 0]);
-                  return [ x.manifest.name, \`\${entries} entries, \${size.toFixed(2)}KB\` ];
-                })
-              ]);
+            default:
+              const getKb = x => (new Blob([ x.join?.('') ?? x ]).size / 1024);
+              const displaySize = kb => {
+                let unit = 'KB';
+                if (kb > 1000) {
+                  kb /= 1024;
+                  unit = 'MB';
+                }
+
+                return kb.toFixed(2) + unit;
+              };
+
+              const cacheStatus = (cache) => {
+                const totalSize = getKb(Object.values(cache.store));
+
+                const goneThrough = [];
+                return spacedColumns([
+                  [ 'Total Entries', cache.keys().length ],
+                  [ 'Total Size', displaySize(totalSize)],
+                  [],
+                  ...Object.values(topaz.internal.plugins).map(x => {
+                    const [ entries, size ] = cache.keys().filter(y => y.includes(x.__entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { goneThrough.push(x); acc[0]++; acc[1] += getKb(cache.get(x)); return acc; }, [0, 0]);
+                    return [ x.manifest.name, \`\${entries} entr\${entries === 1 ? 'y' : 'ies'}, \${displaySize(size)} (\${(size / totalSize * 100).toFixed(1)}%)\` ];
+                  }).concat(goneThrough.length !== cache.keys().length ? [ [ 'Internal', cache.keys().filter(x => !goneThrough.includes(x)).reduce((acc, x) => { acc[0]++; acc[1] += getKb(cache.get(x)); return acc; }, [0, 0]).reduce((acc, x, i) => acc += !i ? \`\${x} entries, \` : \`\${displaySize(x)} (\${(x / totalSize * 100).toFixed(1)}%)\`, '') ] ] : []),
+                ]);
+              };
 
               echo(\`<b><u>Fetch</u></b>
 \${cacheStatus(topaz.internal.fetchCache)}
