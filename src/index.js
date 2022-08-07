@@ -25,6 +25,8 @@ const log = (_region, ...args) => {
   );
 };
 
+if (console.context) window.console = console.context(); // Resets console to normal, removing custom methods patched by various things (Sentry, React DevTools) as it's annoying for stack traces
+
 if (window.topaz && topaz.purge) { // live reload handling
   topaz.__reloading = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
