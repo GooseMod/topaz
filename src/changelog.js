@@ -45,6 +45,9 @@ __BetterDiscord__
 - Fixed HTML settings not working
 - Global: Mock settings functions
 
+__Terminal__
+- **Added Topaz Terminal.** You can open the Topaz Terminal with Alt+T which allows a more direct/alternate interface with Topaz internals.
+
 __Powercord__
 - Rewrote settings store to use individual store
 - Toasts: Use more options given
