@@ -2269,6 +2269,9 @@ const transformCSS = async (root, code, skipTransform = false, updateProgress = 
 const getBuiltin = async (name) => await (await fetch('https://goosemod.github.io/topaz/src/builtins/' + name + '.js')).text();
 
 const builtins = {
+  'powercord': `module.exports = {
+  entities: require('powercord/entities')
+};`,
   'powercord/entities': `class Plugin {
   constructor() {
     this.stylesheets = [];
