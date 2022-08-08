@@ -24,10 +24,10 @@ __Editor__
 let bodySplit = body.split('\n');
 
 let categoryAssign = {
-  'added': [ 'Add', 'Rewrite' ],
+  'added': [ 'Added', 'add', 'Rewrote' ],
   // 'progress': [],
   // 'improved': [],
-  'fixed': [ 'Fix' ]
+  'fixed': [ 'Fixed' ]
 };
 
 let changelog = {
