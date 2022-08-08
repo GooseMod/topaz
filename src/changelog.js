@@ -1,26 +1,67 @@
 const sleep = x => new Promise(res => setTimeout(res, x));
 
 let body = `
-__Popular__
-- **Rewrote autocomplete to use React.** Should be a bit snappier and easier to work with in future.
-- **Added filtering.** There's now a new filtering menu (click the filter icon) to allow you to filter by mods, with more options coming soon.
+__Sandbox__
+- **Rewrote Sandbox to be isolated and a lot more secure.** Sandbox now uses isolated detached frames from the main window, and another rewritten sandbox inside of that. Should now be a lot more secure and easier platform for future development.
+- **Added more things that plugins can use.** More plugins should work now, in addition to Bundler improvements.
+- Fixed clipboard permissions being wrong way around
+- Fixed undefined modules erroring with safeWebpack
+- Added a lot more globals accessible
+- Added custom Observer support
+- Added window.event support
+- Rewrote console cleaning for passing on
 
 __Bundler__
-- **Added initial Demoncord plugin support.** Brings the total up to 12 mods!
-- Added CORS proxy fallback if a request fails due to lacking CORS
-- Tweaked BD meta comment extraction to work with more
+- **Rewrote exporting to be more robust.** Handling exports is now rewritten to handle more situations correctly and should be largely flawless.
+- **Added NPM support.** Now supports NPM package shorthand using node_modules.
+- **Various internal rewrites and fixes.** The bundler should generally also be more stable and should work in more complicated/advanced situations.
+- Added \`require.resolve\` support
+- Added support when using builtins ending with an extra backslash
+- Added proper implementation of __dirname
+- Rewrote ESM exports to make matching local variables
+- Lower package.main when reading package.json's to support mixed case
+- Added support for async/runtime-generated builtins
 
-__Theme Settings__
-- **Added initial theme settings.** With some themes there will now be a settings menu allowing you to customize the background, home icon, and font if they have it. It's currently a work in progress and will only work for some.
+__Cache__
+- **Added caching for GitHub API's file tree.** Installing plugins after first-time should be faster and no longer requires network.
+- Added generic fetch method
 
-__UI__
-- **Rewrote to be more robust.** Now correctly handles lack of some metadata like author or version, instead of sometimes showing broken data.
+__Node__
+- **Added initial filesystem implementation for GitHub repos.** Advanced PC plugins (like Shiki Codeblocks) should now work with this initial implementation.
+- **Added Node request support.** \`request\` and \`https\` modules are now implemented to allow older plugins using NodeJS to make requests.
+- \`path\`: Added new resolver from Bundler
+- \`path\`: Added isAbsolute
+- \`fs\`: Added initial temporary implementation based on GitHub API/raw for GH repos
+- \`fs\`: Added stub for writeFile
+- \`process\`: Added hrtime
+- \`util\`: Added inspect
+- \`request\`: Implement
+- \`https\`: Implement
 
-__Changelog__
-- **Added advanced toggle.** You can enable it to view all (more technical) changes if you're interested. Also now using Discord's style of paragraphs with explanations.
+__BetterDiscord__
+- **Rewrote ZeresPluginLibrary implementation.** Now uses official library patched at runtime in client.
+- **Added experimental BDFDB library implementation.** Experimental/WIP support to test if additional common BD libraries can be supported.
+- Run load handler if present
+- Fixed HTML settings not working
+- Global: Mock settings functions
 
-__Editor__
-- Fix freezing/errors if files include some characters`;
+__Powercord__
+- Rewrote settings store to use individual store
+- Toasts: Use more options given
+- Announcements: Initial add
+- Global: Mock not being logged in instead of erroring
+- Commands: Fixed not working on use
+- \`http\`: Only use CORS proxy as fallback after initial try
+
+__Unbound__
+- Rewrite settings store to use individual store
+
+__Rikka__
+- Run preInject handler if present
+
+__Index__
+- Moved Topaz's CSS injection earlier into init
+- Fixed trying to purge previous if it hadn't loaded`;
 let bodySplit = body.split('\n');
 
 let categoryAssign = {
