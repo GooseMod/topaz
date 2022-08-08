@@ -80,10 +80,10 @@ const show = async () => {
       if (showAdvanced) {
         els.concat([...document.querySelectorAll('.content-FDHp32 h1')]).forEach(x => x.style.display = '');
       } else {
-        els.forEach(x => x.children.length > 0 ? x.style.display = '' : x.style.display = 'none');
+        els.forEach(x => x.textContent.endsWith('.') ? x.style.display = '' : x.style.display = 'none');
         const children = [...document.querySelectorAll('.content-FDHp32 > div > *')];
         document.querySelectorAll('.content-FDHp32 h1').forEach(x => {
-          if ([...children[children.indexOf(x) + 1].children].every(y => y.children.length === 0)) x.style.display = 'none';
+          if ([...children[children.indexOf(x) + 1].children].every(y => !y.textContent.endsWith('.'))) x.style.display = 'none';
         });
       }
     };
