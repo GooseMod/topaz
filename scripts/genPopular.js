@@ -38,6 +38,7 @@ const pc = {
     'BluSpring/Spotify-No-Pause',
     'Rodentman87/stonks',
     'BenSegal855/webhook-tag',
+    'BenSegal855/powerclock',
     'zt64/dm-typing-indicator',
     'NurMarvin/SnowflakeInfo',
     'FC5570/powercord-random-dadjoke',
