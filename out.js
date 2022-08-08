@@ -25,7 +25,9 @@ const log = (_region, ...args) => {
   );
 };
 
-if (window.topaz) { // live reload handling
+if (console.context) window.console = console.context(); // Resets console to normal, removing custom methods patched by various things (Sentry, React DevTools) as it's annoying for stack traces
+
+if (window.topaz && topaz.purge) { // live reload handling
   topaz.__reloading = true;
   topaz.purge(); // fully remove topaz (plugins, css, etc)
 
@@ -33,7 +35,7 @@ if (window.topaz) { // live reload handling
 }
 
 window.topaz = {
-  version: 'alpha 9',
+  version: 'alpha 10',
   log
 };
 
@@ -75,13 +77,6 @@ const store = await new Promise(res => {
     const objectStore = db.createObjectStore('store');
 
     const store = {};
-
-    topaz.log('storage', 'trying to port local storage -> idb');
-    for (const key of Object.keys(localStorage).filter(x => x.startsWith('topaz_'))) {
-      console.log(key);
-      store[key.slice('topaz_'.length)] = localStorage.getItem(key);
-      localStorage.removeItem(key);
-    }
 
     objectStore.add(store, 'store');
 
@@ -126,39 +121,80 @@ return Storage; // eval export
 const openChangelog = async () => eval(`const sleep = x => new Promise(res => setTimeout(res, x));
 
 let body = \`
-__Popular__
-- **Rewrote autocomplete to use React.** Should be a bit snappier and easier to work with in future.
-- **Added filtering.** There's now a new filtering menu (click the filter icon) to allow you to filter by mods, with more options coming soon.
+__Sandbox__
+- **Rewrote Sandbox to be isolated and a lot more secure.** Sandbox now uses isolated detached frames from the main window, and another rewritten sandbox inside of that. Should now be a lot more secure and easier platform for future development.
+- **Added more things that plugins can use.** More plugins should work now, in addition to Bundler improvements.
+- Fixed clipboard permissions being wrong way around
+- Fixed undefined modules erroring with safeWebpack
+- Added a lot more globals accessible
+- Added custom Observer support
+- Added window.event support
+- Rewrote console cleaning for passing on
 
 __Bundler__
-- **Added initial Demoncord plugin support.** Brings the total up to 12 mods!
-- Added CORS proxy fallback if a request fails due to lacking CORS
-- Tweaked BD meta comment extraction to work with more
+- **Rewrote exporting to be more robust.** Handling exports is now rewritten to handle more situations correctly and should be largely flawless.
+- **Added NPM support.** Now supports NPM package shorthand using node_modules.
+- **Various internal rewrites and fixes.** The bundler should generally also be more stable and should work in more complicated/advanced situations.
+- Added \\\`require.resolve\\\` support
+- Added support when using builtins ending with an extra backslash
+- Added proper implementation of __dirname
+- Rewrote ESM exports to make matching local variables
+- Lower package.main when reading package.json's to support mixed case
+- Added support for async/runtime-generated builtins
 
-__Theme Settings__
-- **Added initial theme settings.** With some themes there will now be a settings menu allowing you to customize the background, home icon, and font if they have it. It's currently a work in progress and will only work for some.
+__Cache__
+- **Added caching for GitHub API's file tree.** Installing plugins after first-time should be faster and no longer requires network.
+- Added generic fetch method
 
-__UI__
-- **Rewrote to be more robust.** Now correctly handles lack of some metadata like author or version, instead of sometimes showing broken data.
+__Node__
+- **Added initial filesystem implementation for GitHub repos.** Advanced PC plugins (like Shiki Codeblocks) should now work with this initial implementation.
+- **Added Node request support.** \\\`request\\\` and \\\`https\\\` modules are now implemented to allow older plugins using NodeJS to make requests.
+- \\\`path\\\`: Added new resolver from Bundler
+- \\\`path\\\`: Added isAbsolute
+- \\\`fs\\\`: Added initial temporary implementation based on GitHub API/raw for GH repos
+- \\\`fs\\\`: Added stub for writeFile
+- \\\`process\\\`: Added hrtime
+- \\\`util\\\`: Added inspect
+- \\\`request\\\`: Implement
+- \\\`https\\\`: Implement
 
-__Changelog__
-- **Added advanced toggle.** You can enable it to view all (more technical) changes if you're interested. Also now using Discord's style of paragraphs with explanations.
+__BetterDiscord__
+- **Rewrote ZeresPluginLibrary implementation.** Now uses official library patched at runtime in client.
+- **Added experimental BDFDB library implementation.** Experimental/WIP support to test if additional common BD libraries can be supported.
+- Run load handler if present
+- Fixed HTML settings not working
+- Global: Mock settings functions
 
-__Editor__
-- Fix freezing/errors if files include some characters\`;
+__Powercord__
+- Rewrote settings store to use individual store
+- Toasts: Use more options given
+- Announcements: Initial add
+- Global: Mock not being logged in instead of erroring
+- Commands: Fixed not working on use
+- \\\`http\\\`: Only use CORS proxy as fallback after initial try
+
+__Unbound__
+- Rewrite settings store to use individual store
+
+__Rikka__
+- Run preInject handler if present
+
+__Index__
+- Moved Topaz's CSS injection earlier into init
+- Fixed trying to purge previous if it hadn't loaded\`;
 let bodySplit = body.split('\\n');
 
 let categoryAssign = {
-  'added': [ 'Add', 'Rewrite' ],
+  'added': [ 'Added', 'add', 'Rewrote' ],
   // 'progress': [],
   // 'improved': [],
-  'fixed': [ 'Fix' ]
+  'fixed': [ 'Fixed' ]
 };
 
 let changelog = {
   image: '',
   version: topaz.version[0].toUpperCase() + topaz.version.slice(1),
-  date: '2022-07-23',
+  date: '2022-08-08',
 
   body: bodySplit.reduce((acc, x, i) => {
     if (x[0] === '_') {
@@ -205,10 +241,10 @@ const show = async () => {
       if (showAdvanced) {
         els.concat([...document.querySelectorAll('.content-FDHp32 h1')]).forEach(x => x.style.display = '');
       } else {
-        els.forEach(x => x.children.length > 0 ? x.style.display = '' : x.style.display = 'none');
+        els.forEach(x => x.textContent.endsWith('.') ? x.style.display = '' : x.style.display = 'none');
         const children = [...document.querySelectorAll('.content-FDHp32 > div > *')];
         document.querySelectorAll('.content-FDHp32 h1').forEach(x => {
-          if ([...children[children.indexOf(x) + 1].children].every(y => y.children.length === 0)) x.style.display = 'none';
+          if ([...children[children.indexOf(x) + 1].children].every(y => !y.textContent.endsWith('.'))) x.style.display = 'none';
         });
       }
     };
@@ -792,8 +828,12 @@ manager.add();
 
 manager`);
 
-const Onyx = eval(`const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) => { acc[x] = obj[x].__sentry_original__ ?? obj[x]; return acc; }, {});
-const makeSourceURL = (name) => \`\${name} | Topaz\`.replace(/ /g, '%20');
+const Onyx = eval(`const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) => {
+  const sub = obj[x].__REACT_DEVTOOLS_ORIGINAL_METHOD__ ?? obj[x];
+  acc[x] = sub.__sentry_original__ ?? sub;
+  return acc;
+}, {});
+const makeSourceURL = (name) => topaz.debug ? ('Onyx' + Math.random().toString().slice(2)) : \`\${name} | Topaz\`.replace(/ /g, '%20');
 const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
 // discord's toast for simplicity
@@ -813,8 +853,8 @@ const permissions = {
   // friends_check_blocked: [ 'isBlocked' ],
   status_readstatus: [ 'getStatus', 'isMobileOnline' ],
   status_readactivities: [ 'findActivity', 'getActivities', 'getActivityMetadata', 'getAllApplicationActivities', 'getApplicationActivity', 'getPrimaryActivity' ],
-  clipboard_write: [],
-  clipboard_read: [ 'copy', 'writeText' ]
+  clipboard_read: [],
+  clipboard_write: [ 'copy', 'writeText' ]
 };
 
 const complexMap = Object.keys(permissions).reduce((acc, x) => acc.concat(permissions[x].filter(y => y.includes('@')).map(y => [ x, ...y.split('@') ])), []);
@@ -1008,27 +1048,72 @@ const permissionsModal = async (manifest, neededPerms) => {
   return finalPerms;
 };
 
+const iframeGlobals = [ 'performance', ];
+const passGlobals = [ 'topaz', 'goosemod', 'fetch', 'document', '_', 'TextEncoder', 'TextDecoder', 'addEventListener', 'removeEventListener', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'Node', 'Element', 'MutationEvent', 'MutationRecord', 'IntersectionObserverEntry', 'addEventListener', 'removeEventListener', 'URL', 'setImmediate', 'NodeList', 'getComputedStyle', 'XMLHttpRequest', 'ArrayBuffer', 'Response' ];
+
+// did you know: using innerHTML is ~2.5x faster than appendChild for some reason (~40ms -> ~15ms), so we setup a parent just for making our iframes via this trick
+const containerParent = document.createElement('div');
+document.body.appendChild(containerParent);
+
+const createContainer = (inst) => {
+  containerParent.innerHTML = window.BdApi ? \`<object data="about:blank"></object>\` : '<iframe></iframe>'; // make iframe. use object (bit slower) if BD is also installed as it breaks sandboxing
+  const el = containerParent.children[0];
+
+  const _constructor = el.contentWindow.Function.constructor;
+  el.contentWindow.Function.constructor = function() {
+    return (_constructor.apply(inst.context, arguments)).bind(inst.context);
+  };
+
+
+  const ev = el.contentWindow.eval;
+
+  for (const k of Object.keys(el.contentWindow)) {
+    if (!iframeGlobals.includes(k)) {
+      el.contentWindow[k] = undefined;
+      delete el.contentWindow[k];
+    }
+  }
+
+  const realWindow = window;
+  Object.defineProperty(el.contentWindow, "event", {
+    get: function() {
+      return realWindow.event;
+    }
+  });
+
+  el.remove();
+
+  return ev;
+};
+
 
 // we have to use function instead of class because classes force strict mode which disables with
 const Onyx = function (entityID, manifest, transformRoot) {
+  const startTime = performance.now();
   const context = {};
 
-  // todo: filter elements for personal info?
-  const allowGlobals = [ 'topaz', 'DiscordNative', 'navigator', 'document', 'setTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', '_', 'performance', 'fetch', 'clearTimeout', 'setImmediate', 'location' ];
-
   // nullify (delete) all keys in window to start except allowlist
-  for (const k of Object.keys(window)) { // for (const k of Reflect.ownKeys(window)) {
-    if (allowGlobals.includes(k)) {
-      const orig = window[k];
-      context[k] = typeof orig === 'function' && k !== '_' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
-
-      continue;
-    }
-
-    context[k] = null;
+  for (const k of passGlobals) {
+    let orig = window[k];
+    context[k] = typeof orig === 'function' && k !== '_' && k !== 'NodeList' ? orig.bind(window) : orig; // bind to fix illegal invocation (also lodash breaks bind)
   }
 
-  if (!context.DiscordNative) context.DiscordNative = { // basic polyfill
+  const observers = [ 'MutationObserver', 'IntersectionObserver' ];
+  for (const k of observers) { // janky wrappers because Chromium breaks with disconnected iframe
+    context[k] = function(callback) {
+      const obs = new window[k]((mutations) => {
+        callback(mutations);
+      });
+
+      this.observe = obs.observe.bind(obs);
+      this.disconnect = obs.disconnect.bind(obs);
+      this.takeRecords = obs.takeRecords.bind(obs);
+
+      return this;
+    };
+  }
+
+  context.DiscordNative = { // basic polyfill
     crashReporter: {
       getMetadata: () => ({
         user_id: this.safeWebpack(goosemod.webpackModules.findByProps('getCurrentUser')).getCurrentUser().id
@@ -1067,16 +1152,20 @@ const Onyx = function (entityID, manifest, transformRoot) {
 
   context.goosemodScope = context.goosemod; // goosemod alias
 
-  context.console = unsentrify(window.console); // unsentrify console funcs
+  context.console = window.console.context ? window.console.context('topaz_plugin') : unsentrify(window.console); // use console.context or fallback on unsentrify
+
+  context.location = { // mock location
+    href: window.location.href
+  };
 
   context.window = context; // recursive global
+  context.globalThis = context;
 
   // mock node
   context.global = context;
   context.module = {
     exports: {}
   };
-  context.__dirname = '/home/topaz/plugin';
   context.process = {
     versions: {
       electron: '13.6.6'
@@ -1091,25 +1180,30 @@ const Onyx = function (entityID, manifest, transformRoot) {
   // custom globals
   context.__entityID = entityID;
 
-
   this.entityID = entityID;
   this.manifest = manifest;
-  this.context = Object.assign(context);
+  this.context = Object.seal(Object.freeze(Object.assign({}, context)));
+
+  const containedEval = createContainer(this);
 
   let predictedPerms = [];
   this.eval = function (_code) {
-    let code = _code + \`\\n\\n;module.exports\\n //# sourceURL=\${makeSourceURL(this.manifest.name)}\\n\`;
-    code += this.MapGen(code, transformRoot, this.manifest.name);
-
     // basic static code analysis for predicting needed permissions
     // const objectPredictBlacklist = [ 'clyde' ];
     // predictedPerms = Object.keys(permissions).filter(x => permissions[x].some(y => [...code.matchAll(new RegExp(\`([^. 	]*?)\\\\.\${y}\`, 'g'))].some(z => z && !objectPredictBlacklist.includes(z[1].toLowerCase()))));
     // topaz.log('onyx', 'predicted perms for', this.manifest.name, predictedPerms);
 
-    let exported;
-    with (this.context) {
-      exported = eval(code);
-    }
+    const argumentContext = Object.keys(this.context).filter(x => !x.match(/^[0-9]/) && !x.match(/[-,]/));
+
+    let code = \`(function (\${argumentContext}) {
+\${_code}\\n\\n
+;return module.exports;
+});
+//# sourceURL=\${makeSourceURL(this.manifest.name)}\`;
+
+    code += '\\n' + this.MapGen(code, transformRoot, this.manifest.name);
+
+    let exported = containedEval.bind(this.context)(code).apply(this.context, argumentContext.map(x => this.context[x]));
 
     return exported;
   };
@@ -1162,17 +1256,20 @@ const Onyx = function (entityID, manifest, transformRoot) {
       return mimic(Reflect.get(target, prop, reciever));
     };
 
+    if (mod === undefined) return undefined;
+
     let keys = [];
     try {
       keys = Reflect.ownKeys(mod).concat(Reflect.ownKeys(mod.__proto__ ?? {}));
     } catch { }
 
-    // if (keys.includes('Blob')) throw new Error('Onyx blocked access to window in Webpack', mod); // block window
+    if (keys.includes('Object')) return context; // Block window
+    if (keys.includes('clear') && keys.includes('get') && keys.includes('set') && keys.includes('remove') && !keys.includes('mergeDeep')) return {}; // Block localStorage
 
     const hasFlags = keys.some(x => typeof x === 'string' && Object.values(permissions).flat().some(y => x === y.split('@')[0])); // has any keys in it
     return hasFlags ? new Proxy(mod, { // make proxy only if potential
       get: (target, prop, reciever) => {
-        const givenPermissions = JSON.parse(topaz.storage.get('permissions') ?? '{}')[this.entityID] ?? {};
+        const givenPermissions = JSON.parse(topaz.storage.get('permissions') ?? '{}')[entityID] ?? {};
         const complexPerms = complexMap.filter(x => x[1] === prop);
 
         if (complexPerms.length !== 0) {
@@ -1198,7 +1295,7 @@ const Onyx = function (entityID, manifest, transformRoot) {
     }) : mod;
   };
 
-  topaz.log('onyx', 'created execution container successfully');
+  topaz.log('onyx', \`contained \${manifest.name} in \${(performance.now() - startTime).toFixed(2)}ms\`);
 };
 
 Onyx //# sourceURL=Onyx`);
@@ -1224,6 +1321,8 @@ const encode = (x) => { // base64 vlq
 };
 
 const makeMap = (output, root, name) => {
+  if (topaz.debug) return '';
+
   const startTime = performance.now();
 
   const sources = [];
@@ -1691,7 +1790,8 @@ return function Editor(props) {
           const channels = [
             '755005803303403570',
             '836694789898109009',
-            '449569809613717518'
+            '449569809613717518',
+            '1000955971650195588',
           ];
 
           const getSnippets = async (channelId) => {
@@ -2185,6 +2285,10 @@ const builtins = {
     console.error(this.entityID, ...args);
   }
 
+  warn(...args) {
+    console.warn(this.entityID, ...args);
+  }
+
   log(...args) {
     console.log(this.entityID, ...args);
   }
@@ -2315,14 +2419,16 @@ module.exports = {
     const useLayoutEffect = current.useLayoutEffect;
     const useRef = current.useRef;
     const useCallback = current.useCallback;
+    const useContext = current.useContext;
 
     current.useMemo = method => method();
     current.useState = val => [ val, () => null ];
     current.useReducer = val => [ val, () => null ];
-    current.useEffect = () => null;
-    current.useLayoutEffect = () => null;
-    current.useRef = () => ({});
+    current.useEffect = () => {};
+    current.useLayoutEffect = () => {};
+    current.useRef = () => ({ current: null });
     current.useCallback = cb => cb;
+    current.useContext = ctx => ctx._currentValue;
 
     const res = method(...args);
 
@@ -2333,6 +2439,7 @@ module.exports = {
     current.useLayoutEffect = useLayoutEffect;
     current.useRef = useRef;
     current.useCallback = useCallback;
+    current.useContext = useContext;
 
     return res;
   },
@@ -2631,6 +2738,7 @@ module.exports = {
   FormItem,
   Divider
 };`,
+  ...['FormItem'].reduce((acc, x) => { acc[`powercord/components/settings/${x}`] = `module.exports = require('powercord/components/settings').${x};`; return acc; }, {}),
   'powercord/components/modal': `const { React } = goosemod.webpackModules.common;
 
 const mod = goosemod.webpackModules.findByProps('ModalRoot');
@@ -2712,10 +2820,14 @@ const Modal = goosemod.webpackModules.findByProps('ModalRoot');
 
 let lastId;
 module.exports = {
-  open: (comp) => lastId = modalManager.openModal(props => React.createElement(Modal.ModalRoot, {
-    ...props,
-    className: 'topaz-pc-modal-jank'
-  }, React.createElement(comp))),
+  open: (comp) => {
+    if (comp.toString().toLowerCase().includes('changelog')) return console.warn('Ignoring modal open for changelog');
+
+    return lastId = modalManager.openModal(props => React.createElement(Modal.ModalRoot, {
+      ...props,
+      className: 'topaz-pc-modal-jank'
+    }, React.createElement(comp)))
+  },
 
   close: () => modalManager.closeModal(lastId),
 
@@ -2765,8 +2877,12 @@ module.exports = {
 
       topaz.log('powercord.http', 'fetch', url, opts);
 
-      const corsDont = [ 'api.spotify.com' ];
-      const resp = await fetch((corsDont.some(x => url.includes(x)) ? '' : \`https://topaz-cors.goosemod.workers.dev/?\`) + url, opts).catch(rej);
+      const resp = await fetch(url, opts).catch(e => {
+        if (e.stack.startsWith('TypeError')) { // possible CORS error, try with our CORS proxy
+          console.warn('Failed to fetch', url, '- trying CORS proxy');
+          return fetch(\`https://topaz-cors.goosemod.workers.dev/?\` + url);
+        }
+      });
 
       const body = await resp.text().catch(rej);
 
@@ -2828,34 +2944,38 @@ const FluxActions = {
 class SettingsStore extends Flux.Store {
   constructor (Dispatcher, handlers) {
     super(Dispatcher, handlers);
-    this.store = {};
+    this._store = JSON.parse(topaz.storage.get(__entityID + '_pc', '{}') ?? {});
+  }
+
+  onChange() {
+    topaz.storage.set(__entityID + '_pc', JSON.stringify(this._store));
   }
 
   getSetting = (key, def) => {
-    return this.store[key] ?? def;
+    return this._store[key] ?? def;
   }
 
   updateSetting = (key, value) => {
     if (value === undefined) return this.deleteSetting(key);
 
-    this.store[key] = value;
+    this._store[key] = value;
 
-    this.onChange?.();
+    this.onChange();
 
-    return this.store[key];
+    return this._store[key];
   }
 
   toggleSetting = (key, def) => {
-    return this.updateSetting(key, !(this.store[key] ?? def));
+    return this.updateSetting(key, !(this._store[key] ?? def));
   }
 
   deleteSetting = (key) => {
-    delete this.store[key];
+    delete this._store[key];
 
-    this.onChange?.();
+    this.onChange();
   }
 
-  getKeys = () => Object.keys(this.store)
+  getKeys = () => Object.keys(this._store)
 
   // alt names for other parts
   get = this.getSetting
@@ -2944,7 +3064,7 @@ powercord = {
   api: {
     commands: {
       registerCommand: ({ command, alias, description, usage, executor }) => {
-        const getChannelId = goosemod.webpackModules.findByProps('getChannelId').getChannelId;
+        const { getChannelId } = goosemod.webpackModules.findByProps('getChannelId', 'getVoiceChannelId');
 
         // TODO: implement alias
 
@@ -3048,7 +3168,8 @@ powercord = {
     },
 
     notices: {
-      sendToast: (_id, { header, content, type, buttons }) => goosemod.showToast(content) // todo: improve to use all given
+      sendToast: (_id, { header, content, type, buttons, timeout }) => goosemod.showToast(content, { subtext: header, type, timeout }), // todo: improve to use all given
+      sendAnnouncement: (_id, { color, message, button: { text: buttonText, onClick } }) => goosemod.patcher.notices.patch(message, buttonText, onClick, color ?? 'brand'),
     },
 
     i18n: {
@@ -3069,7 +3190,10 @@ powercord = {
         return undefined;
       }
     }
-  }
+  },
+
+  account: null,
+  fetchAccount: async () => {}
 };
 
 
@@ -3133,7 +3257,6 @@ powercord = {
   'goosemod/global': '',
 
   'betterdiscord/global': `let BdApi;
-
 (() => {
 const cssEls = {};
 const unpatches = {};
@@ -3203,12 +3326,13 @@ const showConfirmationModal = async (title, content, { onConfirm, onCancel, conf
     else onCancel?.();
 };
 
-BdApi = {
+BdApi = window.BdApi = {
   findModule: Webpack.find,
   findAllModules: Webpack.findAll,
   findModuleByProps: Webpack.findByProps,
   findModuleByDisplayName: Webpack.findByDisplayName,
 
+  getInternalInstance: goosemod.reactUtils.getReactInstance,
 
   injectCSS: (id, css) => {
     const el = document.createElement('style');
@@ -3256,6 +3380,10 @@ BdApi = {
 
     return data[key];
   },
+
+  isSettingEnabled: (...path) => true,
+  disableSetting: (...path) => {},
+  enableSetting: (...path) => {},
 
 
   showConfirmationModal,
@@ -3305,521 +3433,95 @@ BdApi = {
   ReactDOM: Webpack.common.ReactDOM
 };
 })();`,
-  'betterdiscord/libs/zeres': `let ZeresPluginLibrary, ZLibrary;
 
-(() => {
-const listeners = {};
+  get 'betterdiscord/libs/zeres'() { // patch official
+    return new Promise(async res => {
+      const out = (await fetchCache.fetch('https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js'))
+        .replace('static async hasUpdate(updateLink) {', 'static async hasUpdate(updateLink) { return Promise.resolve(false);') // disable updating
+        .replace('this.listeners = new Set();', 'this.listeners = {};') // webpack patches to use our API
+        .replace('static addListener(listener) {', 'static addListener(listener) { const id = Math.random().toString().slice(2); const int = setInterval(() => { for (const m of goosemod.webpackModules.all()) { if (m) listener(m); } }, 5000); listener._listenerId = id; return this.listeners[id] = () => { clearInterval(int); delete this.listeners[listener._listenerId]; }')
+        .replace('static removeListener(listener) {', 'static removeListener(listener) { this.listeners[listener._listenerId]?.(); return;')
+        .replace('static getModule(filter, first = true) {', `static getModule(filter, first = true) { return goosemod.webpackModules[first ? 'find' : 'findAll'](filter);`)
+        .replace('static getByIndex(index) {', 'static getByIndex(index) { return goosemod.webpackModules.findByModuleId(index);')
+        .replace('static getAllModules() { return goosemod.webpackModules.all().reduce((acc, x, i) => { acc[i] = x; return acc; }, {});')
+        .replace('static pushChildPatch(caller, moduleToPatch, functionName, callback, options = {}) {', `static pushChildPatch(caller, moduleToPatch, functionName, callback, options = {}) { return BdApi.Patcher[options.type ?? 'after'](caller, this.resolveModule(moduleToPatch), functionName, callback);`) // use our patcher
+        .replace('module.exports.ZeresPluginLibrary = __webpack_exports__["default"];', '(new __webpack_exports__["default"]).load();') // load library on creation, disable export
+        .replace('this.__ORIGINAL_PUSH__ = window[this.chunkName].push;', 'return;') // disable webpack push patching
+        .replace('showChangelog(footer) {', 'showChangelog(footer) { return;') // disable changelogs
+        .replace(/changelog: \[[\s\S]*?\],/, ''); // remove lib's own changelog
 
-const WebpackModules = {
-  getByProps: goosemod.webpackModules.findByProps,
-  getAllByProps: goosemod.webpackModules.findByPropsAll,
-  getByDisplayName: goosemod.webpackModules.findByDisplayName,
-  getModule: goosemod.webpackModules.find,
-  getModules: goosemod.webpackModules.findAll,
-  getByIndex: goosemod.webpackModules.findByModuleId,
-  getByPrototypes: protos => goosemod.webpackModules.find(x => protos.every(y => x.prototype.hasOwnProperty(y))),
-  getAllByPrototypes: protos => goosemod.webpackModules.findAll(x => protos.every(y => x.prototype.hasOwnProperty(y))),
+      delete builtins['betterdiscord/libs/zeres']; // overwrite getter with output
+      builtins['betterdiscord/libs/zeres'] = out;
 
-  find: (filter, first = true) => goosemod.webpackModules[first ? 'find' : 'findAll'](filter),
-  findAll: goosemod.webpackModules.findAll,
-  findByUniqueProperties: (props, first = true) => goosemod.webpackModules[first ? 'findByProps' : 'findByPropsAll'](props),
-  findByDisplayName: goosemod.webpackModules.findByDisplayName,
-
-  addListener: (listener) => { // painful jank way of not doing listener
-    const id = Math.random().toString().slice(2);
-    const int = setInterval(() => {
-      for (const m of goosemod.webpackModules.all()) {
-        if (m) listener(m);
-      }
-    }, 5000);
-
-    listener._listenerId = id;
-    return listeners[id] = () => clearInterval(int);
+      res(out);
+    });
   },
 
-  removeListener: (listener) => {
-    listeners[listener._listenerId]?.();
+  get 'betterdiscord/libs/bdfdb'() {
+    return new Promise(async res => {
+      const out = (await fetchCache.fetch('https://raw.githubusercontent.com/mwittrien/BetterDiscordAddons/master/Library/0BDFDB.plugin.js'))
+        .replace('BDFDB.PluginUtils.hasUpdateCheck = function (url) {', 'BDFDB.PluginUtils.hasUpdateCheck = function (url) { return false;') // disable updates
+        .replace('BDFDB.PluginUtils.checkUpdate = function (pluginName, url) {', 'BDFDB.PluginUtils.checkUpdate = function (pluginName, url) { return Promise.resolve(0);')
+        .replace('BDFDB.PluginUtils.showUpdateNotice = function (pluginName, url) {', 'BDFDB.PluginUtils.showUpdateNotice = function (pluginName, url) { return;')
+        .replace('let all = typeof config.all != "boolean" ? false : config.all;', `let all = typeof config.all != "boolean" ? false : config.all;
+let out = goosemod.webpackModules[all ? 'findAll' : 'find'](m => filter(m) || (m.type && filter(m.type)));
+if (out) out = filter(out) ?? out;
+return out;`) // use our own webpack
+        .replace('Internal.getWebModuleReq = function () {', 'Internal.getWebModuleReq = function () { return Internal.getWebModuleReq.req = () => {};')
+        .replace('this && this !== window', 'this && !this.performance')
+        .replace('const chunkName = "webpackChunkdiscord_app";', `
+const moduleHandler = (exports) => {
+  const removedTypes = [];
+  for (const type in PluginStores.chunkObserver) {
+    const foundModule = PluginStores.chunkObserver[type].filter(exports) || exports.default && PluginStores.chunkObserver[type].filter(exports.default);
+    if (foundModule) {
+      Internal.patchComponent(PluginStores.chunkObserver[type].query, PluginStores.chunkObserver[type].config.exported ? foundModule : exports, PluginStores.chunkObserver[type].config);
+      removedTypes.push(type);
+      break;
+    }
+  }
+  while (removedTypes.length) delete PluginStores.chunkObserver[removedTypes.pop()];
+  let found = false, funcString = exports && exports.default && typeof exports.default == "function" && exports.default.toString();
+  if (funcString && funcString.indexOf(".page") > -1 && funcString.indexOf(".section") > -1 && funcString.indexOf(".objectType") > -1) {
+    const returnValue = exports.default({});
+    if (returnValue && returnValue.props && returnValue.props.object == BDFDB.DiscordConstants.AnalyticsObjects.CONTEXT_MENU) {
+      for (const type in PluginStores.contextChunkObserver) {
+        if (PluginStores.contextChunkObserver[type].filter(returnValue.props.children)) {
+          exports.__BDFDB_ContextMenuWrapper_Patch_Name = exports.__BDFDB_ContextMenu_Patch_Name;
+          found = true;
+          if (PluginStores.contextChunkObserver[type].modules.indexOf(exports) == -1) PluginStores.contextChunkObserver[type].modules.push(exports);
+          for (const plugin of PluginStores.contextChunkObserver[type].query) Internal.patchContextMenu(plugin, type, exports);
+          break;
+        }
+      }
+    }
+  }
+  if (!found) for (const type in PluginStores.contextChunkObserver) {
+    if (PluginStores.contextChunkObserver[type].filter(exports)) {
+      if (PluginStores.contextChunkObserver[type].modules.indexOf(exports) == -1) PluginStores.contextChunkObserver[type].modules.push(exports);
+      for (const plugin of PluginStores.contextChunkObserver[type].query) Internal.patchContextMenu(plugin, type, exports);
+      break;
+    }
   }
 };
 
-const showToast = (content, options = {}) => goosemod.showToast(content, options); // Mostly same options handling
+const int = setInterval(() => {
+  // for (const m of goosemod.webpackModules.all()) { if (m) moduleHandler(m); }
+}, 5000);
 
-const injectedCSS = {};
+for (const m of goosemod.webpackModules.all()) { if (m) moduleHandler(m); }
 
-const _observerHooks = [];
-const Observer = new MutationObserver((muts) => {
-  for (const hook of _observerHooks) {
-    const matches = muts.filter(hook.filter);
-    if (matches.length === 0) continue;
+Internal.removeChunkObserver = () => clearInterval(int);
+return;`)
+        .replace(/\}\)\(\);\n$/, `})();
+(new module.exports()).load();`); // make and load it
 
-    hook.callback(matches);
-  }
-});
+      delete builtins['betterdiscord/libs/bdfdb']; // overwrite getter with output
+      builtins['betterdiscord/libs/bdfdb'] = out;
 
-const observe = (selector, callback) => {
-  const id = Math.random().toString().slice(2);
-  _observerHooks.push({
-    id,
-    callback,
-    filter: mut => mut.target.matches(selector) || [ ...mut.addedNodes, ...mut.removedNodes ].some(x => x.querySelector && (x.matches(selector) || x.querySelector(selector)))
-  });
-
-  if (_observerHooks.length === 1) Observer.observe(document.getElementById("app-mount"), { attributes: true, childList: true, subtree: true });
-
-  return () => { // unhook func
-    _observerHooks.splice(_observerHooks.find(x => x.id === id), 1);
-
-    if (_observerHooks.length === 0) Observer.disconnect(); // no hooks, disconnect
-  }
-};
-
-const { React } = goosemod.webpackModules.common;
-const Context = goosemod.webpackModules.findByProps("MenuRadioItem", "MenuItem");
-const ContextActions = goosemod.webpackModules.findByProps("openContextMenu");
-
-
-const api = {
-  WebpackModules,
-
-  Logger: { // barebones
-    error: (mod, ...msg) => console.error(mod, ...msg),
-    err: (mod, ...msg) => console.error(mod, ...msg),
-    warn: (mod, ...msg) => console.warn(mod, ...msg),
-    info: (mod, ...msg) => console.info(mod, ...msg),
-    dbg: (mod, ...msg) => console.debug(mod, ...msg),
-    debug: (mod, ...msg) => console.debug(mod, ...msg),
-    log: (mod, ...msg) => console.log(mod, ...msg)
+      res(out);
+    });
   },
-
-  DiscordModules: {
-    get React() { return WebpackModules.getByProps("createElement", "cloneElement"); },
-    get ReactDOM() { return WebpackModules.getByProps("render", "findDOMNode"); },
-    get Events() { return WebpackModules.getByPrototypes("setMaxListeners", "emit"); },
-    get GuildStore() { return WebpackModules.getByProps("getGuild"); },
-    get SortedGuildStore() { return WebpackModules.getByProps("getSortedGuilds"); },
-    get SelectedGuildStore() { return WebpackModules.getByProps("getLastSelectedGuildId"); },
-    get GuildSync() { return WebpackModules.getByProps("getSyncedGuilds"); },
-    get GuildInfo() { return WebpackModules.getByProps("getAcronym"); },
-    get GuildChannelsStore() { return WebpackModules.getByProps("getChannels", "getDefaultChannel"); },
-    get GuildMemberStore() { return WebpackModules.getByProps("getMember"); },
-    get MemberCountStore() { return WebpackModules.getByProps("getMemberCounts"); },
-    get GuildEmojiStore() { return WebpackModules.getByProps("getEmojis"); },
-    get GuildActions() { return WebpackModules.getByProps("requestMembers"); },
-    get GuildPermissions() { return WebpackModules.getByProps("getGuildPermissions"); },
-    get ChannelStore() { return WebpackModules.getByProps("getChannel", "getDMFromUserId"); },
-    get SelectedChannelStore() { return WebpackModules.getByProps("getLastSelectedChannelId"); },
-    get ChannelActions() { return WebpackModules.getByProps("selectChannel"); },
-    get PrivateChannelActions() { return WebpackModules.getByProps("openPrivateChannel"); },
-    get UserInfoStore() { return WebpackModules.getByProps("getSessionId"); },
-    get UserSettingsStore() { return WebpackModules.getByProps("guildPositions"); },
-    get StreamerModeStore() { return WebpackModules.getByProps("hidePersonalInformation"); },
-    get UserSettingsUpdater() { return WebpackModules.getByProps("updateRemoteSettings"); },
-    get OnlineWatcher() { return WebpackModules.getByProps("isOnline"); },
-    get CurrentUserIdle() { return WebpackModules.getByProps("isIdle"); },
-    get RelationshipStore() { return WebpackModules.getByProps("isBlocked", "getFriendIDs"); },
-    get RelationshipManager() { return WebpackModules.getByProps("addRelationship"); },
-    get MentionStore() { return WebpackModules.getByProps("getMentions"); },
-    get UserStore() { return WebpackModules.getByProps("getCurrentUser", "getUser"); },
-    get UserStatusStore() { return WebpackModules.getByProps("getStatus", "getState"); },
-    get UserTypingStore() { return WebpackModules.getByProps("isTyping"); },
-    get UserActivityStore() { return WebpackModules.getByProps("getActivity"); },
-    get UserNameResolver() { return WebpackModules.getByProps("getName"); },
-    get UserNoteStore() { return WebpackModules.getByProps("getNote"); },
-    get UserNoteActions() { return WebpackModules.getByProps("updateNote"); },
-    get EmojiInfo() { return WebpackModules.getByProps("isEmojiDisabled"); },
-    get EmojiUtils() { return WebpackModules.getByProps("getGuildEmoji"); },
-    get EmojiStore() { return WebpackModules.getByProps("getByCategory", "EMOJI_NAME_RE"); },
-    get InviteStore() { return WebpackModules.getByProps("getInvites"); },
-    get InviteResolver() { return WebpackModules.getByProps("resolveInvite"); },
-    get InviteActions() { return WebpackModules.getByProps("acceptInvite"); },
-    get DiscordConstants() { return WebpackModules.getByProps("Permissions", "ActivityTypes", "StatusTypes"); },
-    get DiscordPermissions() { return WebpackModules.getByProps("Permissions", "ActivityTypes", "StatusTypes").Permissions; },
-    get Permissions() { return WebpackModules.getByProps("computePermissions"); },
-    get ColorConverter() { return WebpackModules.getByProps("hex2int"); },
-    get ColorShader() { return WebpackModules.getByProps("darken"); },
-    get TinyColor() { return WebpackModules.getByPrototypes("toRgb"); },
-    get ClassResolver() { return WebpackModules.getByProps("getClass"); },
-    get ButtonData() { return WebpackModules.getByProps("ButtonSizes"); },
-    get NavigationUtils() { return WebpackModules.getByProps("transitionTo", "replaceWith", "getHistory"); },
-    get MessageStore() { return WebpackModules.getByProps("getMessage", "getMessages"); },
-    get ReactionsStore() { return WebpackModules.getByProps("getReactions", "_dispatcher"); },
-    get MessageActions() { return WebpackModules.getByProps("jumpToMessage", "_sendMessage"); },
-    get MessageQueue() { return WebpackModules.getByProps("enqueue"); },
-    get MessageParser() { return WebpackModules.getModule(m => Object.keys(m)?.every?.(k => k === "parse" || k === "unparse")); },
-    get ExperimentStore() { return WebpackModules.getByProps("getExperimentOverrides"); },
-    get ExperimentsManager() { return WebpackModules.getByProps("isDeveloper"); },
-    get CurrentExperiment() { return WebpackModules.getByProps("getExperimentId"); },
-    get StreamStore() { return WebpackModules.getByProps("getAllActiveStreams", "getStreamForUser"); },
-    get StreamPreviewStore() { return WebpackModules.getByProps("getIsPreviewLoading", "getPreviewURL"); },
-    get ImageResolver() { return WebpackModules.getByProps("getUserAvatarURL", "getGuildIconURL"); },
-    get ImageUtils() { return WebpackModules.getByProps("getSizedImageSrc"); },
-    get AvatarDefaults() { return WebpackModules.getByProps("getUserAvatarURL", "DEFAULT_AVATARS"); },
-    get DNDSources() { return WebpackModules.getByProps("addTarget"); },
-    get DNDObjects() { return WebpackModules.getByProps("DragSource"); },
-    get ElectronModule() { return WebpackModules.getByProps("setBadge"); },
-    get Flux() { return WebpackModules.getByProps("Store", "connectStores"); },
-    get Dispatcher() { return WebpackModules.getByProps("dirtyDispatch"); },
-    get PathUtils() { return WebpackModules.getByProps("hasBasename"); },
-    get NotificationModule() { return WebpackModules.getByProps("showNotification"); },
-    get RouterModule() { return WebpackModules.getByProps("Router"); },
-    get APIModule() { return WebpackModules.getByProps("getAPIBaseURL"); },
-    get AnalyticEvents() { return WebpackModules.getByProps("AnalyticEventConfigs"); },
-    get KeyGenerator() { return WebpackModules.getByRegex(/"binary"/); },
-    get Buffers() { return WebpackModules.getByProps("Buffer", "kMaxLength"); },
-    get DeviceStore() { return WebpackModules.getByProps("getDevices"); },
-    get SoftwareInfo() { return WebpackModules.getByProps("os"); },
-    get i18n() { return WebpackModules.getByProps("Messages", "languages"); },
-    get MediaDeviceInfo() { return WebpackModules.getByProps("Codecs", "MediaEngineContextTypes"); },
-    get MediaInfo() { return WebpackModules.getByProps("getOutputVolume"); },
-    get MediaEngineInfo() { return WebpackModules.getByProps("determineMediaEngine"); },
-    get VoiceInfo() { return WebpackModules.getByProps("getEchoCancellation"); },
-    get SoundModule() { return WebpackModules.getByProps("playSound"); },
-    get WindowInfo() { return WebpackModules.getByProps("isFocused", "windowSize"); },
-    get DOMInfo() { return WebpackModules.getByProps("canUseDOM"); },
-    get LocaleManager() { return WebpackModules.getModule(m => m.Messages && Object.keys(m.Messages).length); },
-    get Moment() { return WebpackModules.getByProps("parseZone"); },
-    get LocationManager() { return WebpackModules.getByProps("createLocation"); },
-    get Timestamps() { return WebpackModules.getByProps("fromTimestamp"); },
-    get Strings() { return WebpackModules.getModule(m => m.Messages && Object.keys(m.Messages).length); },
-    get StringFormats() { return WebpackModules.getByProps("a", "z"); },
-    get StringUtils() { return WebpackModules.getByProps("toASCII"); },
-    get URLParser() { return WebpackModules.getByProps("Url", "parse"); },
-    get ExtraURLs() { return WebpackModules.getByProps("getArticleURL"); },
-    get hljs() { return WebpackModules.getByProps("highlight", "highlightBlock"); },
-    get SimpleMarkdown() { return WebpackModules.getByProps("parseBlock", "parseInline", "defaultOutput"); },
-    get LayerManager() { return WebpackModules.getByProps("popLayer", "pushLayer"); },
-    get UserSettingsWindow() { return WebpackModules.getByProps("open", "updateAccount"); },
-    get ChannelSettingsWindow() { return WebpackModules.getByProps("open", "updateChannel"); },
-    get GuildSettingsWindow() { return WebpackModules.getByProps("open", "updateGuild"); },
-    get ModalActions() { return WebpackModules.getByProps("openModal", "updateModal"); },
-    get ModalStack() { return WebpackModules.getByProps("push", "update", "pop", "popWithKey"); },
-    get UserProfileModals() { return WebpackModules.getByProps("fetchMutualFriends", "setSection"); },
-    get AlertModal() { return WebpackModules.getByPrototypes("handleCancel", "handleSubmit"); },
-    get ConfirmationModal() { return WebpackModules.findByDisplayName("ConfirmModal"); },
-    get ChangeNicknameModal() { return WebpackModules.getByProps("open", "changeNickname"); },
-    get CreateChannelModal() { return WebpackModules.getByProps("open", "createChannel"); },
-    get PruneMembersModal() { return WebpackModules.getByProps("open", "prune"); },
-    get NotificationSettingsModal() { return WebpackModules.getByProps("open", "updateNotificationSettings"); },
-    get PrivacySettingsModal() { return WebpackModules.getModule(m => m.open && m.open.toString().includes("PRIVACY_SETTINGS_MODAL")); },
-    get Changelog() { return WebpackModules.getModule((m => m.defaultProps && m.defaultProps.selectable == false)); },
-    get PopoutStack() { return WebpackModules.getByProps("open", "close", "closeAll"); },
-    get PopoutOpener() { return WebpackModules.getByProps("openPopout"); },
-    get UserPopout() { return WebpackModules.getModule(m => m.type.displayName === "UserPopoutContainer"); },
-    get ContextMenuActions() { return WebpackModules.getByProps("openContextMenu"); },
-    get ContextMenuItemsGroup() { return WebpackModules.getByRegex(/itemGroup/); },
-    get ContextMenuItem() { return WebpackModules.getByRegex(/\\.label\\b.*\\.hint\\b.*\\.action\\b/); },
-    get ExternalLink() { return WebpackModules.getByRegex(/trusted/); },
-    get TextElement() { return WebpackModules.getByDisplayName("LegacyText") ?? WebpackModules.getByProps("Colors", "Sizes"); },
-    get Anchor() { return WebpackModules.getByDisplayName("Anchor"); },
-    get Flex() { return WebpackModules.getByDisplayName("Flex"); },
-    get FlexChild() { return WebpackModules.getByProps("Child"); },
-    get Clickable() { return WebpackModules.getByDisplayName("Clickable"); },
-    get Titles() { return WebpackModules.getByProps("Tags", "default"); },
-    get HeaderBar() { return WebpackModules.getByDisplayName("HeaderBar"); },
-    get TabBar() { return WebpackModules.getByDisplayName("TabBar"); },
-    get Tooltip() { return WebpackModules.getByProps("TooltipContainer").TooltipContainer; },
-    get Spinner() { return WebpackModules.getByDisplayName("Spinner"); },
-    get FormTitle() { return WebpackModules.getByDisplayName("FormTitle"); },
-    get FormSection() { return WebpackModules.getByDisplayName("FormSection"); },
-    get FormNotice() { return WebpackModules.getByDisplayName("FormNotice"); },
-    get ScrollerThin() { return WebpackModules.getByProps("ScrollerThin").ScrollerThin; },
-    get ScrollerAuto() { return WebpackModules.getByProps("ScrollerAuto").ScrollerAuto; },
-    get AdvancedScrollerThin() { return WebpackModules.getByProps("AdvancedScrollerThin").AdvancedScrollerThin; },
-    get AdvancedScrollerAuto() { return WebpackModules.getByProps("AdvancedScrollerAuto").AdvancedScrollerAuto; },
-    get AdvancedScrollerNone() { return WebpackModules.getByProps("AdvancedScrollerNone").AdvancedScrollerNone; },
-    get SettingsWrapper() { return WebpackModules.getByDisplayName("FormItem"); },
-    get SettingsNote() { return WebpackModules.getByDisplayName("FormText"); },
-    get SettingsDivider() { return WebpackModules.getModule(m => !m.defaultProps && m.prototype && m.prototype.render && m.prototype.render.toString().includes("default.divider")); },
-    get ColorPicker() { return WebpackModules.getModule(m => m.displayName === "ColorPicker" && m.defaultProps); },
-    get Dropdown() { return WebpackModules.getByProps("SingleSelect").SingleSelect; },
-    get Keybind() { return WebpackModules.getByPrototypes("handleComboChange"); },
-    get RadioGroup() { return WebpackModules.getByDisplayName("RadioGroup"); },
-    get Slider() { return WebpackModules.getByPrototypes("renderMark"); },
-    get SwitchRow() { return WebpackModules.getByDisplayName("SwitchItem"); },
-    get Textbox() { return WebpackModules.getModule(m => m.defaultProps && m.defaultProps.type == "text"); },
-  },
-
-  ReactComponents: class ReactComponents {
-    static cache = {}
-
-    static getComponentByName = (displayName, selector) => this.getComponent(displayName, selector, m => m.displayName === displayName)
-
-    static getComponent = (displayName, selector, filter) => new Promise((_res) => {
-      if (this.cache[displayName]) return _res(this.cache[displayName]);
-
-      const res = (ret) => {
-        unobs();
-
-        // if (!ret.displayName) ret.displayName = displayName
-
-        _res({
-          id: displayName,
-          component: ret,
-          selector,
-          filter,
-
-          forceUpdateAll: () => {
-            if (!selector) return;
-
-            for (const e of document.querySelectorAll(selector)) {
-              goosemod.reactUtils.findInTree(goosemod.reactUtils.getReactInstance(e), m => m?.forceUpdate, { walkable: ["return", "stateNode"] })?.forceUpdate?.();
-            }
-          }
-        });
-      };
-
-      const check = () => {
-        if (this.cache[displayName]) return res(this.cache[displayName]);
-
-        for (const el of document.querySelectorAll(selector)) {
-          let inst = goosemod.reactUtils.getOwnerInstance(el);
-          if (!inst) continue;
-
-          inst = inst._reactInternals;
-
-          if (!filter) return res(this.cache[displayName] = inst.type);
-
-          while (inst?.return) {
-            if (typeof inst.return?.type === 'string') break;
-            if (filter(inst.return.type)) return res(this.cache[displayName] = inst.return.type);
-
-            inst = inst.return;
-          }
-        }
-      };
-
-      setTimeout(check, 0);
-      const unobs = observe(selector, check);
-    })
-  },
-
-  Utilities: class Utilities {
-    static suppressErrors = (func, label) => (...args) => {
-      try {
-        func(...args);
-      } catch (e) {
-        console.error('Suppressed error for', label, e);
-      }
-    }
-
-    static findInReactTree = goosemod.reactUtils.findInReactTree
-
-    static className(...args) {
-      return args.map(x => {
-        if (Array.isArray(x)) return x;
-        if (typeof x === 'object') return Object.keys(x).filter(y => x[y]);
-
-        return x;
-      }).flat().join(' ');
-    }
-
-    static getNestedProp(parent, route) {
-      return route.split('.').reduce((acc, x) => acc && acc[x], parent);
-    }
-  },
-
-  PluginUtilities: {
-    loadSettings: (name, defaults) => {
-      return Object.assign({}, defaults, BdApi.loadData('zeres', name) ?? {});
-    },
-
-    saveSettings: (name, save) => {
-      BdApi.saveData('zeres', name, save);
-    },
-
-    addStyle: (id, css) => {
-      const el = document.createElement('style');
-      el.appendChild(document.createTextNode(css));
-      document.body.appendChild(el);
-
-      injectedCSS[id] = el;
-    },
-
-    removeStyle: (id) => {
-      injectedCSS[id]?.remove();
-    }
-  },
-
-  ReactTools: {
-    ...goosemod.reactUtils
-  },
-
-  Toasts: {
-    info: (content, options = {}) => showToast(content, { ...options, type: 'info' }),
-    default: (content, options = {}) => showToast(content, { ...options, type: 'default' }),
-
-    success: (content, options = {}) => showToast(content, { ...options, type: 'success' }),
-    warning: (content, options = {}) => showToast(content, { ...options, type: 'warning' }),
-    error: (content, options = {}) => showToast(content, { ...options, type: 'error' }),
-
-    show: showToast
-  },
-
-  ColorConverter: class ColorConverter {
-    static getRGB(color) {
-      if (color.startsWith('rgb(')) {
-        const simple = color.replace('rgb(', '').replace(')', '').replaceAll(' ', '');
-
-        if (color.includes('%')) return simple.replaceAll('%', '').split(',').map(x => parseFloat(x) * 2.55);
-        return simple.split(',').map(x => parseInt(x));
-      }
-
-      if (color.startsWith('#')) {
-        let full = color;
-        if (color.length === 4) full = full + full.slice(1);
-
-        full = parseInt(full.slice(1), 16);
-
-        return [
-          (full >> 16) & 0xFF,
-          (full >> 8) & 0xFF,
-          (full) & 0xFF
-        ];
-      }
-    }
-
-    static rgbToAlpha(color, alpha) {
-      return \`rgba(\${this.getRGB(color).join(', ')}, \${alpha})\`;
-    }
-
-    static _manipulateColor(color, factor) {
-      return \`rgb(\${this.getRGB(color).map(x => Math.round(Math.max(0, Math.min(255, x + x * (factor / 100))))).join(', ')})\`;
-    }
-
-    static darkenColor(color, factor) {
-      return this._manipulateColor(color, -factor);
-    }
-
-    static lightenColor(color, factor) {
-      return this._manipulateColor(color, factor);
-    }
-
-    static _discordModule = goosemod.webpackModules.findByProps('hex2int', 'hex2rgb')
-    static isValidHex(color) { return this._discordModule.isValidHex(color); }
-    static getDarkness(color) { return this._discordModule.getDarkness(color); }
-    static hex2int(color) { return this._discordModule.hex2int(color); }
-    static hex2rgb(color) { return this._discordModule.hex2rgb(color); }
-    static int2hex(color) { return this._discordModule.int2hex(color); }
-    static int2rgba(color, alpha) { return this._discordModule.int2rgba(color, alpha); }
-  },
-
-  ContextMenu: class ContextMenu {
-    static getDiscordMenu(filter) {
-      if (typeof filter === 'string') {
-        const name = filter;
-        filter = x => x.displayName === name;
-      }
-
-      const initial = goosemod.webpackModules.find(filter);
-      return initial ? Promise.resolve(initial) : new Promise(res => {
-        const int = setInterval(() => {
-          const match = goosemod.webpackModules.find(filter);
-          if (!match) return;
-
-          res(match);
-          clearInterval(int);
-        }, 1000);
-      });
-    }
-
-    static buildMenuItem(props) {
-      if (props.type === 'separator') return React.createElement(Context.MenuSeparator);
-
-      let comp = Context.MenuItem;
-      if (props.type === 'submenu' && !props.children) props.children = this.buildMenuChildren(props.render ?? props.items);
-
-      switch (props.type) {
-        case 'toggle':
-          comp = Context.MenuCheckboxItem;
-          break;
-
-        case 'radio':
-          comp = Context.MenuRadioItem;
-          break;
-
-        case 'control':
-          comp = Context.MenuControlItem;
-          break;
-      }
-
-      props.id = props.id ?? props.label.replace(/ /g, '-');
-      if (props.danger) props.color = 'colorDanger';
-      if (props.onClick && !props.action) props.action = props.onClick;
-      props.extended = true;
-
-      return React.createElement(comp, props);
-    }
-
-    static buildMenuChildren(children) {
-      const make = x => {
-        if (x.type === 'group') return React.createElement(ContextMenu.MenuGroup, {}, x.items.map(make).filter(y => y));
-        return this.buildMenuItem(x);
-      };
-
-      return children.map(make).filter(x => x);
-    }
-
-    static buildMenu(children) {
-      return (props) => React.createElement(Context.default, props, this.buildMenuChildren(children))
-    }
-
-    static openContextMenu(event, comp, children) {
-      return ContextActions.openContextMenu(event, (e) => React.createElement(comp, {
-        ...e,
-        onClose: ContextActions.closeContextMenu
-      }), children);
-    }
-  },
-
-  buildPlugin: (config) => {
-    const meta = config.info;
-    const id = meta.name;
-
-    return [
-      class Plugin {
-        constructor() {
-          if (config.defaultConfig) {
-            this.defaultSettings = config.defaultConfig.reduce((acc, x) => {
-              if (x.type === 'category') {
-                acc[x.id] = {};
-                x.settings.forEach(y => acc[x.id][y.id] = y.value);
-              } else acc[x.id] = x.value;
-
-              return acc;
-            }, {});
-
-            this.settings = _.cloneDeep(this.defaultSettings);
-          }
-        }
-
-        start() {
-          this.onStart();
-        }
-
-        stop() {
-          this.onStop();
-        }
-
-        getName() { return meta.name; }
-        getDescription() { return meta.description; }
-        getVersion() { return meta.version; }
-        getAuthor() { return meta.authors.map(x => x.name).join(', '); }
-      },
-
-      {
-        ...api,
-        Patcher: Object.keys(BdApi.Patcher).reduce((acc, x) => { acc[x] = BdApi.Patcher[x].bind(this, id); return acc; }, {})
-      }
-    ];
-  }
-};
-
-ZLibrary = ZeresPluginLibrary = api;
-
-// some plugins require it in global
-global.ZeresPluginLibrary = window.ZeresPluginLibrary = ZeresPluginLibrary;
-global.ZLibrary = window.ZLibrary = ZLibrary;
-})();`,
 
   'drdiscord/global': `let DrApi;
 
@@ -4011,54 +3713,90 @@ VApi = {
 
   '@entities/plugin': `const { React, Flux, FluxDispatcher } = goosemod.webpackModules.common;
 
+const fluxPrefix = 'topaz_un_settings_' + __entityID.replace(/[^A-Za-z0-9]/g, '_');
+const FluxActions = {
+  TOGGLE_SETTING: fluxPrefix + '_toggle_setting',
+  UPDATE_SETTING: fluxPrefix + '_update_setting',
+  DELETE_SETTING: fluxPrefix + '_delete_setting',
+};
+
 class SettingsStore extends Flux.Store {
   constructor (Dispatcher, handlers) {
     super(Dispatcher, handlers);
-    this.store = {};
+    this._store = JSON.parse(topaz.storage.get(__entityID + '_un', '{}') ?? {});
   }
 
-  getSetting = (key, def) => {
-    return this.store[key] ?? def;
+  onChange() {
+    topaz.storage.set(__entityID + '_un', JSON.stringify(this._store));
   }
 
-  updateSetting = (key, value) => {
+  get = (key, def) => {
+    return this._store[key] ?? def;
+  }
+
+  update = (key, value) => {
     if (value === undefined) return this.deleteSetting(key);
 
-    this.store[key] = value;
+    this._store[key] = value;
 
-    this.onChange?.();
+    this.onChange();
 
-    return this.store[key];
+    return this._store[key];
   }
 
-  toggleSetting = (key, def) => {
-    return this.updateSetting(key, !(this.store[key] ?? def));
+  toggle = (key, def) => {
+    return this.updateSetting(key, !(this._store[key] ?? def));
   }
 
-  deleteSetting = (key) => {
-    delete this.store[key];
+  delete = (key) => {
+    delete this._store[key];
 
-    this.onChange?.();
+    this.onChange();
   }
 
-  getKeys = () => Object.keys(this.store)
+  getKeys = () => Object.keys(this._store)
 
-  // alt names for other parts
-  get = this.getSetting
-  set = this.updateSetting
-  toggle = this.toggleSetting
-  delete = this.deleteSetting
+  connectStore = connectStore
 }
+
+const connectStore = (comp) => Flux.connectStores([ settingStore ], () => ({
+  settings: settingStore.store,
+  get: settingStore.get,
+
+  set: (setting, value) => {
+    FluxDispatcher.dispatch({
+      type: FluxActions.UPDATE_SETTING,
+      setting,
+      value
+    });
+  },
+
+  toggle: (setting, defaultValue) => {
+    FluxDispatcher.dispatch({
+      type: FluxActions.TOGGLE_SETTING,
+      setting,
+      defaultValue
+    });
+  },
+
+  delete: (setting) => {
+    FluxDispatcher.dispatch({
+      type: FluxActions.DELETE_SETTING,
+      setting
+    });
+  }
+}))(comp);
+
+const settingStore = new SettingsStore(FluxDispatcher, { // always return true to update properly
+  [FluxActions.TOGGLE_SETTING]: ({ setting, defaultValue }) => settingStore.toggle(setting, defaultValue) || true,
+  [FluxActions.UPDATE_SETTING]: ({ setting, value }) => settingStore.update(setting, value) || true,
+  [FluxActions.DELETE_SETTING]: ({ setting }) => settingStore.delete(setting) || true
+});
 
 
 module.exports = class Plugin {
   constructor() {
-    this.settings = new SettingsStore(FluxDispatcher, {
-      UNBOUND_SETTINGS_UPDATE: ({ category, settings }) => updateSettings(category, settings),
-      UNBOUND_SETTING_TOGGLE: ({ category, setting, defaultValue }) => toggleSetting(category, setting, defaultValue),
-      UNBOUND_SETTING_UPDATE: ({ category, setting, value }) => updateSetting(category, setting, value),
-      UNBOUND_SETTING_DELETE: ({ category, setting }) => deleteSetting(category, setting)
-    });
+    this.settings = settingStore;
 
     this.unpatches = [];
   }
@@ -4102,54 +3840,90 @@ module.exports = class Plugin {
 }`,
   '@structures/plugin': `const { React, Flux, FluxDispatcher } = goosemod.webpackModules.common;
 
+const fluxPrefix = 'topaz_un_settings_' + __entityID.replace(/[^A-Za-z0-9]/g, '_');
+const FluxActions = {
+  TOGGLE_SETTING: fluxPrefix + '_toggle_setting',
+  UPDATE_SETTING: fluxPrefix + '_update_setting',
+  DELETE_SETTING: fluxPrefix + '_delete_setting',
+};
+
 class SettingsStore extends Flux.Store {
   constructor (Dispatcher, handlers) {
     super(Dispatcher, handlers);
-    this.store = {};
+    this._store = JSON.parse(topaz.storage.get(__entityID + '_un', '{}') ?? {});
   }
 
-  getSetting = (key, def) => {
-    return this.store[key] ?? def;
+  onChange() {
+    topaz.storage.set(__entityID + '_un', JSON.stringify(this._store));
   }
 
-  updateSetting = (key, value) => {
+  get = (key, def) => {
+    return this._store[key] ?? def;
+  }
+
+  update = (key, value) => {
     if (value === undefined) return this.deleteSetting(key);
 
-    this.store[key] = value;
+    this._store[key] = value;
 
-    this.onChange?.();
+    this.onChange();
 
-    return this.store[key];
+    return this._store[key];
   }
 
-  toggleSetting = (key, def) => {
-    return this.updateSetting(key, !(this.store[key] ?? def));
+  toggle = (key, def) => {
+    return this.updateSetting(key, !(this._store[key] ?? def));
   }
 
-  deleteSetting = (key) => {
-    delete this.store[key];
+  delete = (key) => {
+    delete this._store[key];
 
-    this.onChange?.();
+    this.onChange();
   }
 
-  getKeys = () => Object.keys(this.store)
+  getKeys = () => Object.keys(this._store)
 
-  // alt names for other parts
-  get = this.getSetting
-  set = this.updateSetting
-  toggle = this.toggleSetting
-  delete = this.deleteSetting
+  connectStore = connectStore
 }
+
+const connectStore = (comp) => Flux.connectStores([ settingStore ], () => ({
+  settings: settingStore.store,
+  get: settingStore.get,
+
+  set: (setting, value) => {
+    FluxDispatcher.dispatch({
+      type: FluxActions.UPDATE_SETTING,
+      setting,
+      value
+    });
+  },
+
+  toggle: (setting, defaultValue) => {
+    FluxDispatcher.dispatch({
+      type: FluxActions.TOGGLE_SETTING,
+      setting,
+      defaultValue
+    });
+  },
+
+  delete: (setting) => {
+    FluxDispatcher.dispatch({
+      type: FluxActions.DELETE_SETTING,
+      setting
+    });
+  }
+}))(comp);
+
+const settingStore = new SettingsStore(FluxDispatcher, { // always return true to update properly
+  [FluxActions.TOGGLE_SETTING]: ({ setting, defaultValue }) => settingStore.toggle(setting, defaultValue) || true,
+  [FluxActions.UPDATE_SETTING]: ({ setting, value }) => settingStore.update(setting, value) || true,
+  [FluxActions.DELETE_SETTING]: ({ setting }) => settingStore.delete(setting) || true
+});
 
 
 module.exports = class Plugin {
   constructor() {
-    this.settings = new SettingsStore(FluxDispatcher, {
-      UNBOUND_SETTINGS_UPDATE: ({ category, settings }) => updateSettings(category, settings),
-      UNBOUND_SETTING_TOGGLE: ({ category, setting, defaultValue }) => toggleSetting(category, setting, defaultValue),
-      UNBOUND_SETTING_UPDATE: ({ category, setting, value }) => updateSetting(category, setting, value),
-      UNBOUND_SETTING_DELETE: ({ category, setting }) => deleteSetting(category, setting)
-    });
+    this.settings = settingStore;
 
     this.unpatches = [];
   }
@@ -4398,7 +4172,7 @@ module.exports = {
   '@cumcord/modules/webpack': `module.exports = cumcord.modules.webpack;`,
   '@cumcord/modules/webpackModules': `module.exports = cumcord.modules.webpack;`,
   '@cumcord/modules/common': 'module.exports = cumcord.modules.common;',
-  '@cumcord/modules/common/i18n': 'module.exports = cumcord.modules.common.i18n;',
+  ...['i18n', 'constants', 'FluxDispatcher'].reduce((acc, x) => { acc[`@cumcord/modules/common/${x}`] = `module.exports = cumcord.modules.common.${x};`; return acc; }, {}),
   '@cumcord/modules': 'module.exports = cumcord.modules;',
   '@cumcord/patcher': `module.exports = cumcord.patcher;`,
   '@cumcord/utils': `module.exports = cumcord.utils;`,
@@ -4501,6 +4275,7 @@ cumcord.modules.webpackModules = cumcord.modules.webpack;
 
   '@rikka/Common/entities/Plugin': `module.exports = class RikkaPlugin {
   _topaz_start() {
+    this.preInject.bind(this)();
     this.inject.bind(this)();
   }
 
@@ -4946,29 +4721,305 @@ demon = {
   'path': `const resolve = (x) => {
   let ind;
   if (x.startsWith('./')) x = x.substring(2);
-  x = x.replaceAll('./', '/').replaceAll('//', '/'); // example/./test -> example/test
+  x = x.replaceAll('/./', '/').replaceAll('//', '/'); // example/./test -> example/test
 
-  while (ind = x.indexOf('../') !== -1) x = x.slice(0, ind) + x.slice(ind + 3); // example/test/../sub -> example/sub
+  while ((ind = x.indexOf('../')) !== -1) {
+      const priorSlash = x.lastIndexOf('/', ind - 4);
+      x = x.slice(0, priorSlash === -1 ? 0 : (priorSlash + 1)) + x.slice(ind + 3); // example/test/../sub -> example/sub
+  }
 
   return x;
 };
 
 module.exports = {
   join: (...parts) => resolve(parts.join('/')),
-  resolve: (...parts) => resolve(parts.join('/')) // todo: implement resolve properly (root / overwrite)
+  resolve: (...parts) => resolve(parts.join('/')), // todo: implement resolve properly (root / overwrite)
+
+  isAbsolute: p => p.startsWith('/') || !!p.match(/^[A-Z]:\\\\/)
 };`,
-  'fs': `module.exports = {
-  readdirSync: path => []
+  'fs': `const strToBuf = str => {
+  const buf = new ArrayBuffer(str.length);
+  const bufView = new Uint8Array(buf);
+
+  for (let i = 0; i < str.length; i++) {
+    bufView[i] = str.charCodeAt(i);
+  }
+
+  return buf;
+};
+
+const syncRequest = (url, useBuffer) => {
+  let resp = topaz.internal.fetchCache.get(url);
+
+  if (!resp) {
+    const request = new XMLHttpRequest();
+    request.open('GET', url, false);
+    if (useBuffer) request.overrideMimeType('text\\/plain; charset=x-user-defined');
+    request.send(null);
+
+    if (request.status !== 200) return;
+
+    resp = request.responseText;
+    topaz.internal.fetchCache.set(url, resp);
+  }
+
+  return resp;
+};
+
+module.exports = {
+  readdirSync: path => {
+    const isRepo = __entityID.split('/').length === 2;
+
+    topaz.log('fs.readdirSync', path);
+
+    if (isRepo) {
+      const url = \`https://api.github.com/repos/\${__entityID}/contents/\${path}\`;
+
+      const resp = syncRequest(url, false);
+
+      if (!resp) return [];
+
+      return JSON.parse(resp).map(x => x.name);
+    }
+
+    return [];
+  },
+  writeFile: (path, data, cb) => {},
+
+  readFileSync: (path, encoding) => {
+    const isRepo = __entityID.split('/').length === 2;
+
+    topaz.log('fs.readFileSync', path, encoding);
+
+    if (isRepo) {
+      const url = \`https://raw.githubusercontent.com/\${__entityID}/HEAD/\${path}\`;
+      const useBuffer = encoding == null;
+
+      const resp = syncRequest(url, useBuffer);
+
+      if (useBuffer) {
+        const buffer = strToBuf(resp);
+
+        buffer.toString = function() { return new TextDecoder().decode(this); };
+        buffer.buffer = buffer;
+
+        return buffer;
+      } else return resp;
+    }
+  },
+
+  promises: {
+    readFile: async (path, encoding) => {
+      topaz.log('fs.promises.readFile', path, encoding);
+
+      const isRepo = __entityID.split('/').length === 2;
+
+      if (isRepo) {
+        const url = \`https://raw.githubusercontent.com/\${__entityID}/HEAD/\${path}\`;
+
+        return await (await fetch(url)).text();
+      }
+    }
+  }
 };`,
   'process': `module.exports = {
   platform: 'linux',
   env: {
     HOME: '/home/topaz'
+  },
+
+  hrtime: (toDiff) => {
+    const stamp = Math.floor(performance.now());
+    const sec = Math.floor(stamp / 1000);
+    const nano = (stamp % 1000) * 1000 * 1000;
+
+    if (!toDiff) return [ sec, nano ];
+
+    return [ Math.abs(sec - toDiff[0]), Math.abs(nano - toDiff[1]) ]
   }
 };`,
-  'request': `module.exports = {};`,
+  'util': `const formatString = msg => {
+  let char = "'";
+  if (msg.includes("'")) char = '"';
+  if (char === '"' && msg.includes('"')) char = '\`';
+  if (char === '\`' && msg.includes('\`')) msg = msg.replaceAll('\`', '\\\\\`');
+
+  return char + msg + char;
+};
+
+const objectKey = key => {
+  if (key.match(/[^0-9a-zA-Z_]/)) return formatString(key);
+  return key;
+};
+
+const inspect = msg => {
+  if (msg === null) return 'null';
+  if (msg === undefined) return 'undefined';
+
+  if (msg === true) return 'true';
+  if (msg === false) return 'false';
+
+  if (typeof msg === 'string') return formatString(msg);
+
+  if (Array.isArray(msg)) return \`[ \${msg.map(x => inspect(x)).join(', ')} ]\`;
+
+  if (typeof msg === 'object') return \`{ \${Object.keys(msg).map(x => \`\${objectKey(x)}: \${inspect(msg[x])}\`).join(', ')} }\`;
+
+  return msg;
+};
+
+module.exports = {
+  inspect
+};`,
+  'request': `const https = require('https');
+
+// Generic polyfill for "request" npm package, wrapper for https
+const nodeReq = ({ method, url, headers, qs, timeout, body }) => new Promise((resolve) => {
+  let req;
+  try {
+    req = https.request(url + (qs != null ? \`?\${(new URLSearchParams(qs)).toString()}\` : ''), { method, headers, timeout }, async (res) => {
+      resolve(res);
+    });
+  } catch (e) {
+    return resolve(e);
+  }
+
+  req.on('error', resolve);
+
+  if (body) req.write(body); // Write POST body if included
+
+  req.end();
+});
+
+const request = (...args) => {
+  topaz.log('node.request', ...args);
+  let options, callback;
+  switch (args.length) {
+    case 3: // request(url, options, callback)
+      options = {
+        url: args[0],
+        ...args[1]
+      };
+
+      callback = args[2];
+      break;
+
+    default: // request(url, callback) / request(options, callback)
+      options = args[0];
+      callback = args[1];
+  }
+
+  if (typeof options === 'string') {
+    options = {
+      url: options
+    };
+  }
+
+  const listeners = {};
+
+  nodeReq(options).then(async (res) => {
+    if (!res.statusCode) {
+      listeners['error']?.(res);
+      return callback?.(res, null, null);
+    }
+
+    listeners['response']?.(res);
+
+    let data = [];
+    res.on('data', (chunk) => {
+      data.push(chunk);
+      listeners['data']?.(chunk);
+    });
+
+    await new Promise((resolve) => res.on('end', resolve)); // Wait to read full body
+
+    // const buf = Buffer.concat(data);
+    const buf = new Uint8Array(...data).buffer;
+    buf.toString = function() { return new TextDecoder().decode(this); };
+
+    callback?.(undefined, res, options.encoding !== null ? buf.toString() : buf);
+  });
+
+  const ret = {
+    on: (type, handler) => {
+      listeners[type] = handler;
+      return ret; // Return self
+    }
+  };
+
+  return ret;
+};
+
+for (const m of [ 'get', 'post', 'put', 'patch', 'delete', 'head', 'options' ]) {
+  request[m] = (url, callback) => request({ url, method: m }, callback);
+}
+request.del = request.delete; // Special case
+
+module.exports = request;`,
+  'https': `const request = (...args) => {
+  topaz.log('node.https', ...args);
+
+  let opts, cb;
+  if (args.length === 2) {
+    opts = args[0];
+    cb = args[1];
+  }
+
+  if (args.length === 3) {
+    const url = new URL(args[0]);
+
+    opts = {
+      hostname: url.hostname,
+      path: url.pathname,
+      port: url.protocol === 'https:' ? 443 : 80,
+      ...args[1]
+    };
+
+    cb = args[2];
+  }
+
+  const { method, headers, timeout, hostname, path, port } = opts;
+
+  const url = \`\${port === 443 ? 'https' : 'http'}://\${hostname}\${path}\`;
+
+  const listeners = {};
+
+  return {
+    write: (body) => {},
+    end: async () => {
+      const req = await fetch(url, {
+        method,
+        headers
+      });
+
+      cb({
+        statusCode: req.status,
+        headers: req.headers,
+
+        on: (ev, handler) => listeners[ev] = handler
+      });
+
+      const data = await req.arrayBuffer();
+
+      listeners.data(data);
+
+      listeners.end();
+    },
+    on: (ev, handler) => listeners[ev] = handler
+  };
+};
+
+module.exports = {
+  request
+};`,
   'querystring': `module.exports = {
   stringify: x => new URLSearchParams(x).toString()
+};`,
+  'os': `module.exports = {
+  platform: () => 'linux'
+};`,
+  'url': `module.exports = {
+  URL
 };`,
 };
 
@@ -4980,6 +5031,10 @@ class Cache {
     this.store = {};
 
     this.load();
+  }
+
+  async fetch(url) {
+    return this.get(url) ?? this.set(url, await (await fetch(url)).text());
   }
 
   get(key, def) {
@@ -5065,6 +5120,8 @@ const autoImportReact = (code) => { // auto import react for jsx if not imported
 const makeChunk = async (root, p) => {
   // console.log('makeChunk', p);
 
+  if (p.endsWith('/') && builtins[p.slice(0, -1)]) p = p.slice(0, -1);
+
   const shouldUpdateFetch = !builtins[p];
   if (shouldUpdateFetch) {
     fetchProgressTotal++;
@@ -5073,7 +5130,6 @@ const makeChunk = async (root, p) => {
 
   const joined = (root + '/' + p).replace(transformRoot, '');
   let resPath = builtins[p] ? p : resolvePath(joined).slice(1);
-  if (builtins[p + '/']) resPath = p.slice(0, -1);
 
   const resolved = await resolveFileFromTree(resPath);
   console.log('CHUNK', genId(resPath), '|', root.replace(transformRoot, ''), p, '|', joined, resPath, resolved);
@@ -5102,11 +5158,28 @@ const makeChunk = async (root, p) => {
     };`;
   }
 
+  code = await replaceAsync(code, /require\.resolve\(['"`](.*?)['"`]\)/g, async (_, toRes) => '`' + await resolveFileFromTree(toRes) + '`');
+
   const chunk = `// ${finalPath}
 let ${id} = {};
-(() => { // MAP_START|${finalPath}
-` + code.replace('module.exports =', `${id} =`).replace('export default', `${id} =`).replaceAll(/(module\.)?exports\.(.*?)=/g, (_, _mod, key) => `${id}.${key}=`).replaceAll(/export const (.*?)=/g, (_, key) => `${id}.${key}=`) + `
-})(); // MAP_END`;
+(() => {
+const __dirname = '${getDir(finalPath)}';
+let module = {
+  exports: {}
+};
+let { exports } = module;
+
+// MAP_START|${finalPath}
+` + code
+      // .replace(/module\.exports ?=/, `${id} =`)
+      .replace('export default', `module.exports =`)
+      // .replaceAll(/(module\.)?exports\.(.*?)/g, (_, _mod, key) => `${id}.${key}`)
+      .replaceAll(/export const (.*?)=/g, (_, key) => `const ${key} = exports.${key}=`)
+      .replaceAll(/export function (.*?)\(/g, (_, key) => `const ${key} = exports.${key} = function ${key}(`)
+      .replaceAll(/export class ([^ ]*)/g, (_, key) => `const ${key} = exports.${key} = class ${key}`) +
+`\n// MAP_END
+${id} = module.exports;
+})();`;
 
   if (shouldUpdateFetch) {
     fetchProgressCurrent++;
@@ -5245,10 +5318,23 @@ const resolveFileFromTree = async (path) => {
 
         console.log('PACKAGE', package.main);
 
-        res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/' + package.main))?.path;
+        res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '') + '/' + package.main.toLowerCase()))?.path;
       }
     }
   } else res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(path.toLowerCase().replace('./', '')))?.path;
+
+  const lastPart = path.split('/').pop();
+  if (!res && tree.find(x => x.type === 'tree' && x.path.toLowerCase().startsWith('node_modules/' + lastPart))) {
+    const depRoot = `node_modules/${lastPart}`;
+    const packagePath = depRoot + '/package.json';
+
+    const package = JSON.parse(await getCode(transformRoot, './' + packagePath));
+
+    if (package.main.startsWith('/')) package.main = package.main.slice(1);
+    if (package.main.startsWith('./')) package.main = package.main.slice(2);
+
+    res = tree.find((x) => x.type === 'blob' && x.path.toLowerCase().startsWith(depRoot.toLowerCase() + '/' + package.main.toLowerCase()))?.path;
+  }
 
   if (!builtins[path] && (path.startsWith('powercord/') || path.startsWith('@'))) {
     console.warn('Missing builtin', path);
@@ -5257,6 +5343,7 @@ const resolveFileFromTree = async (path) => {
     console.warn('Failed to resolve', path);
     lastError = `Failed to resolve: ${path}`;
   }
+
 
   return res ? ('./' + res) : undefined;
 };
@@ -5307,11 +5394,11 @@ const install = async (info, settings = undefined, disabled = false) => {
 
     tree = [];
     if (isGitHub) {
-      tree = (await (await fetch(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`)).json()).tree;
+      tree = JSON.parse(await fetchCache.fetch(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`)).tree;
 
       if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
 
-      console.log('tree', tree);
+      log('bundler', 'tree', tree);
     }
 
     updatePending(info, 'Fetching index...');
@@ -5654,6 +5741,8 @@ const install = async (info, settings = undefined, disabled = false) => {
 
         for (const x of [ 'name', 'description', 'version', 'author' ]) manifest[x] = plugin['get' + x.toUpperCase()[0] + x.slice(1)]?.() ?? manifest[x] ?? '';
 
+        if (plugin.load) plugin.load();
+
         if (plugin.getSettingsPanel) plugin.__settings = {
           render: class BDSettingsWrapper extends React.PureComponent {
             constructor(props) {
@@ -5664,7 +5753,7 @@ const install = async (info, settings = undefined, disabled = false) => {
             }
 
             componentDidMount() {
-              if (this.ret instanceof Node) this.ref.current.appendChild(ret);
+              if (this.ret instanceof Node) this.ref.current.appendChild(this.ret);
             }
 
             render() {
@@ -5716,16 +5805,7 @@ const install = async (info, settings = undefined, disabled = false) => {
 
         break;
 
-      case 'pc':
-        if (settings) plugin.settings.store = settings;
-        plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
-
-        break;
-
       case 'un':
-        if (settings) plugin.settings.store = settings;
-        plugin.settings.onChange = () => savePlugins(); // Re-save plugin settings on change
-
         if (plugin.getSettingsPanel) plugin.__settings = {
           render: plugin.getSettingsPanel(),
           props: {
@@ -5877,9 +5957,11 @@ const displayMod = (mod) => {
   }
 };
 
-const mapifyBuiltin = async (builtin) => `// MAP_START|${builtin}
-${await includeRequires('', builtins[builtin])}
-// MAP_END\n\n`;
+const mapifyBuiltin = async (builtin) => {
+  return `// MAP_START|${builtin}
+${await includeRequires('', await builtins[builtin])}
+// MAP_END\n\n`
+};
 
 let transformRoot;
 const transform = async (path, code, mod) => {
@@ -5893,20 +5975,13 @@ const transform = async (path, code, mod) => {
 
   let indexCode = await includeRequires(path, code);
 
-  /* code = Object.values(chunks).join('\n\n') + `\n// MAP_START|${'.' + path.replace(transformRoot, '')}
-${code}
-// MAP_END`; */
-
-  /* let out = await mapifyBuiltin(fullMod(mod) + '/global') +
-    ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '');
-
-  out = Object.values(chunks).join('\n\n') + '\n\n' + out + `// MAP_START|${'.' + path.replace(transformRoot, '')}
-${indexCode}
-// MAP_END`; */
+  // do above so added to chunks
+  const subGlobal = ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '')
+    + (code.includes('BDFDB_Global') ? await mapifyBuiltin('betterdiscord/libs/bdfdb') : '');
 
   let out = await mapifyBuiltin(fullMod(mod) + '/global') +
-  ((code.includes('ZeresPluginLibrary') || code.includes('ZLibrary')) ? await mapifyBuiltin('betterdiscord/libs/zeres') : '') +
   Object.values(chunks).join('\n\n') + '\n\n' +
+  subGlobal +
     `// MAP_START|${'.' + path.replace(transformRoot, '')}
 ${replaceLast(indexCode, 'export default', 'module.exports =').replaceAll(/export const (.*?)=/g, (_, key) => `module.exports.${key}=`)}
 // MAP_END`;
@@ -5955,6 +6030,23 @@ const setDisabled = (key, disabled) => {
 };
 
 const purgeCacheForPlugin = (info) => {
+  let [ repo, branch ] = info.split('@');
+  if (!branch) branch = 'HEAD'; // default to HEAD
+
+  let isGitHub = !info.startsWith('http');
+
+  let subdir;
+  if (isGitHub) { // todo: check
+    const spl = info.split('/');
+    if (spl.length > 2) { // Not just repo
+      repo = spl.slice(0, 2).join('/');
+      subdir = spl.slice(4).join('/');
+      branch = spl[3] ?? 'HEAD';
+    }
+  }
+
+  if (isGitHub && repo) fetchCache.remove(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=true`); // remove gh api cache
+
   finalCache.remove(info); // remove final cache
   fetchCache.keys().filter(x => x.includes(info.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).forEach(y => fetchCache.remove(y)); // remove fetch caches
 };
@@ -6039,6 +6131,8 @@ window.topaz = {
     cssEl.remove();
     attrs.remove();
 
+    if (typeof Terminal !== 'undefined') Terminal();
+
     msgUnpatch();
     settingsUnpatch();
   },
@@ -6056,6 +6150,7 @@ window.topaz = {
 
     plugins,
     fetchCache,
+    finalCache,
     builtins
   },
 
@@ -6065,1196 +6160,6 @@ window.topaz = {
 
   log
 };
-
-log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)}ms`);
-
-(async () => {
-  const disabled = JSON.parse(Storage.get('disabled') ?? '{}');
-
-  for (const p in pluginsToInstall) {
-    let settings = pluginsToInstall[p];
-    if (typeof settings === 'object' && Object.keys(settings).length === 0) settings = undefined; // {} -> undefined
-
-    await install(p, settings, disabled[p] ?? false);
-  }
-
-  try { updateOpenSettings(); } catch { }
-})();
-
-const activeSnippets = {};
-const startSnippet = async (file, content) => {
-  let code;
-
-  if (file.endsWith('css')) {
-    code = await transformCSS('https://discord.com/channels/@me', content, !file.endsWith('scss'), false);
-
-    const cssEl = document.createElement('style');
-    cssEl.appendChild(document.createTextNode(code));
-    document.body.appendChild(cssEl);
-
-    activeSnippets[file] = () => cssEl.remove();
-  } else if (file.includes('.js')) {
-    code = await transform('https://discord.com/channels/@me', content, 'pc');
-    const ret = eval(code);
-
-    activeSnippets[file] = () => {}; // no way to stop?
-    if (typeof ret === 'function') activeSnippets[file] = ret; // if returned a function, guess it's a stop handler
-  }
-};
-const stopSnippet = (file) => activeSnippets[file]?.();
-
-
-const snippets = JSON.parse(Storage.get('snippets') ?? '{}');
-const snippetsToggled = JSON.parse(Storage.get('snippets_toggled') ?? '{}');
-for (const snippet in snippets) {
-  if (snippetsToggled[snippet]) startSnippet(snippet, snippets[snippet]);
-}
-
-let popular;
-(async () => { // Load async as not important / needed right away
-  popular = await (await fetch(`https://goosemod.github.io/topaz/popular.json`)).json();
-})();
-
-const updateOpenSettings = async () => {
-  if (!document.querySelector('.selected-g-kMVV[aria-controls="topaz-tab"]')) return;
-
-  try {
-    await new Promise((res) => setTimeout(res, 10));
-
-    const prevScroll = document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop;
-
-    goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('Advanced');
-    goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('Topaz');
-
-    document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop = prevScroll;
-  } catch { }
-};
-
-const { React, ReactDOM } = goosemod.webpackModules.common;
-
-const TabBar = goosemod.webpackModules.findByDisplayName('TabBar');
-const TabBarClasses1 = goosemod.webpackModules.findByProps('topPill');
-const TabBarClasses2 = goosemod.webpackModules.findByProps('tabBar', 'nowPlayingColumn')
-
-const ScrollerClasses = goosemod.webpackModules.findByProps('scrollerBase', 'thin');
-
-let selectedTab = 'PLUGINS';
-let textInputs = {
-  PLUGINS: '',
-  THEMES: ''
-};
-
-const Text = goosemod.webpackModules.find(x => x.Text?.displayName === 'Text').Text;
-const Heading = goosemod.webpackModules.findByProps('Heading').Heading;
-const Breadcrumbs = goosemod.webpackModules.findByDisplayName('Breadcrumbs');
-const BreadcrumbClasses = goosemod.webpackModules.findByProps('breadcrumbActive');
-const Button = goosemod.webpackModules.findByProps('Sizes', 'Colors', 'Looks', 'DropdownSizes');
-const LegacyText = goosemod.webpackModules.findByDisplayName('LegacyText');
-const Spinner = goosemod.webpackModules.findByDisplayName('Spinner');
-const PanelButton = goosemod.webpackModules.findByDisplayName('PanelButton');
-const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
-const Markdown = goosemod.webpackModules.find((x) => x.displayName === 'Markdown' && x.rules);
-const DropdownArrow = goosemod.webpackModules.findByDisplayName('DropdownArrow');
-const HeaderBarContainer = goosemod.webpackModules.findByDisplayName('HeaderBarContainer');
-const FormItem = goosemod.webpackModules.findByDisplayName('FormItem');
-const TextInput = goosemod.webpackModules.findByDisplayName('TextInput');
-const Flex = goosemod.webpackModules.findByDisplayName('Flex');
-const Margins = goosemod.webpackModules.findByProps('marginTop20', 'marginBottom20');
-const _Switch = goosemod.webpackModules.findByDisplayName('Switch');
-const Tooltip = goosemod.webpackModules.findByDisplayName('Tooltip');
-
-const TextAndChild = goosemod.settings.Items['text-and-child'];
-const TextAndButton = goosemod.settings.Items['text-and-button'];
-const TextAndToggle = goosemod.settings.Items['toggle'];
-const Divider = goosemod.settings.Items['divider'];
-
-class Switch extends React.PureComponent {
-  render() {
-    return React.createElement(_Switch, {
-      checked: this.props.checked,
-      onChange: x => {
-        this.props.checked = x;
-        this.forceUpdate();
-
-        this.props.onChange(x);
-      }
-    })
-  }
-}
-
-class TZErrorBoundary extends React.PureComponent {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      error: false
-    };
-  }
-
-  componentDidCatch(error, moreInfo) {
-    console.log('honk', {error, moreInfo});
-
-    const errorStack = decodeURI(error.stack.split('\n').filter((x) => !x.includes('/assets/')).join('\n'));
-    const componentStack = decodeURI(moreInfo.componentStack.split('\n').slice(1, 9).join('\n'));
-
-
-    const suspectedPlugin = errorStack.match(/\((.*) \| GM Module:/)?.[1] ?? componentStack.match(/\((.*) \| GM Module:/)?.[1] ??
-      errorStack.match(/\((.*) \| Topaz:/)?.[1] ?? componentStack.match(/\((.*) \| Topaz:/)?.[1];
-
-    let suspectedName = suspectedPlugin ?? 'Unknown';
-    const suspectedType = suspectedPlugin ? 'Plugin' : 'Cause';
-
-    if (suspectedName === 'Unknown') {
-      if (errorStack.includes('GooseMod')) {
-        suspectedName = 'GooseMod Internals';
-      }
-
-      if (errorStack.includes('Topaz')) {
-        suspectedName = 'Topaz Internals';
-      }
-
-      if (errorStack.toLowerCase().includes('powercord') || errorStack.toLowerCase().includes('betterdiscord')) {
-        suspectedName = 'Other Mods';
-      }
-    }
-
-    this.setState({
-      error: true,
-
-      suspectedCause: {
-        name: suspectedName,
-        type: suspectedType
-      },
-
-      errorStack: {
-        raw: error.stack,
-        useful: errorStack
-      },
-
-      componentStack: {
-        raw: moreInfo.componentStack,
-        useful: componentStack
-      }
-    });
-  }
-
-  render() {
-    if (this.state.toRetry) {
-      this.state.error = false;
-    }
-
-    setTimeout(() => {
-      this.state.toRetry = true;
-    }, 100);
-
-    return this.state.error ? React.createElement('div', {
-      className: 'gm-error-boundary'
-    },
-      React.createElement('div', {},
-        React.createElement('div', {}),
-
-        React.createElement(FormTitle, {
-          tag: 'h1'
-        }, this.props.header ?? 'Topaz has handled an error',
-          (this.props.showSuspected ?? true) ? React.createElement(Markdown, {}, `## Suspected ${this.state.suspectedCause.type}: ${this.state.suspectedCause.name}`) : null
-        )
-      ),
-
-      React.createElement('div', {},
-        React.createElement(Button, {
-          color: Button.Colors.BRAND,
-          size: Button.Sizes.LARGE,
-
-          onClick: () => {
-            this.state.toRetry = true;
-            this.forceUpdate();
-          }
-        }, 'Retry'),
-
-        React.createElement(Button, {
-          color: Button.Colors.RED,
-          size: Button.Sizes.LARGE,
-
-          onClick: () => {
-            location.reload();
-          }
-        }, 'Refresh')
-      ),
-
-      React.createElement('div', {
-        onClick: () => {
-          this.state.toRetry = false;
-          this.state.showDetails = !this.state.showDetails;
-          this.forceUpdate();
-        }
-      },
-        React.createElement('div', {
-          style: {
-            transform: `rotate(${this.state.showDetails ? '0' : '-90'}deg)`
-          },
-        },
-          React.createElement(DropdownArrow, {
-            width: 24,
-            height: 24
-          })
-        ),
-
-        this.state.showDetails ? 'Hide Details' : 'Show Details'
-      ),
-
-      this.state.showDetails ? React.createElement('div', {},
-        React.createElement(Markdown, {}, `# Error Stack`),
-        React.createElement(Markdown, {}, `\`\`\`
-${this.state.errorStack.useful}
-\`\`\``),
-        React.createElement(Markdown, {}, `# Component Stack`),
-        React.createElement(Markdown, {}, `\`\`\`
-${this.state.componentStack.useful}
-\`\`\``),
-        /* React.createElement(Markdown, {}, `# Debug Info`),
-        React.createElement(Markdown, {}, `\`\`\`
-${goosemod.genDebugInfo()}
-\`\`\``) */
-      ) : null
-    ) : this.props.children;
-  }
-}
-
-const openSub = (plugin, type, _content) => {
-  const useModal = topazSettings.modalPages;
-
-  const breadcrumbBase = {
-    activeId: '0',
-    breadcrumbs: useModal ? [
-      { id: '1', label: plugin },
-      { id: '0', label: type[0].toUpperCase() + type.slice(1) },
-    ] : [
-      { id: '1', label: 'Topaz' },
-      { id: '0', label: plugin + ' ' + type[0].toUpperCase() + type.slice(1) }
-      /* { id: '1', label: plugin },
-      { id: '0', label: type[0].toUpperCase() + type.slice(1) }, */
-    ],
-
-    onBreadcrumbClick: (x) => {},
-  };
-
-  const content = React.createElement(TZErrorBoundary, {
-    header: 'Topaz failed to render ' + type + ' for ' + plugin,
-    showSuspected: false
-  }, _content);
-
-  if (useModal) {
-    const LegacyHeader = goosemod.webpackModules.findByDisplayName('LegacyHeader');
-
-    openSub_modal(React.createElement(Breadcrumbs, {
-      ...breadcrumbBase,
-      renderCustomBreadcrumb: ({ label }, active) => React.createElement(LegacyHeader, {
-        tag: 'h2',
-        size: LegacyHeader.Sizes.SIZE_20,
-        className: active ? BreadcrumbClasses.breadcrumbActive : BreadcrumbClasses.breadcrumbInactive
-      }, label)
-    }), content, type);
-  } else {
-    const titleClasses = goosemod.webpackModules.findByProps('h1');
-
-    openSub_page(React.createElement(FormTitle, {
-      tag: 'h1',
-    },
-      React.createElement(Breadcrumbs, {
-        ...breadcrumbBase,
-        onBreadcrumbClick: ({ id, label }) => {
-          if (id === '1') updateOpenSettings();
-        },
-        renderCustomBreadcrumb: ({ label }, active) => React.createElement('span', {
-          className: titleClasses.h1 + ' ' + (active ? BreadcrumbClasses.breadcrumbActive : BreadcrumbClasses.breadcrumbInactive)
-        }, label)
-      })
-    ), content, type);
-  }
-};
-
-const openSub_page = (header, content, type) => {
-  ReactDOM.render(React.createElement('div', {
-    className: `topaz-${type}-page`
-  },
-    header,
-
-    content
-  ), document.querySelector('.topaz-settings'));
-};
-
-const openSub_modal = (header, content, type) => {
-  const ModalStuff = goosemod.webpackModules.findByProps('ModalRoot');
-  const { openModal } = goosemod.webpackModules.findByProps('openModal', 'updateModal');
-  const Flex = goosemod.webpackModules.findByDisplayName('Flex');
-
-  openModal((e) => {
-    return React.createElement(ModalStuff.ModalRoot, {
-      transitionState: e.transitionState,
-      size: 'large'
-    },
-      React.createElement(ModalStuff.ModalHeader, {},
-        React.createElement(Flex.Child, {
-          basis: 'auto',
-          grow: 1,
-          shrink: 1,
-          wrap: false,
-        },
-          header
-        ),
-        React.createElement('FlexChild', {
-          basis: 'auto',
-          grow: 0,
-          shrink: 1,
-          wrap: false
-        },
-          React.createElement(ModalStuff.ModalCloseButton, {
-            onClick: e.onClose
-          })
-        )
-      ),
-
-      React.createElement(ModalStuff.ModalContent, {
-        className: `topaz-modal-content topaz-${type}-modal-content`
-      },
-        content
-      )
-    )
-  });
-};
-
-class Plugin extends React.PureComponent {
-  render() {
-    const { manifest, repo, state, substate, settings, entityID, mod, isTheme } = this.props;
-
-    return React.createElement(TextAndChild, {
-      text: !manifest ? repo : [
-        !mod ? null : React.createElement(Tooltip, {
-          text: displayMod(mod),
-          position: 'top'
-        }, ({ onMouseLeave, onMouseEnter }) => React.createElement('span', {
-            className: 'topaz-tag',
-
-            onMouseEnter,
-            onMouseLeave
-          }, mod.toUpperCase()),
-        ),
-
-        manifest.name,
-
-        manifest.version ? React.createElement('span', {
-          class: 'description-30xx7u',
-          style: {
-            marginLeft: '4px'
-          }
-        }, 'v' + manifest.version) : null,
-
-        manifest.author && React.createElement('span', {
-          class: 'description-30xx7u',
-          style: {
-            marginLeft: '4px',
-            marginRight: '4px'
-          }
-        }, 'by'),
-
-        (manifest.author ?? '').split('#')[0],
-
-        /* manifest.author.split('#')[1] ? React.createElement('span', {
-          class: 'description-30xx7u',
-          style: {
-            marginLeft: '1px'
-          }
-        }, '#' + manifest.author.split('#')[1]) : null */
-      ],
-
-      subtext: manifest?.description,
-    },
-      !state ? React.createElement(Switch, {
-        checked: this.props.enabled,
-        onChange: x => {
-          topaz[x ? 'enable' : 'disable'](entityID);
-        }
-      }) : React.createElement(LegacyText, {
-        size: goosemod.webpackModules.findByProps('size16', 'size32').size16,
-        className: goosemod.webpackModules.findByProps('title', 'dividerDefault').title + ' topaz-loading-text'
-      },
-        state !== 'Error' ? React.createElement(Spinner, {
-          type: 'spinningCircle'
-        }) : React.createElement(goosemod.webpackModules.findByDisplayNameAll('CloseCircle')[1], {
-          // backgroundColor: "hsl(359, calc(var(--saturation-factor, 1) * 82.6%), 59.4%)",
-          // color: "hsl(0, calc(var(--saturation-factor, 1) * 0%), 100%)",
-          color: "hsl(359, calc(var(--saturation-factor, 1) * 82.6%), 59.4%)",
-          width: 24,
-          height: 24
-        }),
-
-        React.createElement('span', {
-        }, state,
-          React.createElement('span', {
-            class: 'description-30xx7u'
-          }, substate || 'Finding index...')
-        )
-      ),
-
-      state ? null : React.createElement('div', {
-        className: 'topaz-plugin-icons'
-      },
-        settings ? React.createElement(PanelButton, {
-          icon: goosemod.webpackModules.findByDisplayName('Gear'),
-          tooltipText: 'Settings',
-          onClick: () => {
-            openSub(manifest.name, 'settings', React.createElement(settings.render, settings.props ?? {}));
-          }
-        }) : null,
-
-        React.createElement(PanelButton, {
-          icon: goosemod.webpackModules.findByDisplayName('Pencil'),
-          tooltipText: 'Edit',
-          onClick: async () => {
-            const plugin = plugins[entityID];
-            const getUrl = file => plugin.__root + '/' + file;
-
-            const files = fetchCache.keys().filter(x => x.includes(entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {});
-
-            openSub(manifest.name, 'editor', React.createElement(await Editor.Component, {
-              files,
-              plugin,
-              onChange: (file, content) => {
-                fetchCache.set(getUrl(file), content);
-
-                files[file] = content;
-              },
-              onRename: (old, val) => {
-                const oldUrl = getUrl(old);
-
-                fetchCache.set(getUrl(val), fetchCache.get(oldUrl));
-                fetchCache.remove(oldUrl);
-
-                files[val] = files[old];
-                delete files[old];
-              },
-              onDelete: (file) => {
-                fetchCache.remove(getUrl(file));
-
-                delete files[file];
-              }
-            }));
-          }
-        }),
-
-        !isTheme ? React.createElement(PanelButton, {
-          icon: goosemod.webpackModules.findByDisplayName('PersonShield'),
-          tooltipText: 'Permissions',
-          onClick: async () => {
-            const perms = {
-              'Token': {
-                'Read your token': 'token_read',
-                'Set your token': 'token_write'
-              },
-              'Actions': {
-                'Set typing state': 'actions_typing',
-                'Send messages': 'actions_send'
-              },
-              'Account': {
-                'See your username': 'readacc_username',
-                'See your discriminator': 'readacc_discrim',
-                'See your email': 'readacc_email',
-                'See your phone number': 'readacc_phone'
-              },
-              'Friends': {
-                'See who you are friends with': 'friends_readwho'
-              },
-              'Status': {
-                'See status of users': 'status_readstatus',
-                'See activities of users': 'status_readactivities'
-              },
-              'Clipboard': {
-                'Write to your clipboard': 'clipboard_write',
-                'Read from your clipboard': 'clipboard_read'
-              }
-            };
-
-            const givenPermissions = JSON.parse(Storage.get('permissions') ?? '{}')[entityID] ?? {};
-
-            const entryClasses = goosemod.webpackModules.findByProps('entryItem');
-
-            const grantedPermCount = Object.values(givenPermissions).filter(x => x === true).length;
-
-            openSub(manifest.name, 'permissions', React.createElement('div', {},
-              React.createElement(Heading, {
-                level: 3,
-                variant: 'heading-md/medium',
-                className: 'topaz-permission-summary'
-              }, `${grantedPermCount} Granted Permission${grantedPermCount === 1 ? '' : 's'}`),
-
-              React.createElement(Button, {
-                color: Button.Colors.RED,
-                size: Button.Sizes.SMALL,
-                className: 'topaz-permission-reset',
-
-                onClick: () => {
-                  // save permission allowed/denied
-                  const store = JSON.parse(Storage.get('permissions') ?? '{}');
-
-                  store[entityID] = {};
-
-                  Storage.set('permissions', JSON.stringify(store));
-
-                  setTimeout(() => { // reload plugin
-                    topaz.reload(entityID);
-                    goosemod.webpackModules.findByProps('showToast').showToast(goosemod.webpackModules.findByProps('createToast').createToast('Reloaded ' + manifest.name, 0, { duration: 5000, position: 1 }));
-                  }, 100);
-                }
-              }, 'Reset'),
-
-              ...Object.keys(perms).map(category => React.createElement('div', {},
-                React.createElement(Heading, {
-                  level: 3,
-                  variant: 'heading-md/medium'
-                }, category[0].toUpperCase() + category.slice(1).replaceAll('_', ' ')),
-
-                React.createElement('div', {
-                  className: goosemod.webpackModules.findByProps('listContainer', 'addButton').listContainer
-                },
-                  ...Object.keys(perms[category]).filter(x => givenPermissions[perms[category][x]] !== undefined).map(perm => React.createElement('div', { className: entryClasses.entryItem },
-                    React.createElement('div', { className: entryClasses.entryName },
-                      React.createElement(Text, {
-                        color: 'header-primary',
-                        variant: 'text-md/normal',
-                        className: 'topaz-permission-label'
-                      }, perm)
-                    ),
-                    React.createElement('div', { className: entryClasses.entryActions },
-                      React.createElement(Switch, {
-                        checked: givenPermissions[perms[category][perm]],
-                        onChange: (x) => {
-                          // save permission allowed/denied
-                          const store = JSON.parse(Storage.get('permissions') ?? '{}');
-                          if (!store[entityID]) store[entityID] = {};
-
-                          store[entityID][perms[category][perm]] = x;
-
-                          Storage.set('permissions', JSON.stringify(store));
-
-                          setTimeout(() => { // reload plugin
-                            topaz.reload(entityID);
-                            goosemod.webpackModules.findByProps('showToast').showToast(goosemod.webpackModules.findByProps('createToast').createToast('Reloaded ' + manifest.name, 0, { duration: 5000, position: 1 }));
-                          }, 100);
-                        }
-                      })
-                    )
-                  ))
-                ),
-
-                React.createElement(Divider),
-              )).filter(x => x.props.children[1].props.children)
-            ));
-          }
-        }) : null,
-
-        React.createElement(PanelButton, {
-          icon: goosemod.webpackModules.findByDisplayName('Link'),
-          tooltipText: 'Open Link',
-          onClick: async () => {
-            let link = entityID.includes('http') ? entityID : `https://github.com/${entityID}`;
-            if (link.includes('raw.githubusercontent.com')) link = 'https://github.com/' + [...link.split('/').slice(3, 5), 'blob', ...link.split('/').slice(5)].join('/'); // raw github links -> normal
-
-            window.open(link);
-          }
-        }),
-
-        React.createElement(PanelButton, {
-          icon: goosemod.webpackModules.findByDisplayName('Retry'),
-          tooltipText: 'Reinstall',
-          onClick: async () => {
-            await topaz.uninstall(entityID);
-
-            const rmPending = addPending({ repo: entityID, state: 'Installing...' });
-            updateOpenSettings();
-
-            await topaz.install(entityID);
-            rmPending();
-            updateOpenSettings();
-          }
-        }),
-
-        React.createElement(PanelButton, {
-          icon: goosemod.webpackModules.findByDisplayName('Trash'),
-          tooltipText: 'Uninstall',
-          onClick: this.props.onUninstall
-        }),
-      )
-    );
-  }
-}
-
-const saveTopazSettings = () => Storage.set('settings', JSON.stringify(topazSettings));
-
-class TopazSettings extends React.PureComponent {
-  render() {
-    return React.createElement('div', {
-
-    },
-      React.createElement(FormTitle, {
-        tag: 'h5',
-        className: Margins.marginBottom8,
-      }, 'Appearance'),
-
-      React.createElement(TextAndToggle, {
-        text: 'Simple UI',
-        subtext: 'Hides some more technical UI elements',
-        isToggled: () => topazSettings.simpleUI,
-        onToggle: x => {
-          topazSettings.simpleUI = x;
-          saveTopazSettings();
-        }
-      }),
-
-      React.createElement(TextAndToggle, {
-        text: 'Use Modals',
-        subtext: 'Use modals instead of pages for plugin menus',
-        isToggled: () => topazSettings.modalPages,
-        onToggle: x => {
-          topazSettings.modalPages = x;
-          saveTopazSettings();
-        }
-      }),
-
-      React.createElement(TextAndToggle, {
-        text: 'Add Plugin Settings To Sidebar',
-        subtext: 'Adds plugin\'s settings to sidebar',
-        isToggled: () => topazSettings.pluginSettingsSidebar,
-        onToggle: x => {
-          topazSettings.pluginSettingsSidebar = x;
-          saveTopazSettings();
-        }
-      }),
-
-      React.createElement(FormTitle, {
-        tag: 'h5',
-        className: Margins.marginBottom8,
-      }, 'Actions'),
-
-      React.createElement(TextAndButton, {
-        text: 'Purge Caches',
-        subtext: 'Purge Topaz\'s caches completely',
-        buttonText: 'Purge',
-
-        onclick: () => {
-          fetchCache.purge();
-          finalCache.purge();
-        }
-      }),
-
-      React.createElement(FormTitle, {
-        tag: 'h5',
-        className: Margins.marginBottom8,
-      }, 'Backup'),
-
-      React.createElement(TextAndButton, {
-        text: 'Download Backup',
-        subtext: 'Download a backup file of your Topaz plugins, themes, and settings',
-        buttonText: 'Download',
-
-        onclick: () => {
-          const toSave = JSON.stringify(topaz.storage.keys().filter(x => !x.startsWith('cache_')).reduce((acc, x) => {
-            acc[x] = topaz.storage.get(x);
-            return acc;
-          }, {}));
-
-          const el = document.createElement("a");
-          el.style.display = 'none';
-
-          const file = new Blob([ toSave ], { type: 'application/json' });
-
-          el.href = URL.createObjectURL(file);
-          el.download = `topaz_backup.json`;
-
-          document.body.appendChild(el);
-
-          el.click();
-          el.remove();
-        }
-      }),
-
-      React.createElement(TextAndButton, {
-        text: 'Restore Backup',
-        subtext: 'Restores your Topaz setup from a backup file. **Only load backups you trust**',
-        buttonText: 'Restore',
-
-        onclick: async () => {
-          const el = document.createElement('input');
-          el.style.display = 'none';
-          el.type = 'file';
-
-          el.click();
-
-          await new Promise(res => { el.onchange = () => res(); });
-
-          const file = el.files[0];
-          if (!file) return;
-
-          const reader = new FileReader();
-
-          reader.onload = () => {
-            const obj = JSON.parse(reader.result);
-
-            for (const k in obj) {
-              topaz.storage.set(k, obj[k]);
-            }
-
-            location.reload();
-          };
-
-          reader.readAsText(file);
-        }
-      }),
-    )
-  }
-}
-
-let activeSnippet;
-class Snippets extends React.PureComponent {
-  render() {
-    const _Editor = (Editor.Component instanceof Promise ? 'div' : Editor.Component) ?? 'div';
-    if (_Editor === 'div') setTimeout(() => this.forceUpdate(), 200);
-
-    const saveSnippets = () => {
-      Storage.set('snippets', JSON.stringify(snippets));
-      Storage.set('snippets_toggled', JSON.stringify(snippetsToggled));
-    };
-
-    const updateSnippet = (file, content) => {
-      snippets[file] = content;
-      if (snippetsToggled[file] === undefined) snippetsToggled[file] = true;
-
-      saveSnippets();
-
-      stopSnippet(file);
-      if (snippetsToggled[file] && content) startSnippet(file, content);
-    };
-
-    return React.createElement('div', {
-      className: 'topaz-snippets'
-    },
-      React.createElement(_Editor, {
-        files: snippets,
-        toggled: snippetsToggled,
-        defaultFile: snippets[activeSnippet] ? activeSnippet : undefined,
-        plugin: { entityID: 'snippets' },
-        fileIcons: true,
-
-        onChange: (file, content) => updateSnippet(file, content),
-        onToggle: (file, toggled) => {
-          snippetsToggled[file] = toggled;
-          updateSnippet(file, snippets[file]);
-        },
-        onRename: (old, val) => {
-          snippets[val] = snippets[old];
-          delete snippets[old];
-
-          snippetsToggled[val] = snippetsToggled[old];
-          delete snippetsToggled[old];
-
-          if (activeSnippet === old) activeSnippet = val;
-
-          stopSnippet(old);
-          updateSnippet(val, snippets[val]);
-        },
-        onDelete: (file) => {
-          delete snippets[file];
-          delete snippetsToggled[file];
-
-          saveSnippets();
-          stopSnippet(file);
-        },
-
-        onOpen: (file) => activeSnippet = file
-      })
-    );
-  }
-}
-
-const autocompleteFiltering = JSON.parse(Storage.get('autocomplete_filtering', 'null')) ?? {
-  mods: {}
-};
-
-class Settings extends React.PureComponent {
-  render() {
-    const textInputHandler = (inp, init = false) => {
-      const addFilterPopout = () => {
-        if (document.querySelector('#topaz-repo-filtering')) return; // already open
-
-        const popout = document.createElement('div');
-        popout.id = 'topaz-repo-filtering';
-        popout.className = ScrollerClasses.thin + (topazSettings.simpleUI ? ' topaz-simple' : '');
-
-        const autoPos = autocomplete.getBoundingClientRect();
-
-        popout.style.top = autoPos.top + 'px';
-        popout.style.left = autoPos.right + 8 + 'px';
-
-        document.body.appendChild(popout);
-
-        const regen = () => textInputHandler(el.value ?? '');
-
-        const mods = Object.keys(recom).reduce((acc, x) => {
-          const mod = x.split('%')[0].toLowerCase();
-          if (!acc.includes(mod)) acc.push(mod);
-          return acc;
-        }, []);
-
-        class FilterPopout extends React.PureComponent {
-          render() {
-            return React.createElement(React.Fragment, {},
-              React.createElement('h5', {}, 'Filters'),
-              React.createElement(FormTitle, {
-                tag: 'h5'
-              }, 'Mods'),
-
-              ...mods.map(x => React.createElement(goosemod.webpackModules.findByDisplayName('SwitchItem'), {
-                value: autocompleteFiltering.mods[x] !== false,
-                onChange: y => {
-                  autocompleteFiltering.mods[x] = y;
-
-                  this.forceUpdate();
-                  regen();
-
-                  Storage.set('autocomplete_filtering', JSON.stringify(autocompleteFiltering));
-                }
-              }, displayMod(x)))
-            );
-          }
-        }
-
-        ReactDOM.render(React.createElement(FilterPopout), popout);
-
-        const checkClick = e => {
-          el.focus();
-          if (e.path.some(x => x.id === 'topaz-repo-filtering')) return;
-
-          removeFilterPopout();
-          if (!e.path.some(x => x.id === 'topaz-repo-autocomplete')) {
-            autocomplete.style.display = 'none';
-            el.blur();
-          }
-
-          document.removeEventListener('click', checkClick);
-        };
-
-        setTimeout(() => document.addEventListener('click', checkClick), 100);
-      };
-
-      const removeFilterPopout = () => {
-        document.querySelector('#topaz-repo-filtering')?.remove?.();
-      };
-
-      const el = document.querySelector('.topaz-settings .input-2g-os5');
-
-      const install = async (info) => {
-        const rmPending = addPending({ repo: info, state: 'Installing...' });
-
-        this.forceUpdate();
-        setTimeout(() => { this.forceUpdate(); }, 300);
-
-        try {
-          await topaz.install(info);
-        } catch (e) {
-          console.error('INSTALL', e);
-
-          purgeCacheForPlugin(info); // try to purge cache if failed
-
-          const currentPend = pending.find(x => x.repo === info);
-          const rmError = addPending({ repo: info, state: 'Error', substate: lastError ?? e.toString().substring(0, 30), manifest: currentPend.manifest });
-          setTimeout(rmError, 2000);
-        }
-
-        rmPending();
-
-        this.forceUpdate();
-        setTimeout(() => { updateOpenSettings(); }, 500); // force update because jank
-      };
-
-
-      if (!el.placeholder) {
-        el.placeholder = 'GitHub repo / URL';
-
-        el.onkeydown = async (e) => {
-          if (e.keyCode !== 13) return;
-
-          const info = el.value;
-          el.value = '';
-          // el.value = 'Installing...';
-
-          install(info);
-        };
-
-        el.onfocus = () => textInputHandler(el.value ?? '');
-
-        el.onblur = (e) => {
-          const checkIfInFilterPopout = el => el && (el.id === 'topaz-repo-filtering' || checkIfInFilterPopout(el.parentElement));
-          if (e.relatedTarget?.ariaLabel === 'Filter' || checkIfInFilterPopout(e.relatedTarget)) return; // Filter button clicked, ignore
-
-          setTimeout(() => {
-            removeFilterPopout();
-            autocomplete.style.display = 'none';
-          }, 100);
-        };
-      }
-
-      let autocomplete = document.querySelector('#topaz-repo-autocomplete');
-      if (!autocomplete) {
-        autocomplete = document.createElement('div');
-        autocomplete.id = 'topaz-repo-autocomplete';
-        autocomplete.className = ScrollerClasses.thin + (topazSettings.simpleUI ? ' topaz-simple' : '');
-
-        document.body.appendChild(autocomplete);
-      }
-
-      const inputPos = el.getBoundingClientRect();
-
-      autocomplete.style.top = inputPos.bottom + 'px';
-      autocomplete.style.left = inputPos.left + 'px';
-      autocomplete.style.width = inputPos.width + 'px';
-
-      const fuzzySearch = new RegExp(`.*${inp.replace(' ', '[-_ ]')}.*`, 'i');
-
-      const recom = popular[selectedTab.toLowerCase()];
-      const infoFromRecom = (x) => x.endsWith('.plugin.js') ? x.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '') : x.replace('https://github.com/', '');
-      const matching = Object.keys(recom).filter((x) => !plugins[infoFromRecom(recom[x])] && fuzzySearch.test(x) && autocompleteFiltering.mods[x.split('%')[0].toLowerCase()] !== false);
-
-      if (!init && matching.length > 0) {
-        ReactDOM.render(React.createElement(React.Fragment, {},
-          React.createElement('h5', {},
-            'Popular ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes'),
-
-            React.createElement(PanelButton, {
-              icon: goosemod.webpackModules.findByDisplayName('Filter'),
-              tooltipText: 'Filter',
-
-              onClick: () => {
-                if (document.querySelector('#topaz-repo-filtering')) {
-                  removeFilterPopout();
-                  document.querySelector('[aria-label="Filter"]').classList.remove('active');
-                } else {
-                  addFilterPopout();
-                  document.querySelector('[aria-label="Filter"]').classList.add('active');
-                }
-              }
-            })
-          ),
-
-          ...matching.map(x => {
-            const [ mod, name, author ] = x.split('%');
-
-            let place = recom[x];
-            if (place.length > 40) place = place.slice(0, 40) + '...';
-
-            return React.createElement('div', {
-              className: 'title-2dsDLn',
-              onClick: () => {
-                autocomplete.style.display = 'none';
-                el.value = '';
-                install(recom[x]);
-              }
-            },
-              React.createElement('span', {
-                className: 'topaz-tag tag-floating'
-              }, mod),
-
-              ' ' + name + ' ',
-
-              author !== 'undefined' && React.createElement('span', {
-                className: 'description-30xx7u'
-              }, 'by '),
-              author !== 'undefined' && author.split('#')[0],
-
-              React.createElement('span', {
-                className: 'code-style'
-              }, place)
-            );
-          })
-        ), autocomplete);
-
-        autocomplete.style.display = 'block';
-
-        if (!document.querySelector('#topaz-repo-filtering')) document.querySelector('[aria-label="Filter"]').classList.remove('active');
-          else document.querySelector('[aria-label="Filter"]').classList.add('active');
-      } else {
-        autocomplete.style.display = 'none';
-      }
-    };
-
-    setTimeout(() => {
-      let tmpEl = document.querySelector('.topaz-settings .input-2g-os5');
-      if (tmpEl && !tmpEl.placeholder) textInputHandler('', true);
-    }, 10);
-
-    const modules = Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme);
-
-    return React.createElement('div', {
-      className: 'topaz-settings' + (topazSettings.simpleUI ? ' topaz-simple' : '')
-    },
-      React.createElement(FormTitle, {
-        tag: 'h1'
-      }, 'Topaz',
-        React.createElement('span', {
-          className: 'description-30xx7u topaz-version'
-        }, topaz.version),
-
-        React.createElement(HeaderBarContainer.Divider),
-
-        React.createElement(TabBar, {
-          selectedItem: selectedTab,
-
-          type: TabBarClasses1.topPill,
-          className: TabBarClasses2.tabBar,
-
-          onItemSelect: (x) => {
-            if (x === 'RELOAD' || x === 'CHANGELOG') return;
-
-            const textInputEl = document.querySelector('.topaz-settings .input-2g-os5');
-            if (textInputEl) textInputs[selectedTab] = textInputEl.value;
-
-            selectedTab = x;
-            this.forceUpdate();
-
-            if (textInputEl) textInputEl.value = textInputs[x];
-          }
-        },
-          React.createElement(TabBar.Item, {
-            id: 'PLUGINS',
-
-            className: TabBarClasses2.item
-          }, 'Plugins'),
-          React.createElement(TabBar.Item, {
-            id: 'THEMES',
-
-            className: TabBarClasses2.item
-          }, 'Themes'),
-          React.createElement(TabBar.Item, {
-            id: 'SNIPPETS',
-
-            className: TabBarClasses2.item
-          }, 'Snippets'),
-          React.createElement(TabBar.Item, {
-            id: 'SETTINGS',
-
-            className: TabBarClasses2.item
-          }, 'Settings'),
-
-          React.createElement(TabBar.Item, {
-            id: 'RELOAD',
-
-            className: TabBarClasses2.item
-          }, React.createElement(PanelButton, {
-            icon: goosemod.webpackModules.findByDisplayName('Retry'),
-            tooltipText: 'Reload Topaz',
-            onClick: async () => {
-              topaz.reloadTopaz();
-            }
-          })),
-
-          React.createElement(TabBar.Item, {
-            id: 'CHANGELOG',
-
-            className: TabBarClasses2.item
-          }, React.createElement(PanelButton, {
-            icon: goosemod.webpackModules.findByDisplayName('Clock'),
-            tooltipText: 'Topaz Changelog',
-            onClick: async () => {
-              openChangelog();
-            }
-          }))
-        ),
-      ),
-
-      selectedTab === 'SETTINGS' ? React.createElement(TopazSettings) :
-        selectedTab === 'SNIPPETS' ? React.createElement(Snippets) : [
-        React.createElement(FormItem, {
-          title: 'Add ' + (selectedTab === 'PLUGINS' ? 'Plugin' : 'Theme'),
-          className: [Flex.Direction.VERTICAL, Flex.Justify.START, Flex.Align.STRETCH, Flex.Wrap.NO_WRAP, Margins.marginBottom20].join(' ')
-        },
-          React.createElement(TextInput, {
-            onChange: textInputHandler
-          })
-        ),
-
-        React.createElement(FormTitle, {
-          tag: 'h5',
-          className: Margins.marginBottom8,
-        },
-          modules.length + ' Installed',
-
-          modules.length > 0 ? React.createElement(PanelButton, {
-            icon: goosemod.webpackModules.findByDisplayName('Trash'),
-            tooltipText: 'Uninstall All',
-            onClick: async () => {
-              if (!(await goosemod.confirmDialog('Uninstall', 'Uninstall All ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes'), 'Are you sure you want to uninstall all ' + (selectedTab === 'PLUGINS' ? 'plugins' : 'themes') + ' from Topaz?'))) return;
-              for (const x of modules) topaz.uninstall(x.__entityID);
-            }
-          }) : null,
-
-          modules.length > 0 ? React.createElement(PanelButton, {
-            icon: goosemod.webpackModules.findByDisplayName('Copy'),
-            tooltipText: 'Copy All',
-            onClick: async () => {
-              const links = modules.map(({ __entityID }) => {
-                let link = __entityID.includes('http') ? __entityID : `https://github.com/${__entityID}`;
-                if (link.includes('raw.githubusercontent.com')) link = 'https://github.com/' + [...link.split('/').slice(3, 5), 'blob', ...link.split('/').slice(5)].join('/'); // raw github links -> normal
-
-                return link;
-              });
-
-              goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy').copy(links.join('\n'));
-            }
-          }) : null,
-        ),
-
-        React.createElement(Divider),
-
-        ...modules.map(({ entityID, __enabled, manifest, __entityID, __settings, __mod, __theme }) => React.createElement(Plugin, {
-          manifest,
-          entityID: __entityID,
-          enabled: __enabled,
-          settings: __settings,
-          mod: __mod,
-          isTheme: !!__theme,
-          onUninstall: async () => {
-            const rmPending = addPending({ repo: __entityID, state: 'Uninstalling...' });
-            this.forceUpdate();
-
-            await topaz.uninstall(__entityID);
-            rmPending();
-
-            this.forceUpdate();
-          }
-        })),
-
-        ...pending.map(obj => React.createElement(Plugin, obj))
-      ]
-    )
-  }
-}
-
-let settingsUnpatch = goosemod.patcher.patch(goosemod.webpackModules.findByDisplayName('SettingsView').prototype, 'getPredicateSections', (_, sections) => {
-  const logout = sections.find((c) => c.section === 'logout');
-  if (!logout) return sections;
-
-  sections.splice(0, 0,
-  {
-    section: 'Topaz',
-    label: 'Topaz',
-    predicate: () => { },
-    element: () => React.createElement(Settings)
-  },
-
-  {
-    section: 'DIVIDER',
-  },);
-
-  return sections;
-});
 
 const cssEl = document.createElement('style');
 cssEl.appendChild(document.createTextNode(`#topaz-repo-filtering, #topaz-repo-autocomplete {
@@ -7359,12 +6264,9 @@ cssEl.appendChild(document.createTextNode(`#topaz-repo-filtering, #topaz-repo-au
   font-size: 10px;
 }
 
-.topaz-settings .title-2dsDLn {
-  font-weight: 600;
-}
-
-.topaz-settings .labelRow-2jl9gK > :first-child {
+.topaz-settings h1 ~ .vertical-3aLnqW .labelRow-2jl9gK > :first-child {
   font-size: 18px;
+  font-weight: 600;
 }
 
 .topaz-loading-text {
@@ -8037,8 +6939,1541 @@ body .footer-31IekZ { /* Fix modal footers using special var */
 
 .topaz-changelog-advanced .divider-_0um2u {
   display: none;
+}
+
+.topaz-terminal {
+  position: absolute;
+  background: var(--background-floating);
+  box-shadow: var(--elevation-high);
+  z-index: 99999;
+  width: 700px;
+  height: 500px;
+  top: 30px;
+  left: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.topaz-terminal > :first-child {
+  background: var(--background-tertiary);
+  padding: 16px;
+  color: var(--header-primary);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.topaz-terminal > :first-child > :last-child {
+  cursor: pointer;
+  font-size: 24px;
+  float: right;
+  height: 0;
+  margin-top: -2px;
+}
+
+.topaz-terminal > :last-child {
+  padding: 6px;
+  font-size: 14px;
+  color: var(--text-normal);
+  font-family: var(--font-code);
+  white-space: pre-wrap;
+  word-break: break-all;
+  flex-grow: 1;
+  overflow: auto;
+  padding-right: 0;
 }`));
 document.head.appendChild(cssEl);
+
+log('init', `topaz loaded! took ${(performance.now() - initStartTime).toFixed(0)}ms`);
+
+(async () => {
+  const disabled = JSON.parse(Storage.get('disabled') ?? '{}');
+
+  for (const p in pluginsToInstall) {
+    let settings = pluginsToInstall[p];
+    if (typeof settings === 'object' && Object.keys(settings).length === 0) settings = undefined; // {} -> undefined
+
+    try {
+      await install(p, settings, disabled[p] ?? false);
+    } catch (e) {
+      console.error('Init install fail', p, e);
+    }
+  }
+
+  try { updateOpenSettings(); } catch { }
+})();
+
+const activeSnippets = {};
+const startSnippet = async (file, content) => {
+  let code;
+
+  if (file.endsWith('css')) {
+    code = await transformCSS('https://discord.com/channels/@me', content, !file.endsWith('scss'), false);
+
+    const cssEl = document.createElement('style');
+    cssEl.appendChild(document.createTextNode(code));
+    document.body.appendChild(cssEl);
+
+    activeSnippets[file] = () => cssEl.remove();
+  } else if (file.includes('.js')) {
+    code = await transform('https://discord.com/channels/@me', content, 'pc');
+    const ret = eval(code);
+
+    activeSnippets[file] = () => {}; // no way to stop?
+    if (typeof ret === 'function') activeSnippets[file] = ret; // if returned a function, guess it's a stop handler
+  }
+};
+const stopSnippet = (file) => activeSnippets[file]?.();
+
+
+const snippets = JSON.parse(Storage.get('snippets') ?? '{}');
+const snippetsToggled = JSON.parse(Storage.get('snippets_toggled') ?? '{}');
+for (const snippet in snippets) {
+  if (snippetsToggled[snippet]) startSnippet(snippet, snippets[snippet]);
+}
+
+let popular;
+(async () => { // Load async as not important / needed right away
+  popular = await (await fetch(`https://goosemod.github.io/topaz/popular.json`)).json();
+})();
+
+const updateOpenSettings = async () => {
+  if (!document.querySelector('.selected-g-kMVV[aria-controls="topaz-tab"]')) return;
+
+  try {
+    await new Promise((res) => setTimeout(res, 10));
+
+    const prevScroll = document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop;
+
+    goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('Advanced');
+    goosemod.webpackModules.findByProps('setSection', 'close', 'submitComplete').setSection('Topaz');
+
+    document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop = prevScroll;
+  } catch { }
+};
+
+const { React, ReactDOM } = goosemod.webpackModules.common;
+
+const TabBar = goosemod.webpackModules.findByDisplayName('TabBar');
+const TabBarClasses1 = goosemod.webpackModules.findByProps('topPill');
+const TabBarClasses2 = goosemod.webpackModules.findByProps('tabBar', 'nowPlayingColumn')
+
+const ScrollerClasses = goosemod.webpackModules.findByProps('scrollerBase', 'thin');
+
+let selectedTab = 'PLUGINS';
+let textInputs = {
+  PLUGINS: '',
+  THEMES: ''
+};
+
+const Text = goosemod.webpackModules.find(x => x.Text?.displayName === 'Text').Text;
+const Heading = goosemod.webpackModules.findByProps('Heading').Heading;
+const Breadcrumbs = goosemod.webpackModules.findByDisplayName('Breadcrumbs');
+const BreadcrumbClasses = goosemod.webpackModules.findByProps('breadcrumbActive');
+const Button = goosemod.webpackModules.findByProps('Sizes', 'Colors', 'Looks', 'DropdownSizes');
+const LegacyText = goosemod.webpackModules.findByDisplayName('LegacyText');
+const Spinner = goosemod.webpackModules.findByDisplayName('Spinner');
+const PanelButton = goosemod.webpackModules.findByDisplayName('PanelButton');
+const FormTitle = goosemod.webpackModules.findByDisplayName('FormTitle');
+const Markdown = goosemod.webpackModules.find((x) => x.displayName === 'Markdown' && x.rules);
+const DropdownArrow = goosemod.webpackModules.findByDisplayName('DropdownArrow');
+const HeaderBarContainer = goosemod.webpackModules.findByDisplayName('HeaderBarContainer');
+const FormItem = goosemod.webpackModules.findByDisplayName('FormItem');
+const TextInput = goosemod.webpackModules.findByDisplayName('TextInput');
+const Flex = goosemod.webpackModules.findByDisplayName('Flex');
+const Margins = goosemod.webpackModules.findByProps('marginTop20', 'marginBottom20');
+const _Switch = goosemod.webpackModules.findByDisplayName('Switch');
+const Tooltip = goosemod.webpackModules.findByDisplayName('Tooltip');
+
+const TextAndChild = goosemod.settings.Items['text-and-child'];
+const TextAndButton = goosemod.settings.Items['text-and-button'];
+const TextAndToggle = goosemod.settings.Items['toggle'];
+const Divider = goosemod.settings.Items['divider'];
+
+class Switch extends React.PureComponent {
+  render() {
+    return React.createElement(_Switch, {
+      checked: this.props.checked,
+      onChange: x => {
+        this.props.checked = x;
+        this.forceUpdate();
+
+        this.props.onChange(x);
+      }
+    })
+  }
+}
+
+class TZErrorBoundary extends React.PureComponent {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      error: false
+    };
+  }
+
+  componentDidCatch(error, moreInfo) {
+    console.log('honk', {error, moreInfo});
+
+    const errorStack = decodeURI(error.stack.split('\n').filter((x) => !x.includes('/assets/')).join('\n'));
+    const componentStack = decodeURI(moreInfo.componentStack.split('\n').slice(1, 9).join('\n'));
+
+
+    const suspectedPlugin = errorStack.match(/\((.*) \| GM Module:/)?.[1] ?? componentStack.match(/\((.*) \| GM Module:/)?.[1] ??
+      errorStack.match(/\((.*) \| Topaz:/)?.[1] ?? componentStack.match(/\((.*) \| Topaz:/)?.[1];
+
+    let suspectedName = suspectedPlugin ?? 'Unknown';
+    const suspectedType = suspectedPlugin ? 'Plugin' : 'Cause';
+
+    if (suspectedName === 'Unknown') {
+      if (errorStack.includes('GooseMod')) {
+        suspectedName = 'GooseMod Internals';
+      }
+
+      if (errorStack.includes('Topaz')) {
+        suspectedName = 'Topaz Internals';
+      }
+
+      if (errorStack.toLowerCase().includes('powercord') || errorStack.toLowerCase().includes('betterdiscord')) {
+        suspectedName = 'Other Mods';
+      }
+    }
+
+    this.setState({
+      error: true,
+
+      suspectedCause: {
+        name: suspectedName,
+        type: suspectedType
+      },
+
+      errorStack: {
+        raw: error.stack,
+        useful: errorStack
+      },
+
+      componentStack: {
+        raw: moreInfo.componentStack,
+        useful: componentStack
+      }
+    });
+  }
+
+  render() {
+    if (this.state.toRetry) {
+      this.state.error = false;
+    }
+
+    setTimeout(() => {
+      this.state.toRetry = true;
+    }, 100);
+
+    return this.state.error ? React.createElement('div', {
+      className: 'gm-error-boundary'
+    },
+      React.createElement('div', {},
+        React.createElement('div', {}),
+
+        React.createElement(FormTitle, {
+          tag: 'h1'
+        }, this.props.header ?? 'Topaz has handled an error',
+          (this.props.showSuspected ?? true) ? React.createElement(Markdown, {}, `## Suspected ${this.state.suspectedCause.type}: ${this.state.suspectedCause.name}`) : null
+        )
+      ),
+
+      React.createElement('div', {},
+        React.createElement(Button, {
+          color: Button.Colors.BRAND,
+          size: Button.Sizes.LARGE,
+
+          onClick: () => {
+            this.state.toRetry = true;
+            this.forceUpdate();
+          }
+        }, 'Retry'),
+
+        React.createElement(Button, {
+          color: Button.Colors.RED,
+          size: Button.Sizes.LARGE,
+
+          onClick: () => {
+            location.reload();
+          }
+        }, 'Refresh')
+      ),
+
+      React.createElement('div', {
+        onClick: () => {
+          this.state.toRetry = false;
+          this.state.showDetails = !this.state.showDetails;
+          this.forceUpdate();
+        }
+      },
+        React.createElement('div', {
+          style: {
+            transform: `rotate(${this.state.showDetails ? '0' : '-90'}deg)`
+          },
+        },
+          React.createElement(DropdownArrow, {
+            width: 24,
+            height: 24
+          })
+        ),
+
+        this.state.showDetails ? 'Hide Details' : 'Show Details'
+      ),
+
+      this.state.showDetails ? React.createElement('div', {},
+        React.createElement(Markdown, {}, `# Error Stack`),
+        React.createElement(Markdown, {}, `\`\`\`
+${this.state.errorStack.useful}
+\`\`\``),
+        React.createElement(Markdown, {}, `# Component Stack`),
+        React.createElement(Markdown, {}, `\`\`\`
+${this.state.componentStack.useful}
+\`\`\``),
+        /* React.createElement(Markdown, {}, `# Debug Info`),
+        React.createElement(Markdown, {}, `\`\`\`
+${goosemod.genDebugInfo()}
+\`\`\``) */
+      ) : null
+    ) : this.props.children;
+  }
+}
+
+const openSub = (plugin, type, _content) => {
+  const useModal = topazSettings.modalPages;
+
+  const breadcrumbBase = {
+    activeId: '0',
+    breadcrumbs: useModal ? [
+      { id: '1', label: plugin },
+      { id: '0', label: type[0].toUpperCase() + type.slice(1) },
+    ] : [
+      { id: '1', label: 'Topaz' },
+      { id: '0', label: plugin + ' ' + type[0].toUpperCase() + type.slice(1) }
+      /* { id: '1', label: plugin },
+      { id: '0', label: type[0].toUpperCase() + type.slice(1) }, */
+    ],
+
+    onBreadcrumbClick: (x) => {},
+  };
+
+  const content = React.createElement(TZErrorBoundary, {
+    header: 'Topaz failed to render ' + type + ' for ' + plugin,
+    showSuspected: false
+  }, _content);
+
+  if (useModal) {
+    const LegacyHeader = goosemod.webpackModules.findByDisplayName('LegacyHeader');
+
+    openSub_modal(React.createElement(Breadcrumbs, {
+      ...breadcrumbBase,
+      renderCustomBreadcrumb: ({ label }, active) => React.createElement(LegacyHeader, {
+        tag: 'h2',
+        size: LegacyHeader.Sizes.SIZE_20,
+        className: active ? BreadcrumbClasses.breadcrumbActive : BreadcrumbClasses.breadcrumbInactive
+      }, label)
+    }), content, type);
+  } else {
+    const titleClasses = goosemod.webpackModules.findByProps('h1');
+
+    openSub_page(React.createElement(FormTitle, {
+      tag: 'h1',
+    },
+      React.createElement(Breadcrumbs, {
+        ...breadcrumbBase,
+        onBreadcrumbClick: ({ id, label }) => {
+          if (id === '1') updateOpenSettings();
+        },
+        renderCustomBreadcrumb: ({ label }, active) => React.createElement('span', {
+          className: titleClasses.h1 + ' ' + (active ? BreadcrumbClasses.breadcrumbActive : BreadcrumbClasses.breadcrumbInactive)
+        }, label)
+      })
+    ), content, type);
+  }
+};
+
+const openSub_page = (header, content, type) => {
+  ReactDOM.render(React.createElement('div', {
+    className: `topaz-${type}-page`
+  },
+    header,
+
+    content
+  ), document.querySelector('.topaz-settings'));
+};
+
+const openSub_modal = (header, content, type) => {
+  const ModalStuff = goosemod.webpackModules.findByProps('ModalRoot');
+  const { openModal } = goosemod.webpackModules.findByProps('openModal', 'updateModal');
+  const Flex = goosemod.webpackModules.findByDisplayName('Flex');
+
+  openModal((e) => {
+    return React.createElement(ModalStuff.ModalRoot, {
+      transitionState: e.transitionState,
+      size: 'large'
+    },
+      React.createElement(ModalStuff.ModalHeader, {},
+        React.createElement(Flex.Child, {
+          basis: 'auto',
+          grow: 1,
+          shrink: 1,
+          wrap: false,
+        },
+          header
+        ),
+        React.createElement('FlexChild', {
+          basis: 'auto',
+          grow: 0,
+          shrink: 1,
+          wrap: false
+        },
+          React.createElement(ModalStuff.ModalCloseButton, {
+            onClick: e.onClose
+          })
+        )
+      ),
+
+      React.createElement(ModalStuff.ModalContent, {
+        className: `topaz-modal-content topaz-${type}-modal-content`
+      },
+        content
+      )
+    )
+  });
+};
+
+class Plugin extends React.PureComponent {
+  render() {
+    const { manifest, repo, state, substate, settings, entityID, mod, isTheme } = this.props;
+
+    return React.createElement(TextAndChild, {
+      text: !manifest ? repo : [
+        !mod ? null : React.createElement(Tooltip, {
+          text: displayMod(mod),
+          position: 'top'
+        }, ({ onMouseLeave, onMouseEnter }) => React.createElement('span', {
+            className: 'topaz-tag',
+
+            onMouseEnter,
+            onMouseLeave
+          }, mod.toUpperCase()),
+        ),
+
+        manifest.name,
+
+        manifest.version ? React.createElement('span', {
+          class: 'description-30xx7u',
+          style: {
+            marginLeft: '4px'
+          }
+        }, 'v' + manifest.version) : null,
+
+        manifest.author && React.createElement('span', {
+          class: 'description-30xx7u',
+          style: {
+            marginLeft: '4px',
+            marginRight: '4px'
+          }
+        }, 'by'),
+
+        (manifest.author ?? '').split('#')[0],
+
+        /* manifest.author.split('#')[1] ? React.createElement('span', {
+          class: 'description-30xx7u',
+          style: {
+            marginLeft: '1px'
+          }
+        }, '#' + manifest.author.split('#')[1]) : null */
+      ],
+
+      subtext: manifest?.description,
+    },
+      !state ? React.createElement(Switch, {
+        checked: this.props.enabled,
+        onChange: x => {
+          topaz[x ? 'enable' : 'disable'](entityID);
+        }
+      }) : React.createElement(LegacyText, {
+        size: goosemod.webpackModules.findByProps('size16', 'size32').size16,
+        className: goosemod.webpackModules.findByProps('title', 'dividerDefault').title + ' topaz-loading-text'
+      },
+        state !== 'Error' ? React.createElement(Spinner, {
+          type: 'spinningCircle'
+        }) : React.createElement(goosemod.webpackModules.findByDisplayNameAll('CloseCircle')[1], {
+          // backgroundColor: "hsl(359, calc(var(--saturation-factor, 1) * 82.6%), 59.4%)",
+          // color: "hsl(0, calc(var(--saturation-factor, 1) * 0%), 100%)",
+          color: "hsl(359, calc(var(--saturation-factor, 1) * 82.6%), 59.4%)",
+          width: 24,
+          height: 24
+        }),
+
+        React.createElement('span', {
+        }, state,
+          React.createElement('span', {
+            class: 'description-30xx7u'
+          }, substate || 'Finding index...')
+        )
+      ),
+
+      state ? null : React.createElement('div', {
+        className: 'topaz-plugin-icons'
+      },
+        settings ? React.createElement(PanelButton, {
+          icon: goosemod.webpackModules.findByDisplayName('Gear'),
+          tooltipText: 'Settings',
+          onClick: () => {
+            openSub(manifest.name, 'settings', React.createElement(settings.render, settings.props ?? {}));
+          }
+        }) : null,
+
+        React.createElement(PanelButton, {
+          icon: goosemod.webpackModules.findByDisplayName('Pencil'),
+          tooltipText: 'Edit',
+          onClick: async () => {
+            const plugin = plugins[entityID];
+            const getUrl = file => plugin.__root + '/' + file;
+
+            const files = fetchCache.keys().filter(x => !x.includes('api.github.com') && x.includes(entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { acc[x.replace(plugin.__root + '/', '')] = fetchCache.get(x); return acc; }, {});
+
+            openSub(manifest.name, 'editor', React.createElement(await Editor.Component, {
+              files,
+              plugin,
+              onChange: (file, content) => {
+                fetchCache.set(getUrl(file), content);
+
+                files[file] = content;
+              },
+              onRename: (old, val) => {
+                const oldUrl = getUrl(old);
+
+                fetchCache.set(getUrl(val), fetchCache.get(oldUrl));
+                fetchCache.remove(oldUrl);
+
+                files[val] = files[old];
+                delete files[old];
+              },
+              onDelete: (file) => {
+                fetchCache.remove(getUrl(file));
+
+                delete files[file];
+              }
+            }));
+          }
+        }),
+
+        !isTheme ? React.createElement(PanelButton, {
+          icon: goosemod.webpackModules.findByDisplayName('PersonShield'),
+          tooltipText: 'Permissions',
+          onClick: async () => {
+            const perms = {
+              'Token': {
+                'Read your token': 'token_read',
+                'Set your token': 'token_write'
+              },
+              'Actions': {
+                'Set typing state': 'actions_typing',
+                'Send messages': 'actions_send'
+              },
+              'Account': {
+                'See your username': 'readacc_username',
+                'See your discriminator': 'readacc_discrim',
+                'See your email': 'readacc_email',
+                'See your phone number': 'readacc_phone'
+              },
+              'Friends': {
+                'See who you are friends with': 'friends_readwho'
+              },
+              'Status': {
+                'See status of users': 'status_readstatus',
+                'See activities of users': 'status_readactivities'
+              },
+              'Clipboard': {
+                'Write to your clipboard': 'clipboard_write',
+                'Read from your clipboard': 'clipboard_read'
+              }
+            };
+
+            const givenPermissions = JSON.parse(Storage.get('permissions') ?? '{}')[entityID] ?? {};
+
+            const entryClasses = goosemod.webpackModules.findByProps('entryItem');
+
+            const grantedPermCount = Object.values(givenPermissions).filter(x => x === true).length;
+
+            openSub(manifest.name, 'permissions', React.createElement('div', {},
+              React.createElement(Heading, {
+                level: 3,
+                variant: 'heading-md/medium',
+                className: 'topaz-permission-summary'
+              }, `${grantedPermCount} Granted Permission${grantedPermCount === 1 ? '' : 's'}`),
+
+              React.createElement(Button, {
+                color: Button.Colors.RED,
+                size: Button.Sizes.SMALL,
+                className: 'topaz-permission-reset',
+
+                onClick: () => {
+                  // save permission allowed/denied
+                  const store = JSON.parse(Storage.get('permissions') ?? '{}');
+
+                  store[entityID] = {};
+
+                  Storage.set('permissions', JSON.stringify(store));
+
+                  setTimeout(() => { // reload plugin
+                    topaz.reload(entityID);
+                    goosemod.webpackModules.findByProps('showToast').showToast(goosemod.webpackModules.findByProps('createToast').createToast('Reloaded ' + manifest.name, 0, { duration: 5000, position: 1 }));
+                  }, 100);
+                }
+              }, 'Reset'),
+
+              ...Object.keys(perms).map(category => React.createElement('div', {},
+                React.createElement(Heading, {
+                  level: 3,
+                  variant: 'heading-md/medium'
+                }, category[0].toUpperCase() + category.slice(1).replaceAll('_', ' ')),
+
+                React.createElement('div', {
+                  className: goosemod.webpackModules.findByProps('listContainer', 'addButton').listContainer
+                },
+                  ...Object.keys(perms[category]).filter(x => givenPermissions[perms[category][x]] !== undefined).map(perm => React.createElement('div', { className: entryClasses.entryItem },
+                    React.createElement('div', { className: entryClasses.entryName },
+                      React.createElement(Text, {
+                        color: 'header-primary',
+                        variant: 'text-md/normal',
+                        className: 'topaz-permission-label'
+                      }, perm)
+                    ),
+                    React.createElement('div', { className: entryClasses.entryActions },
+                      React.createElement(Switch, {
+                        checked: givenPermissions[perms[category][perm]],
+                        onChange: (x) => {
+                          // save permission allowed/denied
+                          const store = JSON.parse(Storage.get('permissions') ?? '{}');
+                          if (!store[entityID]) store[entityID] = {};
+
+                          store[entityID][perms[category][perm]] = x;
+
+                          Storage.set('permissions', JSON.stringify(store));
+
+                          setTimeout(() => { // reload plugin
+                            topaz.reload(entityID);
+                            goosemod.webpackModules.findByProps('showToast').showToast(goosemod.webpackModules.findByProps('createToast').createToast('Reloaded ' + manifest.name, 0, { duration: 5000, position: 1 }));
+                          }, 100);
+                        }
+                      })
+                    )
+                  ))
+                ),
+
+                React.createElement(Divider),
+              )).filter(x => x.props.children[1].props.children)
+            ));
+          }
+        }) : null,
+
+        React.createElement(PanelButton, {
+          icon: goosemod.webpackModules.findByDisplayName('Link'),
+          tooltipText: 'Open Link',
+          onClick: async () => {
+            let link = entityID.includes('http') ? entityID : `https://github.com/${entityID}`;
+            if (link.includes('raw.githubusercontent.com')) link = 'https://github.com/' + [...link.split('/').slice(3, 5), 'blob', ...link.split('/').slice(5)].join('/'); // raw github links -> normal
+
+            window.open(link);
+          }
+        }),
+
+        React.createElement(PanelButton, {
+          icon: goosemod.webpackModules.findByDisplayName('Retry'),
+          tooltipText: 'Reinstall',
+          onClick: async () => {
+            await topaz.uninstall(entityID);
+
+            const rmPending = addPending({ repo: entityID, state: 'Installing...' });
+            updateOpenSettings();
+
+            await topaz.install(entityID);
+            rmPending();
+            updateOpenSettings();
+          }
+        }),
+
+        React.createElement(PanelButton, {
+          icon: goosemod.webpackModules.findByDisplayName('Trash'),
+          tooltipText: 'Uninstall',
+          onClick: this.props.onUninstall
+        }),
+      )
+    );
+  }
+}
+
+const saveTopazSettings = () => Storage.set('settings', JSON.stringify(topazSettings));
+
+class TopazSettings extends React.PureComponent {
+  render() {
+    return React.createElement('div', {
+
+    },
+      React.createElement(FormTitle, {
+        tag: 'h5',
+        className: Margins.marginBottom8,
+      }, 'Appearance'),
+
+      React.createElement(TextAndToggle, {
+        text: 'Simple UI',
+        subtext: 'Hides some more technical UI elements',
+        isToggled: () => topazSettings.simpleUI,
+        onToggle: x => {
+          topazSettings.simpleUI = x;
+          saveTopazSettings();
+        }
+      }),
+
+      React.createElement(TextAndToggle, {
+        text: 'Use Modals',
+        subtext: 'Use modals instead of pages for plugin menus',
+        isToggled: () => topazSettings.modalPages,
+        onToggle: x => {
+          topazSettings.modalPages = x;
+          saveTopazSettings();
+        }
+      }),
+
+      React.createElement(TextAndToggle, {
+        text: 'Add Plugin Settings To Sidebar',
+        subtext: 'Adds plugin\'s settings to sidebar',
+        isToggled: () => topazSettings.pluginSettingsSidebar,
+        onToggle: x => {
+          topazSettings.pluginSettingsSidebar = x;
+          saveTopazSettings();
+        }
+      }),
+
+      React.createElement(FormTitle, {
+        tag: 'h5',
+        className: Margins.marginBottom8,
+      }, 'Actions'),
+
+      React.createElement(TextAndButton, {
+        text: 'Purge Caches',
+        subtext: 'Purge Topaz\'s caches completely',
+        buttonText: 'Purge',
+
+        onclick: () => {
+          fetchCache.purge();
+          finalCache.purge();
+        }
+      }),
+
+      React.createElement(FormTitle, {
+        tag: 'h5',
+        className: Margins.marginBottom8,
+      }, 'Backup'),
+
+      React.createElement(TextAndButton, {
+        text: 'Download Backup',
+        subtext: 'Download a backup file of your Topaz plugins, themes, and settings',
+        buttonText: 'Download',
+
+        onclick: () => {
+          const toSave = JSON.stringify(topaz.storage.keys().filter(x => !x.startsWith('cache_')).reduce((acc, x) => {
+            acc[x] = topaz.storage.get(x);
+            return acc;
+          }, {}));
+
+          const el = document.createElement("a");
+          el.style.display = 'none';
+
+          const file = new Blob([ toSave ], { type: 'application/json' });
+
+          el.href = URL.createObjectURL(file);
+          el.download = `topaz_backup.json`;
+
+          document.body.appendChild(el);
+
+          el.click();
+          el.remove();
+        }
+      }),
+
+      React.createElement(TextAndButton, {
+        text: 'Restore Backup',
+        subtext: 'Restores your Topaz setup from a backup file. **Only load backups you trust**',
+        buttonText: 'Restore',
+
+        onclick: async () => {
+          const el = document.createElement('input');
+          el.style.display = 'none';
+          el.type = 'file';
+
+          el.click();
+
+          await new Promise(res => { el.onchange = () => res(); });
+
+          const file = el.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+
+          reader.onload = () => {
+            const obj = JSON.parse(reader.result);
+
+            for (const k in obj) {
+              topaz.storage.set(k, obj[k]);
+            }
+
+            location.reload();
+          };
+
+          reader.readAsText(file);
+        }
+      }),
+    )
+  }
+}
+
+let activeSnippet;
+class Snippets extends React.PureComponent {
+  render() {
+    const _Editor = (Editor.Component instanceof Promise ? 'div' : Editor.Component) ?? 'div';
+    if (_Editor === 'div') setTimeout(() => this.forceUpdate(), 200);
+
+    const saveSnippets = () => {
+      Storage.set('snippets', JSON.stringify(snippets));
+      Storage.set('snippets_toggled', JSON.stringify(snippetsToggled));
+    };
+
+    const updateSnippet = (file, content) => {
+      snippets[file] = content;
+      if (snippetsToggled[file] === undefined) snippetsToggled[file] = true;
+
+      saveSnippets();
+
+      stopSnippet(file);
+      if (snippetsToggled[file] && content) startSnippet(file, content);
+    };
+
+    return React.createElement('div', {
+      className: 'topaz-snippets'
+    },
+      React.createElement(_Editor, {
+        files: snippets,
+        toggled: snippetsToggled,
+        defaultFile: snippets[activeSnippet] ? activeSnippet : undefined,
+        plugin: { entityID: 'snippets' },
+        fileIcons: true,
+
+        onChange: (file, content) => updateSnippet(file, content),
+        onToggle: (file, toggled) => {
+          snippetsToggled[file] = toggled;
+          updateSnippet(file, snippets[file]);
+        },
+        onRename: (old, val) => {
+          snippets[val] = snippets[old];
+          delete snippets[old];
+
+          snippetsToggled[val] = snippetsToggled[old];
+          delete snippetsToggled[old];
+
+          if (activeSnippet === old) activeSnippet = val;
+
+          stopSnippet(old);
+          updateSnippet(val, snippets[val]);
+        },
+        onDelete: (file) => {
+          delete snippets[file];
+          delete snippetsToggled[file];
+
+          saveSnippets();
+          stopSnippet(file);
+        },
+
+        onOpen: (file) => activeSnippet = file
+      })
+    );
+  }
+}
+
+const autocompleteFiltering = JSON.parse(Storage.get('autocomplete_filtering', 'null')) ?? {
+  mods: {}
+};
+
+class Settings extends React.PureComponent {
+  render() {
+    const textInputHandler = (inp, init = false) => {
+      const addFilterPopout = () => {
+        if (document.querySelector('#topaz-repo-filtering')) return; // already open
+
+        const popout = document.createElement('div');
+        popout.id = 'topaz-repo-filtering';
+        popout.className = ScrollerClasses.thin + (topazSettings.simpleUI ? ' topaz-simple' : '');
+
+        const autoPos = autocomplete.getBoundingClientRect();
+
+        popout.style.top = autoPos.top + 'px';
+        popout.style.left = autoPos.right + 8 + 'px';
+
+        document.body.appendChild(popout);
+
+        const regen = () => textInputHandler(el.value ?? '');
+
+        const mods = Object.keys(recom).reduce((acc, x) => {
+          const mod = x.split('%')[0].toLowerCase();
+          if (!acc.includes(mod)) acc.push(mod);
+          return acc;
+        }, []);
+
+        class FilterPopout extends React.PureComponent {
+          render() {
+            return React.createElement(React.Fragment, {},
+              React.createElement('h5', {}, 'Filters'),
+              React.createElement(FormTitle, {
+                tag: 'h5'
+              }, 'Mods'),
+
+              ...mods.map(x => React.createElement(goosemod.webpackModules.findByDisplayName('SwitchItem'), {
+                value: autocompleteFiltering.mods[x] !== false,
+                onChange: y => {
+                  autocompleteFiltering.mods[x] = y;
+
+                  this.forceUpdate();
+                  regen();
+
+                  Storage.set('autocomplete_filtering', JSON.stringify(autocompleteFiltering));
+                }
+              }, displayMod(x)))
+            );
+          }
+        }
+
+        ReactDOM.render(React.createElement(FilterPopout), popout);
+      };
+
+      const removeFilterPopout = () => {
+        document.querySelector('#topaz-repo-filtering')?.remove?.();
+      };
+
+      const el = document.querySelector('.topaz-settings .input-2g-os5');
+
+      const install = async (info) => {
+        const rmPending = addPending({ repo: info, state: 'Installing...' });
+
+        this.forceUpdate();
+        setTimeout(() => { this.forceUpdate(); }, 300);
+
+        try {
+          await topaz.install(info);
+        } catch (e) {
+          console.error('INSTALL', e);
+
+          purgeCacheForPlugin(info); // try to purge cache if failed
+
+          const currentPend = pending.find(x => x.repo === info);
+          const rmError = addPending({ repo: info, state: 'Error', substate: lastError ?? e.toString().substring(0, 30), manifest: currentPend.manifest });
+          setTimeout(rmError, 2000);
+        }
+
+        rmPending();
+
+        this.forceUpdate();
+        setTimeout(() => { updateOpenSettings(); }, 500); // force update because jank
+      };
+
+
+      if (!el.placeholder) {
+        const placeholder = 'GitHub repo / URL';
+        el.placeholder = placeholder;
+
+        el.onkeydown = async (e) => {
+          if (e.keyCode !== 13) return;
+
+          const info = el.value;
+          el.value = '';
+          // el.value = 'Installing...';
+
+          install(info);
+        };
+
+        el.onfocus = () => {
+          textInputHandler(el.value ?? '');
+
+          document.onclick = e => {
+            if (e.target.placeholder !== placeholder && !e.path.some(x => x.id === 'topaz-repo-autocomplete') && !e.path.some(x => x.id === 'topaz-repo-filtering')) setTimeout(() => {
+              removeFilterPopout();
+              document.querySelector('#topaz-repo-autocomplete').style.display = 'none';
+
+              document.onclick = null;
+            }, 10);
+          };
+        };
+      }
+
+      let autocomplete = document.querySelector('#topaz-repo-autocomplete');
+      if (!autocomplete) {
+        autocomplete = document.createElement('div');
+        autocomplete.id = 'topaz-repo-autocomplete';
+        autocomplete.className = ScrollerClasses.thin + (topazSettings.simpleUI ? ' topaz-simple' : '');
+
+        document.body.appendChild(autocomplete);
+      }
+
+      const inputPos = el.getBoundingClientRect();
+
+      autocomplete.style.top = inputPos.bottom + 'px';
+      autocomplete.style.left = inputPos.left + 'px';
+      autocomplete.style.width = inputPos.width + 'px';
+
+      const fuzzySearch = new RegExp(`.*${inp.replace(' ', '[-_ ]')}.*`, 'i');
+
+      const recom = popular[selectedTab.toLowerCase()];
+      const infoFromRecom = (x) => x.endsWith('.plugin.js') ? x.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '') : x.replace('https://github.com/', '');
+      const matching = Object.keys(recom).filter((x) => !plugins[infoFromRecom(recom[x])] && fuzzySearch.test(x) && autocompleteFiltering.mods[x.split('%')[0].toLowerCase()] !== false);
+
+      if (!init) {
+        ReactDOM.render(React.createElement(React.Fragment, {},
+          React.createElement('h5', {},
+            'Popular ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes'),
+
+            React.createElement(PanelButton, {
+              icon: goosemod.webpackModules.findByDisplayName('Filter'),
+              tooltipText: 'Filter',
+
+              onClick: () => {
+                if (document.querySelector('#topaz-repo-filtering')) {
+                  removeFilterPopout();
+                  document.querySelector('[aria-label="Filter"]').classList.remove('active');
+                } else {
+                  addFilterPopout();
+                  document.querySelector('[aria-label="Filter"]').classList.add('active');
+                }
+              }
+            })
+          ),
+
+          ...matching.map(x => {
+            const [ mod, name, author ] = x.split('%');
+
+            let place = recom[x];
+            if (place.length > 40) place = place.slice(0, 40) + '...';
+
+            return React.createElement('div', {
+              className: 'title-2dsDLn',
+              onClick: () => {
+                autocomplete.style.display = 'none';
+                el.value = '';
+                install(recom[x]);
+              }
+            },
+              React.createElement('span', {
+                className: 'topaz-tag tag-floating'
+              }, mod),
+
+              ' ' + name + ' ',
+
+              author !== 'undefined' && React.createElement('span', {
+                className: 'description-30xx7u'
+              }, 'by '),
+              author !== 'undefined' && author.split('#')[0],
+
+              React.createElement('span', {
+                className: 'code-style'
+              }, place)
+            );
+          })
+        ), autocomplete);
+
+        autocomplete.style.display = 'block';
+
+        if (!document.querySelector('#topaz-repo-filtering')) document.querySelector('[aria-label="Filter"]').classList.remove('active');
+          else document.querySelector('[aria-label="Filter"]').classList.add('active');
+      } else {
+        autocomplete.style.display = 'none';
+      }
+    };
+
+    setTimeout(() => {
+      let tmpEl = document.querySelector('.topaz-settings .input-2g-os5');
+      if (tmpEl && !tmpEl.placeholder) textInputHandler('', true);
+    }, 10);
+
+    const modules = Object.values(plugins).filter((x) => selectedTab === 'PLUGINS' ? !x.__theme : x.__theme);
+
+    return React.createElement('div', {
+      className: 'topaz-settings' + (topazSettings.simpleUI ? ' topaz-simple' : '')
+    },
+      React.createElement(FormTitle, {
+        tag: 'h1'
+      }, 'Topaz',
+        React.createElement('span', {
+          className: 'description-30xx7u topaz-version'
+        }, topaz.version),
+
+        React.createElement(HeaderBarContainer.Divider),
+
+        React.createElement(TabBar, {
+          selectedItem: selectedTab,
+
+          type: TabBarClasses1.topPill,
+          className: TabBarClasses2.tabBar,
+
+          onItemSelect: (x) => {
+            if (x === 'RELOAD' || x === 'CHANGELOG') return;
+
+            const textInputEl = document.querySelector('.topaz-settings .input-2g-os5');
+            if (textInputEl) textInputs[selectedTab] = textInputEl.value;
+
+            selectedTab = x;
+            this.forceUpdate();
+
+            if (textInputEl) textInputEl.value = textInputs[x];
+          }
+        },
+          React.createElement(TabBar.Item, {
+            id: 'PLUGINS',
+
+            className: TabBarClasses2.item
+          }, 'Plugins'),
+          React.createElement(TabBar.Item, {
+            id: 'THEMES',
+
+            className: TabBarClasses2.item
+          }, 'Themes'),
+          React.createElement(TabBar.Item, {
+            id: 'SNIPPETS',
+
+            className: TabBarClasses2.item
+          }, 'Snippets'),
+          React.createElement(TabBar.Item, {
+            id: 'SETTINGS',
+
+            className: TabBarClasses2.item
+          }, 'Settings'),
+
+          React.createElement(TabBar.Item, {
+            id: 'RELOAD',
+
+            className: TabBarClasses2.item
+          }, React.createElement(PanelButton, {
+            icon: goosemod.webpackModules.findByDisplayName('Retry'),
+            tooltipText: 'Reload Topaz',
+            onClick: async () => {
+              topaz.reloadTopaz();
+            }
+          })),
+
+          React.createElement(TabBar.Item, {
+            id: 'CHANGELOG',
+
+            className: TabBarClasses2.item
+          }, React.createElement(PanelButton, {
+            icon: goosemod.webpackModules.findByDisplayName('Clock'),
+            tooltipText: 'Topaz Changelog',
+            onClick: async () => {
+              openChangelog();
+            }
+          }))
+        ),
+      ),
+
+      selectedTab === 'SETTINGS' ? React.createElement(TopazSettings) :
+        selectedTab === 'SNIPPETS' ? React.createElement(Snippets) : [
+        React.createElement(FormItem, {
+          title: 'Add ' + (selectedTab === 'PLUGINS' ? 'Plugin' : 'Theme'),
+          className: [Flex.Direction.VERTICAL, Flex.Justify.START, Flex.Align.STRETCH, Flex.Wrap.NO_WRAP, Margins.marginBottom20].join(' ')
+        },
+          React.createElement(TextInput, {
+            onChange: textInputHandler
+          })
+        ),
+
+        React.createElement(FormTitle, {
+          tag: 'h5',
+          className: Margins.marginBottom8,
+        },
+          modules.length + ' Installed',
+
+          modules.length > 0 ? React.createElement(PanelButton, {
+            icon: goosemod.webpackModules.findByDisplayName('Trash'),
+            tooltipText: 'Uninstall All',
+            onClick: async () => {
+              if (!(await goosemod.confirmDialog('Uninstall', 'Uninstall All ' + (selectedTab === 'PLUGINS' ? 'Plugins' : 'Themes'), 'Are you sure you want to uninstall all ' + (selectedTab === 'PLUGINS' ? 'plugins' : 'themes') + ' from Topaz?'))) return;
+              for (const x of modules) topaz.uninstall(x.__entityID);
+            }
+          }) : null,
+
+          modules.length > 0 ? React.createElement(PanelButton, {
+            icon: goosemod.webpackModules.findByDisplayName('Copy'),
+            tooltipText: 'Copy All',
+            onClick: async () => {
+              const links = modules.map(({ __entityID }) => {
+                let link = __entityID.includes('http') ? __entityID : `https://github.com/${__entityID}`;
+                if (link.includes('raw.githubusercontent.com')) link = 'https://github.com/' + [...link.split('/').slice(3, 5), 'blob', ...link.split('/').slice(5)].join('/'); // raw github links -> normal
+
+                return link;
+              });
+
+              goosemod.webpackModules.findByProps('SUPPORTS_COPY', 'copy').copy(links.join('\n'));
+            }
+          }) : null,
+        ),
+
+        React.createElement(Divider),
+
+        ...modules.map(({ entityID, __enabled, manifest, __entityID, __settings, __mod, __theme }) => React.createElement(Plugin, {
+          manifest,
+          entityID: __entityID,
+          enabled: __enabled,
+          settings: __settings,
+          mod: __mod,
+          isTheme: !!__theme,
+          onUninstall: async () => {
+            const rmPending = addPending({ repo: __entityID, state: 'Uninstalling...' });
+            this.forceUpdate();
+
+            await topaz.uninstall(__entityID);
+            rmPending();
+
+            this.forceUpdate();
+          }
+        })),
+
+        ...pending.map(obj => React.createElement(Plugin, obj))
+      ]
+    )
+  }
+}
+
+let settingsUnpatch = goosemod.patcher.patch(goosemod.webpackModules.findByDisplayName('SettingsView').prototype, 'getPredicateSections', (_, sections) => {
+  const logout = sections.find((c) => c.section === 'logout');
+  if (!logout) return sections;
+
+  sections.splice(0, 0,
+  {
+    section: 'Topaz',
+    label: 'Topaz',
+    predicate: () => { },
+    element: () => React.createElement(Settings)
+  },
+
+  {
+    section: 'DIVIDER',
+  },);
+
+  return sections;
+});
+
+const Terminal = eval(`const closeTerminal = () => document.querySelector('.topaz-terminal')?.remove?.();
+
+const openTerminal = (e) => {
+  if (e) if (/* !e.ctrlKey || */ !e.altKey || e.key !== 't') return;
+
+  const alreadyOpen = document.querySelector('.topaz-terminal');
+  if (e && alreadyOpen) return closeTerminal();
+
+  const term = document.createElement('div');
+  term.className = 'topaz-terminal';
+
+  const header = document.createElement('div');
+  header.textContent = 'Topaz Terminal';
+
+  const closeButton = document.createElement('div');
+  closeButton.textContent = '✖';
+
+  closeButton.onclick = () => closeTerminal();
+
+  header.appendChild(closeButton);
+
+  const out = document.createElement('div');
+  out.contentEditable = true;
+  out.autocapitalize = false;
+  out.autocomplete = false;
+  out.spellcheck = false;
+  out.innerHTML = 'Welcome to the Topaz Terminal, here you can quickly and directly interface with Topaz internals.<br>';
+
+  out.className = [ScrollerClasses.thin, ScrollerClasses.fade].join(' ');
+
+  term.append(header, out);
+
+  const storedPos = Storage.get('terminal_position');
+  if (storedPos) {
+    term.style.left = Math.max(0, storedPos[0]) + 'px';
+    term.style.top = Math.max(0, storedPos[1]) + 'px';
+  }
+
+  let oldOut;
+  if (alreadyOpen) {
+    oldOut = document.querySelector('.topaz-terminal > :last-child');
+    out.innerHTML = oldOut.innerHTML;
+  }
+
+  document.body.appendChild(term);
+
+  if (oldOut) {
+    out.scrollTop = oldOut.scrollTop;
+    document.querySelectorAll('.topaz-terminal')[0].remove();
+  }
+
+  const selectLast = () => {
+    const sel = window.getSelection();
+    sel.collapse(out.lastChild, out.lastChild.textContent.length);
+    out.focus();
+  };
+
+  const echo = (text, final = true) => {
+    const atEnd = out.scrollHeight - out.clientHeight - out.scrollTop < 50; // check before adding since too much text will scroll
+
+    out.innerHTML += '<br>';
+    out.innerHTML += text.replaceAll('\\n', '<br>');
+
+    if (final) out.innerHTML += '<br><br>> ';
+    if (atEnd) out.scrollTop = 999999;
+  };
+
+  const spacedColumns = (cols) => {
+    let longest = 0;
+    for (const x of cols) if (x[0]?.length > longest) longest = x[0].length;
+
+    return cols.map(x => x[0] ? \`<b>\${x[0]}</b>\${' '.repeat((longest - x[0].length) + 6)}\${x[1]}\` : '').join('\\n');
+  };
+
+  const help = () => {
+    const commands = [
+      [ 'uninstall [link|all]', 'Uninstalls given plugin/theme or all' ],
+      [ 'reinstall [link]', 'Reinstalls given plugin/theme' ],
+      [ 'enable [link]', 'Enables given plugin/theme' ],
+      [ 'disable [link]', 'Disables given plugin/theme' ],
+      [ 'installed', 'Outputs installed plugins and themes' ],
+      [],
+      [ 'cache [status|purge]', 'Manage Topaz\\'s cache' ],
+      [ 'reload', 'Reload Topaz' ],
+      [],
+      [ 'refresh', 'Refresh Discord' ],
+      [],
+      [ 'clear', 'Clear terminal' ],
+      [ 'help', 'Lists commands' ],
+      [ 'exit', 'Exits terminal' ]
+    ];
+
+    echo(\`<b><u>Commands</u></b>
+\${spacedColumns(commands)}
+
+Enter any link/GH repo to install a plugin/theme\`);
+  };
+
+  if (!alreadyOpen) help();
+
+  out.onclick = e => {
+    selectLast();
+  };
+
+  out.onkeydown = e => {
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key === 'Backspace') {
+      const newOut = out.innerHTML.slice(0, -1);
+      if (newOut.slice(-4) !== '&gt;') out.innerHTML = newOut;
+    }
+
+    if (e.key === 'Enter') {
+      const txt = out.textContent;
+      const cmd = txt.slice(txt.lastIndexOf('> ') + 2);
+
+      const command = cmd.split(' ')[0];
+      const extra = cmd.split(' ').slice(1);
+
+      const info = extra[0];
+
+      switch (command) {
+        case 'uninstall':
+          if (info === 'all') {
+            echo(\`Uninstalling all...\`, false);
+            topaz.uninstallAll().then(() => echo('Uninstalled all'));
+            break;
+          }
+
+          if (!topaz.internal.plugins[info]) {
+            echo(\`\${info} not installed!\`);
+            break;
+          }
+
+          echo(\`Uninstalling <b>\${info}</b>...\`, false);
+          topaz.uninstall(info).then(() => echo(\`Uninstalled <b>\${info}</b>\`));
+          break;
+
+        case 'reinstall':
+          if (!topaz.internal.plugins[info]) {
+            echo(\`\${info} not installed!\`);
+            break;
+          }
+
+          echo(\`Reinstalling <b>\${info}</b>...\`, false);
+          topaz.reload(info).then(() => echo(\`Reinstalled <b>\${info}</b>\`));
+          break;
+
+        case 'enable':
+          if (!topaz.internal.plugins[info]) {
+            echo(\`\${info} not installed!\`);
+            break;
+          }
+
+          topaz.enable(info);
+          echo(\`Enabled <b>\${info}</b>\`);
+          break;
+
+        case 'disable':
+          if (!topaz.internal.plugins[info]) {
+            echo(\`\${info} not installed!\`);
+            break;
+          }
+
+          topaz.disable(info);
+          echo(\`Disabled <b>\${info}</b>\`);
+          break;
+
+        case 'installed':
+          const modules = Object.values(topaz.internal.plugins);
+
+          const niceEntity = x => x.replace('https://raw.githubusercontent.com/', '').replace('/master/', ' > ').replace('/HEAD/', ' > ');
+
+          const plugins = modules.filter(x => !x.__theme).map(x => [ x.manifest.name, niceEntity(x.__entityID) ]);
+          const themes = modules.filter(x => x.__theme).map(x => [ x.manifest.name, niceEntity(x.__entityID) ]);
+
+          echo(\`<b><u>\${themes.length} Theme\${themes.length === 1 ? '' : 's'}</u></b>
+\${spacedColumns(themes)}
+
+<b><u>\${plugins.length} Plugin\${plugins.length === 1 ? '' : 's'}</u></b>
+\${spacedColumns(plugins)}\`);
+          break;
+
+        case 'cache':
+          switch (info) {
+            default:
+              const getKb = x => (new Blob([ x.join?.('') ?? x ]).size / 1024);
+              const displaySize = kb => {
+                let unit = 'KB';
+                if (kb > 1000) {
+                  kb /= 1024;
+                  unit = 'MB';
+                }
+
+                return kb.toFixed(2) + unit;
+              };
+
+              const cacheStatus = (cache) => {
+                const totalSize = getKb(Object.values(cache.store));
+
+                const goneThrough = [];
+                return spacedColumns([
+                  [ 'Total Entries', cache.keys().length ],
+                  [ 'Total Size', displaySize(totalSize)],
+                  [],
+                  ...Object.values(topaz.internal.plugins).map(x => {
+                    const [ entries, size ] = cache.keys().filter(y => y.includes(x.__entityID.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => { goneThrough.push(x); acc[0]++; acc[1] += getKb(cache.get(x)); return acc; }, [0, 0]);
+                    return [ x.manifest.name, \`\${entries} entr\${entries === 1 ? 'y' : 'ies'}, \${displaySize(size)} (\${(size / totalSize * 100).toFixed(1)}%)\` ];
+                  }).concat(goneThrough.length !== cache.keys().length ? [ [ 'Internal', cache.keys().filter(x => !goneThrough.includes(x)).reduce((acc, x) => { acc[0]++; acc[1] += getKb(cache.get(x)); return acc; }, [0, 0]).reduce((acc, x, i) => acc += !i ? \`\${x} entries, \` : \`\${displaySize(x)} (\${(x / totalSize * 100).toFixed(1)}%)\`, '') ] ] : []),
+                ]);
+              };
+
+              echo(\`<b><u>Fetch</u></b>
+\${cacheStatus(topaz.internal.fetchCache)}
+
+
+<b><u>Final</u></b>
+\${cacheStatus(topaz.internal.finalCache)}\`);
+              break;
+
+            case 'purge':
+              fetchCache.purge();
+              finalCache.purge();
+              echo('Purged caches');
+              break;
+          }
+
+          break;
+
+        case 'reload':
+          echo('Reloading Topaz...');
+          topaz.reloadTopaz();
+          break;
+
+        case 'refresh':
+          echo('Refreshing...');
+          location.reload();
+          break;
+
+        case 'clear':
+          out.innerHTML = '> ';
+          break;
+
+        case 'exit':
+          closeTerminal();
+          break;
+
+        case 'debug':
+          topaz.debug = !topaz.debug;
+          echo(\`Debug <b>\${topaz.debug ? 'ON' : 'OFF'}</b> for this session\`);
+          break;
+
+        case 'help':
+          help();
+          break;
+
+        default:
+          if (cmd.includes('/')) { // install
+            echo(\`Installing <b>\${cmd}</b>...\`, false);
+            topaz.install(cmd).then(() => echo(\`Installed <b>\${cmd}</b>\`));
+          } else { // unknown
+            echo(\`Unknown command <b>\${cmd}</b>, use <b>help</b> to view available commands\`);
+          }
+          break;
+      }
+    }
+
+    if (e.key.length === 1) out.innerHTML += e.key;
+
+    selectLast();
+    e.preventDefault();
+    return false;
+  };
+
+  selectLast();
+
+  header.onmousedown = e => {
+    e.preventDefault();
+    let lastPos = [ e.clientX, e.clientY ];
+
+    document.onmouseup = () => {
+      document.onmousemove = null;
+      document.onmouseup = null;
+    };
+
+    document.onmousemove = e => {
+      e.preventDefault();
+
+      const deltaX = lastPos[0] - e.clientX;
+      const deltaY = lastPos[1] - e.clientY;
+
+      lastPos = [ e.clientX, e.clientY ];
+
+      const pos = [ term.offsetLeft - deltaX, term.offsetTop - deltaY ];
+      term.style.left = pos[0] + 'px';
+      term.style.top = pos[1] + 'px';
+
+      Storage.set('terminal_position', pos);
+    };
+  };
+};
+
+document.addEventListener('keydown', openTerminal);
+if (document.querySelector('.topaz-terminal')) {
+  openTerminal();
+}
+
+() => { // topaz purge handler
+  document.removeEventListener('keydown', openTerminal);
+};`);
 
 const msgModule = goosemod.webpackModules.findByProps('sendMessage');
 const msgUnpatch = goosemod.patcher.patch(msgModule, 'sendMessage', ([ _channelId, { content } ]) => {
