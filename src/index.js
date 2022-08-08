@@ -35,7 +35,7 @@ if (window.topaz && topaz.purge) { // live reload handling
 }
 
 window.topaz = {
-  version: 'alpha 9',
+  version: 'alpha 10',
   log
 };
 
@@ -652,6 +652,7 @@ const resolveFileFromTree = async (path) => {
     console.warn('Failed to resolve', path);
     lastError = `Failed to resolve: ${path}`;
   }
+
 
   return res ? ('./' + res) : undefined;
 };
