@@ -7,7 +7,7 @@ const [ GITHUB_TOKEN, DISCORD_TOKEN ] = process.argv.slice(2);
 const pc = {
   plugins: [
     'romdotdog/wpm',
-    'TaiAurori/custom-timestamps',
+    'AnthonyFuller/custom-timestamps', // 'TaiAurori/custom-timestamps',
     'RazerMoon/vcTimer',
     '12944qwerty/Slowmode-Counter',
     // 'skullyplugs/collapsible-ui',
@@ -54,12 +54,22 @@ const pc = {
     'discord-modifications/force-owner-crown',
     'discord-modifications/quick-delete',
     'discord-modifications/screenshare-crack',
+    'discord-modifications/hide-dm-buttons',
+    'discord-modifications/no-friend-badges',
+    'discord-modifications/picture-link',
+    'discord-modifications/double-click-vc',
     'asportnoy/powercord-role-dividers',
     'cyyynthia/total-members',
     '12944qwerty/badges-everywhere|powercord-community/badges-everywhere',
     'E-boi/Powercord-BlurNSFW',
     'Juby210/view-raw',
     'ShadiestGoat/Powercord-googleit-plugin',
+    'powercord-community/cutecord',
+    'notKnei/quickChatReply',
+    'Juby210/better-folders',
+    'Vap0r1ze/vpc-shiki',
+    '12944qwerty/profile-stats',
+    'pythonmcpi/simple-eval',
   ],
 
   themes: [
@@ -95,6 +105,7 @@ const pc = {
     'Dedsd/DarkBlue-Ice-for-customdiscord',
     'CreArts-Community/Context-Icons',
     'CreArts-Community/CreArts-Discord',
+    'ClearVision/ClearVision-v6',
   ]
 };
 
@@ -117,6 +128,8 @@ const bd = {
     'https://github.com/Strencher/BetterDiscordStuff/blob/master/PlatformIndicators/APlatformIndicators.plugin.js',
     'https://github.com/Neodymium7/BetterDiscordStuff/blob/main/VoiceActivity/VoiceActivity.plugin.js',
     // 'https://raw.githubusercontent.com/NomadNaomie/BD-Tone-Indicators/main/ToneIndicator.plugin.js',
+    'https://github.com/Farcrada/DiscordPlugins/blob/master/Double-click-to-edit/DoubleClickToEdit.plugin.js',
+    'https://github.com/QbDesu/BetterDiscordAddons/blob/potato/Plugins/RemoveChatButtons/RemoveChatButtons.plugin.js',
   ],
 
   themes: [
@@ -177,12 +190,12 @@ const dr = {
 const cc = {
   plugins: [
     'https://github.com/yellowsink/cc-plugins/tree/master/plugins/svg-embeds',
-    'https://cumcordplugins.github.io/Condom/cc.c7.pm/Greentext',
-    'https://cumcordplugins.github.io/Condom/cc.c7.pm/MessageLogger',
-    'https://cumcordplugins.github.io/Condom/cc.c7.pm/MessageLinkPreview/',
-    'https://cumcordplugins.github.io/Condom/cc.c7.pm/ChannelTypingIndicator/',
-    'https://cumcordplugins.github.io/Condom/cc.c7.pm/RoleColoredMessages/',
-    'https://cumcordplugins.github.io/Condom/cc.c7.pm/TimeBarAllActivities/',
+    'https://cumcordplugins.github.io/Condom/yellowsink.github.io/c7-cc-plugs/Greentext',
+    'https://cumcordplugins.github.io/Condom/yellowsink.github.io/c7-cc-plugs/MessageLogger',
+    'https://cumcordplugins.github.io/Condom/yellowsink.github.io/c7-cc-plugs/MessageLinkPreview/',
+    'https://cumcordplugins.github.io/Condom/yellowsink.github.io/c7-cc-plugs/ChannelTypingIndicator/',
+    'https://cumcordplugins.github.io/Condom/yellowsink.github.io/c7-cc-plugs/RoleColoredMessages/',
+    'https://cumcordplugins.github.io/Condom/yellowsink.github.io/c7-cc-plugs/TimeBarAllActivities/',
     'https://github.com/Cr3atable/CumcordPlugins/tree/master/open-in-app',
     'https://cumcordplugins.github.io/Condom/cc.nova-vps.ml/hide-message/',
     'https://cumcordplugins.github.io/Condom/cc.nova-vps.ml/devmode/',
