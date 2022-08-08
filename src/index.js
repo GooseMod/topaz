@@ -150,6 +150,7 @@ const transformCSS = async (root, code, skipTransform = false, updateProgress = 
 const getBuiltin = async (name) => await (await fetch('http://localhost:1337/src/builtins/' + name + '.js')).text();
 
 const builtins = {
+  'powercord': await getBuiltin('powercord/wrapper'),
   'powercord/entities': await getBuiltin('powercord/entities'),
   'powercord/webpack': await getBuiltin('powercord/webpack'),
   'powercord/injector': await getBuiltin('powercord/injector'),
