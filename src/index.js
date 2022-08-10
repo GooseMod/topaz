@@ -1209,6 +1209,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     }
 
     if (!manifest.name && PluginClass.name) manifest.name = PluginClass.name;
+    if (!manifest.author && isGitHub) manifest.author = repo.split('/')[0];
   }
 
   plugins[info] = plugin;
