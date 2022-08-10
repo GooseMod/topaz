@@ -1059,7 +1059,7 @@ const containerParent = document.createElement('div');
 document.body.appendChild(containerParent);
 
 const createContainer = (inst) => {
-  containerParent.innerHTML = window.BdApi ? \`<object data="about:blank"></object>\` : '<iframe></iframe>'; // make iframe. use object (bit slower) if BD is also installed as it breaks sandboxing
+  containerParent.innerHTML = window.BdApi ? \`<object data="about:blank"></object>\` : '<iframe src="about:blank"></iframe>'; // make iframe. use object (bit slower) if BD is also installed as it breaks sandboxing
   const el = containerParent.children[0];
 
   const _constructor = el.contentWindow.Function.constructor;
