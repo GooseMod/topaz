@@ -1207,6 +1207,8 @@ const install = async (info, settings = undefined, disabled = false) => {
 
         break;
     }
+
+    if (!manifest.name && PluginClass.name) manifest.name = PluginClass.name;
   }
 
   plugins[info] = plugin;
