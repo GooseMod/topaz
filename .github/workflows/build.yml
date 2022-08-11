@@ -1,0 +1,39 @@
+name: Build Topaz
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js v18.x
+      uses: actions/setup-node@v2
+      with:
+        node-version: 18.x
+
+    - name: Bundle Topaz
+      run: node bundle.js
+
+    - name: Stage built files
+      run: |
+        mv out.js exp.js
+        git add exp.js
+
+    - name: Commit build files
+      run: |
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git commit -m "[CI] Experimental Build" || true
+
+    - name: Push build commit
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
