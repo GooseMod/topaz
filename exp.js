@@ -2236,7 +2236,7 @@ const includeImports = async (root, code, updateProgress) => {
   return res;
 };
 
-const transformCSS = async (root, code, skipTransform = false, updateProgress = false) => {
+const transformCSS = async (root, indexRoot, code, skipTransform = false, updateProgress = false) => {
   transformRoot = root;
 
   if (updateProgress) {
@@ -2246,7 +2246,7 @@ const transformCSS = async (root, code, skipTransform = false, updateProgress = 
 
   if (updateProgress) updatePending(null, 'Importing...');
 
-  let newCode = await includeImports(root, code, updateProgress);
+  let newCode = await includeImports(indexRoot, code, updateProgress);
 
   if (updateProgress) updatePending(null, 'Transforming...');
 
@@ -5251,7 +5251,7 @@ ${(await Promise.all(files.map(async x => {
   });
 
   code = await replaceAsync(code, /this\.loadStylesheet\(['"`](.*?)['"`]\)/g, async (_, p) => {
-    const css = (await transformCSS(root, await getCode(root, './' + p.replace(/^.\//, '')))).replace(/\\/g, '\\\\').replace(/\`/g, '\`');
+    const css = (await transformCSS(transformRoot, root, await getCode(root, './' + p.replace(/^.\//, '')))).replace(/\\/g, '\\\\').replace(/\`/g, '\`');
 
     return `this.loadStylesheet(\`${css}\`)`;
   });
@@ -5427,10 +5427,11 @@ const install = async (info, settings = undefined, disabled = false) => {
     isTheme = info.endsWith('.theme.css') || await resolveFileFromTree('powercord_manifest.json');
     if (isTheme) {
       let skipTransform = false;
+      const fullRoot = root;
 
       switch (mod) {
         case 'bd':
-          indexURL = join(root, './' + info.split('/').slice(-1)[0]);
+          indexUrl = join(root, './' + info.split('/').slice(-1)[0]);
           indexCode = await getCode(root, './' + info.split('/').slice(-1)[0]);
           manifest = [...indexCode.matchAll(/^ *\* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
           skipTransform = true;
@@ -5443,13 +5444,13 @@ const install = async (info, settings = undefined, disabled = false) => {
           manifest = await (await fetch(join(root, './powercord_manifest.json'))).json();
 
           const main = manifest.theme.replace(/^\.?\//, '');
-          indexURL = join(root, './' + main);
+          indexUrl = join(root, './' + main);
           indexCode = await getCode(root, './' + main);
           root = getDir(join(root, './' + main));
           skipTransform = main.endsWith('.css');
 
-          subdir = getDir(main);
-          if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
+          // subdir = getDir(main);
+          // if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
 
           break;
       }
@@ -5458,7 +5459,7 @@ const install = async (info, settings = undefined, disabled = false) => {
       if (pend) pend.manifest = manifest;
 
       updatePending(info, 'Bundling...');
-      newCode = await transformCSS(root, indexCode, skipTransform, true);
+      newCode = await transformCSS(fullRoot, root, indexCode, skipTransform, true);
     } else {
       switch (mod) {
         case 'pc':
@@ -7035,7 +7036,7 @@ const startSnippet = async (file, content) => {
   let code;
 
   if (file.endsWith('css')) {
-    code = await transformCSS('https://discord.com/channels/@me', content, !file.endsWith('scss'), false);
+    code = await transformCSS('https://discord.com/channels/@me', 'https://discord.com/channels/@me', content, !file.endsWith('scss'), false);
 
     const cssEl = document.createElement('style');
     cssEl.appendChild(document.createTextNode(code));
