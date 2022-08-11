@@ -375,6 +375,8 @@ ${_code}\n\n
 
     let exported = containedEval.bind(this.context)(code).apply(this.context, argumentContext.map(x => this.context[x]));
 
+    if (Object.keys(exported).length === 1 && exported.default) exported = exported.default;
+
     return exported;
   };
 
