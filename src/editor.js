@@ -511,7 +511,7 @@ code { /* Fix code font variable not being used in some places */
                   avatar: '256174d9f90e1c70c5602ef28efd74ab',
                   username: 'Ducko'
                 },
-                css: `[class^="toolbar"] a[href="https://support.discord.com/"] {
+                css: `[class^="toolbar"] a[href^="https://support.discord.com"] {
   display: none;
 }`
               }
