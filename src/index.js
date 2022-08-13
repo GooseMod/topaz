@@ -95,11 +95,11 @@ const includeImports = async (root, code, updateProgress) => {
     if (isExternal) {
       if (_.includes('@import') && !_.includes('scss')) return _;
 
-      const req = await fetch(path);
-      if (req.status !== 200) {
-        code = '';
-      } else {
-        code = await req.text();
+      let code = '';
+      try {
+        code = await fetchCache.fetch(path);
+      } catch (e) {
+        console.warn('failed to fetch external', code);
       }
     } else {
       const relativePath = resolvePath('.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
