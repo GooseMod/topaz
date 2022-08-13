@@ -818,3 +818,7 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   overflow: auto;
   padding-right: 0;
 }
+
+.topaz-autopatcher-icon {
+  vertical-align: text-bottom;
+}
