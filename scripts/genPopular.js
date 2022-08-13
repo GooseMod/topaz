@@ -243,6 +243,15 @@ const dc = {
   ]
 };
 
+const ac = {
+  plugins: [
+    // 'https://github.com/lexisother/Aliucord-RN-Plugins/tree/master/NoReplyMention',
+    'https://github.com/c10udburst-discord/Aliucord-RightNow-Plugins/tree/master/SilentTyping',
+    'https://github.com/c10udburst-discord/Aliucord-RightNow-Plugins/tree/master/EmbedMessageLinks',
+    'https://github.com/c10udburst-discord/Aliucord-RightNow-Plugins/tree/master/MessageLogger',
+  ]
+};
+
 let lastRequest = 0;
 const userCache = {};
 
@@ -454,6 +463,26 @@ const getManifest_dc = async (place) => {
   }, {});
 };
 
+const getManifest_ac = async (place) => {
+  const manifestName = 'manifest.json';
+
+  console.log(place);
+
+  const [ repo, branch ] = place.split('@');
+
+  let manifestUrl = repo + '/' + manifestName;
+  if (!place.startsWith('http')) manifestUrl = `https://raw.githubusercontent.com/${repo}/${branch ?? 'HEAD'}/${manifestName}`;
+
+  const manifest = await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', ''))).json();
+
+  const code = await (await fetch(manifestUrl.replace('github.com', 'raw.githubusercontent.com').replace('blob/', '').replace('tree/', '').replace(manifestName, 'index.ts'))).text();
+
+  manifest.name = code.match(/default class (.*?) extends/)[1];
+  manifest.author = repo.split('/')[3];
+
+  return manifest;
+};
+
 (async () => {
   let plugins = [];
   let themes = [];
@@ -541,6 +570,12 @@ const getManifest_dc = async (place) => {
   for (const place of dc.plugins) {
     plugins.push(getManifest_dc(place.split('|')[0], false).then(manifest => {
       return [makeId('DC', manifest), place];
+    }));
+  }
+
+  for (const place of ac.plugins) {
+    plugins.push(getManifest_ac(place.split('|')[0], false).then(manifest => {
+      return [makeId('AC', manifest), place];
     }));
   }
 
