@@ -110,7 +110,7 @@ const includeImports = async (root, code, updateProgress) => {
       }
     } else {
       const relativePath = resolvePath('.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
-      console.log(root, '|', basePath, relativePath, '|', '.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
+      // console.log(root, '|', basePath, relativePath, '|', '.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
 
       resolved = await resolveFileFromTree(relativePath) ?? await resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/'));
       code = await getCode(transformRoot, resolved);
@@ -472,7 +472,7 @@ const makeChunk = async (root, p) => {
   let resPath = builtins[p] ? p : resolvePath(joined).slice(1);
 
   const resolved = await resolveFileFromTree(resPath);
-  console.log('CHUNK', genId(resPath), '|', root.replace(transformRoot, ''), p, '|', joined, resPath, resolved);
+  // console.log('CHUNK', genId(resPath), '|', root.replace(transformRoot, ''), p, '|', joined, resPath, resolved);
 
   const finalPath = resolved ?? p;
 
