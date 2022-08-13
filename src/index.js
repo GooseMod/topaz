@@ -348,6 +348,12 @@ return;`)
 
   'demoncord/global': await getBuiltin('demoncord/global'),
 
+  'aliucord/entities': await getBuiltin('aliucord/entities'),
+  'aliucord/metro': await getBuiltin('aliucord/metro'),
+  'aliucord/utils': await getBuiltin('aliucord/utils'),
+  'aliucord/utils/patcher': `module.exports = require('aliucord/utils').Patcher;`,
+  'aliucord/global': '',
+
   'react': 'module.exports = goosemod.webpackModules.common.React;',
   'lodash': 'module.exports = window._;',
 
@@ -836,6 +842,7 @@ const install = async (info, settings = undefined, disabled = false) => {
           if (indexCode.includes('extends UPlugin')) mod = 'ast';
           if (indexCode.includes('@rikka')) mod = 'rk';
           if (indexCode.includes('@vizality')) mod = 'vz';
+          if (indexCode.includes('aliucord')) mod = 'ac';
 
           if (mod === 'em') {
             indexCode = indexCode.replace(/registerPlugin\((.*?)\)/, (_, v) => `module.exports = ${v};`);
@@ -1288,6 +1295,7 @@ const fullMod = (mod) => {
     case 'vz': return 'vizality';
     case 'em': return 'enmity';
     case 'dc': return 'demoncord';
+    case 'ac': return 'aliucord';
   }
 };
 
@@ -1305,6 +1313,7 @@ const displayMod = (mod) => {
     case 'vz': return 'Vizality';
     case 'em': return 'Enmity';
     case 'dc': return 'Demoncord';
+    case 'ac': return 'Aliucord (RN)';
   }
 };
 
