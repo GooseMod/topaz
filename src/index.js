@@ -55,6 +55,7 @@ const initStartTime = performance.now();
 
 const sucrase = eval(await (await fetch('http://localhost:1337/src/sucrase.js')).text());
 const grass = await eval(await (await fetch('http://localhost:1337/src/grass.js')).text());
+// const Glass = eval(await (await fetch('http://localhost:1337/src/glass.js')).text());
 const attrs = eval(await (await fetch('http://localhost:1337/src/attrs.js')).text());
 
 const Onyx = eval(await (await fetch('http://localhost:1337/src/onyx.js')).text());
@@ -139,6 +140,7 @@ const transformCSS = async (root, indexRoot, code, skipTransform = false, update
   const builtins = [ 'hsla', 'hsl', 'rgb', 'rgba' ];
   for (const x of builtins) newCode = newCode.replaceAll(x, '_' + x);
 
+  // if (!skipTransform) newCode = topaz.debug ? Glass(newCode) : grass(newCode, { style: 'expanded', quiet: true, load_paths: [''] });
   if (!skipTransform) newCode = grass(newCode, { style: 'expanded', quiet: true, load_paths: [''] });
 
   for (const x of builtins) newCode = newCode.replaceAll('_' + x, x);
