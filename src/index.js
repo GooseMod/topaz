@@ -62,6 +62,8 @@ const Onyx = eval(await (await fetch('http://localhost:1337/src/onyx.js')).text(
 const MapGen = eval(await (await fetch('http://localhost:1337/src/mapgen.js')).text());
 Onyx.prototype.MapGen = MapGen; // import mapgen into onyx
 
+const Autopatch = eval(await (await fetch('http://localhost:1337/src/autopatch.js')).text());
+
 const Editor = { // defer loading until editor is wanted
   get Component() {
     return (async () => { // async getter
@@ -923,6 +925,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     }
 
     finalCache.set(info, [ newCode, manifest, isTheme ]);
+    [ newCode, autopatchResult ] = await Autopatch(info, manifest, newCode);
   }
 
   updatePending(info, 'Executing...');
@@ -1245,6 +1248,7 @@ const install = async (info, settings = undefined, disabled = false) => {
   plugin.__enabled = !disabled;
   plugin.__mod = mod;
   plugin.__root = transformRoot;
+  plugin.__autopatch = autopatchResult;
 
   if (!disabled) plugin._topaz_start();
 
@@ -1883,7 +1887,7 @@ const openSub_modal = (header, content, type) => {
 
 class Plugin extends React.PureComponent {
   render() {
-    const { manifest, repo, state, substate, settings, entityID, mod, isTheme } = this.props;
+    const { manifest, repo, state, substate, settings, entityID, mod, isTheme, autopatch } = this.props;
 
     return React.createElement(TextAndChild, {
       text: !manifest ? repo : [
@@ -1897,6 +1901,25 @@ class Plugin extends React.PureComponent {
             onMouseLeave
           }, mod.toUpperCase()),
         ),
+
+        autopatch && autopatch.changes.length > 0 && React.createElement(Tooltip, {
+          position: 'top',
+          color: 'primary',
+          tooltipClassName: 'topaz-nomax-tooltip',
+
+          text: `Autopatched`
+        }, ({
+          onMouseLeave,
+          onMouseEnter
+        }) => React.createElement(goosemod.webpackModules.findByDisplayName('BugCatcher'), {
+          // className: 'topaz-permission-danger-icon',
+          className: 'topaz-autopatcher-icon',
+          width: 20,
+          height: 20,
+
+          onMouseEnter,
+          onMouseLeave
+        })),
 
         manifest.name,
 
@@ -2658,11 +2681,12 @@ class Settings extends React.PureComponent {
 
         React.createElement(Divider),
 
-        ...modules.map(({ entityID, __enabled, manifest, __entityID, __settings, __mod, __theme }) => React.createElement(Plugin, {
+        ...modules.map(({ entityID, __enabled, manifest, __entityID, __settings, __mod, __theme, __autopatch }) => React.createElement(Plugin, {
           manifest,
           entityID: __entityID,
           enabled: __enabled,
           settings: __settings,
+          autopatch: __autopatch,
           mod: __mod,
           isTheme: !!__theme,
           onUninstall: async () => {
