@@ -12,7 +12,7 @@ const debounce = (handler, timeout) => {
   };
 };
 
-const save = debounce(() => makeTrans().put(store, 'store').onsuccess = e => topaz.log('storage', 'db saved'), 1000);
+const save = debounce(() => makeTrans().put(store, 'store').onsuccess = e => topaz.log('storage', 'db saved'), 200);
 
 
 let db;
