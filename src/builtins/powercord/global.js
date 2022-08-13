@@ -268,6 +268,13 @@ powercord = {
     }
   },
 
+  pluginManager: {
+    get: x => {
+      topaz.log('powercord.pluginManager.get', x);
+      return topaz.internal.plugins[__entityID];
+    }
+  },
+
   account: null,
   fetchAccount: async () => {}
 };
