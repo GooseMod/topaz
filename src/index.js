@@ -331,9 +331,9 @@ return;`)
   '@vizality/entities': await getBuiltin('vizality/entities'),
   'vizality/global': await getBuiltin('vizality/global'),
 
-  'enmity/metro/common': await getBuiltin('unbound/webpack/common'),
-  'enmity/metro': await getBuiltin('unbound/webpack/webpack'),
-  'enmity/patcher': await getBuiltin('unbound/patcher'),
+  'enmity/metro/common': `module.exports = require('unbound/webpack/common');`,
+  'enmity/metro': `module.exports = require('unbound/webpack/webpack');`,
+  'enmity/patcher': `module.exports = require('unbound/patcher');`,
   'enmity/managers/plugins': `module.exports = { Plugin: {}, registerPlugin: () => {} };`,
   'enmity/global': '',
 
