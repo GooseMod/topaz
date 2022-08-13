@@ -39,7 +39,7 @@ const pc = {
     'Rodentman87/stonks',
     'BenSegal855/webhook-tag',
     'BenSegal855/powerclock',
-    'zt64/dm-typing-indicator',
+    'yatsukiko/dm-typing-indicator|zt64/dm-typing-indicator',
     'NurMarvin/SnowflakeInfo',
     'FC5570/powercord-random-dadjoke',
     'SomeAspy/NekosCord',
@@ -71,12 +71,12 @@ const pc = {
     'Vap0r1ze/vpc-shiki',
     '12944qwerty/profile-stats',
     'pythonmcpi/simple-eval',
+    'Luna-devv/rp.replace-discord-link',
   ],
 
   themes: [
     'leeprky/MaterialYouTheme',
     'eternal404/dark-discord',
-    'Comfy-Themes/Discord',
     'DiscordStyles/Slate@deploy',
     'DiscordStyles/HorizontalServerList',
     'DiscordStyles/RadialStatus@deploy',
@@ -139,6 +139,7 @@ const bd = {
     'https://github.com/codedotspectra/themes/blob/master/themes-files/nocturnal.theme.css',
     'https://github.com/przemec/Novum/blob/master/Novum.theme.css',
     'https://github.com/TakosThings/Fluent-Discord/blob/gh-pages/Fluent-Discord.theme.css',
+    'https://github.com/Comfy-Themes/Discord/blob/master/betterdiscord/comfy.theme.css',
   ]
 };
 
