@@ -22,7 +22,13 @@ class SettingsStore extends Flux.Store {
   }
 
   getSetting = (key, def) => {
-    return this._store[key] ?? def;
+    let out = this._store;
+
+    for (const k of key.split('.')) {
+      out = out[k];
+    }
+
+    return out ?? def;
   }
 
   updateSetting = (key, value) => {
