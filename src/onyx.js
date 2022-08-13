@@ -3,7 +3,11 @@ const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) => {
   acc[x] = sub.__sentry_original__ ?? sub;
   return acc;
 }, {});
-const makeSourceURL = (name) => topaz.debug ? ('Onyx' + Math.random().toString().slice(2)) : `${name} | Topaz`.replace(/ /g, '%20');
+
+const sourceURLIndex = {};
+sourceURLIndex.increment = function (name) { this[name] = (this[name] ?? 0) + 1; };
+
+const makeSourceURL = (name) => `${name} | Topaz ${sourceURLIndex.increment(name)}`.replace(/ /g, '%20');
 const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
 // discord's toast for simplicity
@@ -360,8 +364,9 @@ const Onyx = function (entityID, manifest, transformRoot) {
   this.eval = function (_code) {
     // basic static code analysis for predicting needed permissions
     // const objectPredictBlacklist = [ 'clyde' ];
-    // predictedPerms = Object.keys(permissions).filter(x => permissions[x].some(y => [...code.matchAll(new RegExp(`([^. 	]*?)\\.${y}`, 'g'))].some(z => z && !objectPredictBlacklist.includes(z[1].toLowerCase()))));
+    // predictedPerms = Object.keys(permissions).filter(x => permissions[x].some(y => [..._code.matchAll(new RegExp(`([^. 	]*?)\\.${y}`, 'g'))].some(z => z && !objectPredictBlacklist.includes(z[1].toLowerCase()))));
     // topaz.log('onyx', 'predicted perms for', this.manifest.name, predictedPerms);
+    // permissionsModal(this.manifest, predictedPerms);
 
     const argumentContext = Object.keys(this.context).filter(x => !x.match(/^[0-9]/) && !x.match(/[-,]/));
 
