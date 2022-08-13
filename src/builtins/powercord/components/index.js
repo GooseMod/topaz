@@ -75,5 +75,6 @@ module.exports = {
 
   AsyncComponent: require('powercord/components/AsyncComponent'),
   settings: require('powercord/components/settings'),
-  modal: require('powercord/components/modal')
+  modal: require('powercord/components/modal'),
+  ContextMenu: require('powercord/components/ContextMenu')
 };

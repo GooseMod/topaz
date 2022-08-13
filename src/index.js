@@ -171,6 +171,7 @@ const builtins = {
   ...['FormItem'].reduce((acc, x) => { acc[`powercord/components/settings/${x}`] = `module.exports = require('powercord/components/settings').${x};`; return acc; }, {}),
   'powercord/components/modal': await getBuiltin('powercord/components/modal'),
   'powercord/components/AsyncComponent': await getBuiltin('powercord/components/AsyncComponent'),
+  'powercord/components/ContextMenu': await getBuiltin('powercord/components/ContextMenu'),
   'powercord/modal': await getBuiltin('powercord/modal'),
   'powercord/http': await getBuiltin('powercord/http'),
   'powercord/constants': await getBuiltin('powercord/constants'),
