@@ -44,7 +44,10 @@ const Storage = await eval(await (await fetch('http://localhost:1337/src/storage
 const openChangelog = async () => eval(await (await fetch('http://localhost:1337/src/changelog.js')).text());
 
 const lastVersion = Storage.get('last_version');
-if (!lastVersion || lastVersion !== topaz.version) setTimeout(openChangelog, 2000); // temp: show if no last version
+if (!lastVersion || lastVersion !== topaz.version) {
+  setTimeout(openChangelog, 2000);
+  Storage.delete('cache_final'); // delete final cache
+}
 // if (lastVersion && lastVersion !== topaz.version) setTimeout(openChangelog, 5000);
 Storage.set('last_version', topaz.version);
 
@@ -55,7 +58,9 @@ const initStartTime = performance.now();
 
 const sucrase = eval(await (await fetch('http://localhost:1337/src/sucrase.js')).text());
 const grass = await eval(await (await fetch('http://localhost:1337/src/grass.js')).text());
+const XXHash = (await eval(await (await fetch('http://localhost:1337/src/xxhash.js')).text())()).h64ToString;
 // const Glass = eval(await (await fetch('http://localhost:1337/src/glass.js')).text());
+
 const attrs = eval(await (await fetch('http://localhost:1337/src/attrs.js')).text());
 
 const Onyx = eval(await (await fetch('http://localhost:1337/src/onyx.js')).text());
@@ -720,11 +725,15 @@ const install = async (info, settings = undefined, disabled = false) => {
     }
   }
 
-  // disable final cache for now as currently no way to make it update after changes
-  // let [ newCode, manifest, isTheme ] = finalCache.get(info) ?? [];
-  let [ newCode, manifest, isTheme ] = [];
+  const fetchSum = fetchCache.keys().filter(x => !x.includes('api.github.com') && x.includes(info.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => acc += x + '|' + fetchCache.get(x), '');
+  const fetchHash = XXHash(fetchSum);
 
-  if (!newCode) {
+  let [ newCode, manifest, isTheme, _mod, autopatchResult, oldHash ] = finalCache.get(info) ?? [];
+  mod =_mod ?? mod;
+
+  log('manager.cacheload', '\ncurrent:', fetchHash, '\ncached: ', oldHash, '\nto build:', oldHash !== fetchHash || !newCode)
+
+  if (oldHash !== fetchHash || !newCode) {
     updatePending(info, 'Treeing...');
 
     tree = [];
@@ -924,8 +933,9 @@ const install = async (info, settings = undefined, disabled = false) => {
       isTheme = false;
     }
 
-    finalCache.set(info, [ newCode, manifest, isTheme ]);
     [ newCode, autopatchResult ] = await Autopatch(info, manifest, newCode);
+
+    finalCache.set(info, [ newCode, manifest, isTheme, mod, autopatchResult, fetchHash ]);
   }
 
   updatePending(info, 'Executing...');
