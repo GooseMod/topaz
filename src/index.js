@@ -140,8 +140,10 @@ const transformCSS = async (root, indexRoot, code, skipTransform = false, update
   const builtins = [ 'hsla', 'hsl', 'rgb', 'rgba' ];
   for (const x of builtins) newCode = newCode.replaceAll(x, '_' + x);
 
+  const start = performance.now();
   // if (!skipTransform) newCode = topaz.debug ? Glass(newCode) : grass(newCode, { style: 'expanded', quiet: true, load_paths: [''] });
   if (!skipTransform) newCode = grass(newCode, { style: 'expanded', quiet: true, load_paths: [''] });
+  log('css.transform', `took ${(performance.now() - start).toFixed(2)}ms`);
 
   for (const x of builtins) newCode = newCode.replaceAll('_' + x, x);
 
