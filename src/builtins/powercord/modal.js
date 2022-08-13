@@ -1,5 +1,6 @@
 const modalManager = goosemod.webpackModules.findByProps('openModal', 'updateModal');
 const Modal = goosemod.webpackModules.findByProps('ModalRoot');
+const { React } = goosemod.webpackModules.common;
 
 let lastId;
 module.exports = {
