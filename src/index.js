@@ -786,7 +786,7 @@ const install = async (info, settings = undefined, disabled = false) => {
         default: // default to pc
           mod = 'pc';
 
-          manifest = await (await fetch(join(root, './powercord_manifest.json'))).json();
+          manifest = JSON.parse(await getCode(root, './powercord_manifest.json'));
 
           const main = manifest.theme.replace(/^\.?\//, '');
           indexUrl = join(root, './' + main);
@@ -808,7 +808,7 @@ const install = async (info, settings = undefined, disabled = false) => {
     } else {
       switch (mod) {
         case 'pc':
-          manifest = await (await fetch(join(root, './manifest.json'))).json();
+          manifest = JSON.parse(await getCode(root, './manifest.json'));
 
           if (manifest.id && manifest.authors && manifest.main) {
             mod = 'un';
@@ -853,7 +853,7 @@ const install = async (info, settings = undefined, disabled = false) => {
           break;
 
         case 'gm':
-          manifest = await (await fetch(join(root, './goosemodModule.json'))).json();
+          manifest = JSON.parse(await getCode(root, './goosemodManifest.json'));
 
           if (typeof manifest.authors === 'string') manifest.authors = [ manifest.authors.split(' (')[0] ];
           manifest.author = (await Promise.all(manifest.authors.map(x => x.length === 18 ? goosemod.webpackModules.findByProps('getUser', 'fetchCurrentUser').getUser(x) : x))).join(', ');
@@ -869,7 +869,7 @@ const install = async (info, settings = undefined, disabled = false) => {
           break;
 
         case 'vel': {
-          manifest = await (await fetch(join(root, './velocity_manifest.json'))).json();
+          manifest = JSON.parse(await getCode(root, './velocity_manifest.json'));
 
           const main = './' + manifest.main.replace('./', '');
           indexFile = './' + main.split('/').pop();
@@ -884,12 +884,12 @@ const install = async (info, settings = undefined, disabled = false) => {
 
         case 'cc': {
           if (info.endsWith('/plugin.js')) {
-            manifest = await (await fetch(join(root, './plugin.json'))).json();
+            manifest = JSON.parse(await getCode(root, './plugin.json'));
 
             indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
             indexCode = 'module.exports = ' + indexCode;
           } else {
-            manifest = await (await fetch(join(root, './cumcord_manifest.json'))).json();
+            manifest = JSON.parse(await getCode(root, './cumcord_manifest.json'));
 
             const main = './' + manifest.file.replace('./', '');
             indexFile = './' + main.split('/').pop();
