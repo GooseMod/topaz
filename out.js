@@ -35,7 +35,7 @@ if (window.topaz && topaz.purge) { // live reload handling
 }
 
 window.topaz = {
-  version: 'alpha 10',
+  version: 'alpha 11.0',
   log
 };
 
@@ -53,7 +53,7 @@ const debounce = (handler, timeout) => {
   };
 };
 
-const save = debounce(() => makeTrans().put(store, 'store').onsuccess = e => topaz.log('storage', 'db saved'), 1000);
+const save = debounce(() => makeTrans().put(store, 'store').onsuccess = e => topaz.log('storage', 'db saved'), 200);
 
 
 let db;
@@ -121,70 +121,45 @@ return Storage; // eval export
 const openChangelog = async () => eval(`const sleep = x => new Promise(res => setTimeout(res, x));
 
 let body = \`
-__Sandbox__
-- **Rewrote Sandbox to be isolated and a lot more secure.** Sandbox now uses isolated detached frames from the main window, and another rewritten sandbox inside of that. Should now be a lot more secure and easier platform for future development.
-- **Added more things that plugins can use.** More plugins should work now, in addition to Bundler improvements.
-- Fixed clipboard permissions being wrong way around
-- Fixed undefined modules erroring with safeWebpack
-- Added a lot more globals accessible
-- Added custom Observer support
-- Added window.event support
-- Rewrote console cleaning for passing on
+__Autopatcher__
+- **Added Autopatcher.** The new autopatcher can now try to fix plugins broken by recent common breakages from Discord updates.
+
+__Performance__
+- **Installing plugins and themes after the first time is now significantly faster.** The final output of bundling is now cached so bundling each install is no longer needed.
+- **Added more caching throughout.** Essentially everything fetched for plugins/themes should be cached now, helping increase perf and decreasing network usage.
 
 __Bundler__
-- **Rewrote exporting to be more robust.** Handling exports is now rewritten to handle more situations correctly and should be largely flawless.
-- **Added NPM support.** Now supports NPM package shorthand using node_modules.
-- **Various internal rewrites and fixes.** The bundler should generally also be more stable and should work in more complicated/advanced situations.
-- Added \\\`require.resolve\\\` support
-- Added support when using builtins ending with an extra backslash
-- Added proper implementation of __dirname
-- Rewrote ESM exports to make matching local variables
-- Lower package.main when reading package.json's to support mixed case
-- Added support for async/runtime-generated builtins
+- **Partially rewrote CSS bundler to work with more complex PC themes.** Now use separated main and index roots.
 
-__Cache__
-- **Added caching for GitHub API's file tree.** Installing plugins after first-time should be faster and no longer requires network.
-- Added generic fetch method
+__Onyx__
+- Added ESM default export support
+- Rewrote sourceURL to add increment to fix Chromium DevTools bug
 
-__Node__
-- **Added initial filesystem implementation for GitHub repos.** Advanced PC plugins (like Shiki Codeblocks) should now work with this initial implementation.
-- **Added Node request support.** \\\`request\\\` and \\\`https\\\` modules are now implemented to allow older plugins using NodeJS to make requests.
-- \\\`path\\\`: Added new resolver from Bundler
-- \\\`path\\\`: Added isAbsolute
-- \\\`fs\\\`: Added initial temporary implementation based on GitHub API/raw for GH repos
-- \\\`fs\\\`: Added stub for writeFile
-- \\\`process\\\`: Added hrtime
-- \\\`util\\\`: Added inspect
-- \\\`request\\\`: Implement
-- \\\`https\\\`: Implement
+__Storage__
+- Changed saving debounce to 200ms from 1s
+
+__Manager__
+- **Added more redundancy.** Information for plugins now no longer soley relies on it's manifest, it also now uses information like constructor name and GitHub username.
+- Use plugin's class name if no manifest name
+- Use GitHub username if no manifest author and plugin is from GitHub
+- Wrap plugin calls in try catch to avoid failing to disable/enable completely
+
+__Backup__
+- Fixed restoring sometimes not working
+
+__AliucordRN__
+- **Initial AliucordRN plugin support.** A few AliucordRN (React Native) plugins are now supported, very early/WIP.
 
 __BetterDiscord__
-- **Rewrote ZeresPluginLibrary implementation.** Now uses official library patched at runtime in client.
-- **Added experimental BDFDB library implementation.** Experimental/WIP support to test if additional common BD libraries can be supported.
-- Run load handler if present
-- Fixed HTML settings not working
-- Global: Mock settings functions
-
-__Terminal__
-- **Added Topaz Terminal.** You can open the Topaz Terminal with Alt+T which allows a more direct/alternate interface with Topaz internals.
+- ZeresLib: Only run Webpack listeners when modules are added
 
 __Powercord__
-- Rewrote settings store to use individual store
-- Toasts: Use more options given
-- Announcements: Initial add
-- Global: Mock not being logged in instead of erroring
-- Commands: Fixed not working on use
-- \\\`http\\\`: Only use CORS proxy as fallback after initial try
-
-__Unbound__
-- Rewrite settings store to use individual store
-
-__Rikka__
-- Run preInject handler if present
-
-__Index__
-- Moved Topaz's CSS injection earlier into init
-- Fixed trying to purge previous if it hadn't loaded\`;
+- Added \\\`powercord\\\` builtin wrapper
+- Added ContextMenu component
+- Added tree support for getting settings
+- Fixed opening modals erroring
+- Added pluginManager.get stub for self
+\`;
 let bodySplit = body.split('\\n');
 
 let categoryAssign = {
@@ -196,8 +171,8 @@ let categoryAssign = {
 
 let changelog = {
   image: '',
-  version: topaz.version[0].toUpperCase() + topaz.version.slice(1),
-  date: '2022-08-08',
+  version: topaz.version[0].toUpperCase() + topaz.version.slice(1).split('.')[0],
+  date: '2022-08-14',
 
   body: bodySplit.reduce((acc, x, i) => {
     if (x[0] === '_') {
@@ -289,7 +264,10 @@ const show = async () => {
 show()`);
 
 const lastVersion = Storage.get('last_version');
-if (!lastVersion || lastVersion !== topaz.version) setTimeout(openChangelog, 2000); // temp: show if no last version
+if (!lastVersion || lastVersion !== topaz.version) {
+  if (lastVersion.split('.')[0] !== topaz.version.split('.')[0]) setTimeout(openChangelog, 2000);
+  Storage.delete('cache_final'); // delete final cache
+}
 // if (lastVersion && lastVersion !== topaz.version) setTimeout(openChangelog, 5000);
 Storage.set('last_version', topaz.version);
 
@@ -805,6 +783,152 @@ const wasm = wasmInstance.exports;
 
 return str;
 })(); //# sourceURL=Grass`);
+const XXHash = (await eval(`var E=Object.defineProperty;var r=(s,i)=>E(s,"name",{value:i,configurable:!0});var M=new Uint8Array([0,97,115,109,1,0,0,0,1,48,8,96,3,127,127,127,0,96,3,127,127,127,1,127,96,2,127,127,0,96,2,127,126,0,96,1,127,1,127,96,1,127,1,126,96,3,127,127,126,1,126,96,3,126,127,127,1,126,3,11,10,1,1,2,0,4,6,7,3,0,5,5,3,1,0,1,7,85,9,3,109,101,109,2,0,5,120,120,104,51,50,0,0,6,105,110,105,116,51,50,0,2,8,117,112,100,97,116,101,51,50,0,3,8,100,105,103,101,115,116,51,50,0,4,5,120,120,104,54,52,0,5,6,105,110,105,116,54,52,0,7,8,117,112,100,97,116,101,54,52,0,8,8,100,105,103,101,115,116,54,52,0,9,10,211,23,10,242,1,1,4,127,32,0,32,1,106,33,3,32,1,65,16,79,4,127,32,3,65,16,107,33,6,32,2,65,168,136,141,161,2,106,33,3,32,2,65,247,148,175,175,120,106,33,4,32,2,65,177,243,221,241,121,107,33,5,3,64,32,0,40,2,0,65,247,148,175,175,120,108,32,3,106,65,13,119,65,177,243,221,241,121,108,33,3,32,0,65,4,106,34,0,40,2,0,65,247,148,175,175,120,108,32,4,106,65,13,119,65,177,243,221,241,121,108,33,4,32,0,65,4,106,34,0,40,2,0,65,247,148,175,175,120,108,32,2,106,65,13,119,65,177,243,221,241,121,108,33,2,32,0,65,4,106,34,0,40,2,0,65,247,148,175,175,120,108,32,5,106,65,13,119,65,177,243,221,241,121,108,33,5,32,0,65,4,106,34,0,32,6,77,13,0,11,32,2,65,12,119,32,5,65,18,119,106,32,4,65,7,119,106,32,3,65,1,119,106,5,32,2,65,177,207,217,178,1,106,11,32,1,106,32,0,32,1,65,15,113,16,1,11,146,1,0,32,1,32,2,106,33,2,3,64,32,1,65,4,106,32,2,75,69,4,64,32,1,40,2,0,65,189,220,202,149,124,108,32,0,106,65,17,119,65,175,214,211,190,2,108,33,0,32,1,65,4,106,33,1,12,1,11,11,3,64,32,1,32,2,79,69,4,64,32,1,45,0,0,65,177,207,217,178,1,108,32,0,106,65,11,119,65,177,243,221,241,121,108,33,0,32,1,65,1,106,33,1,12,1,11,11,32,0,65,15,118,32,0,115,65,247,148,175,175,120,108,34,0,32,0,65,13,118,115,65,189,220,202,149,124,108,34,0,32,0,65,16,118,115,11,63,0,32,0,65,8,106,32,1,65,168,136,141,161,2,106,54,2,0,32,0,65,12,106,32,1,65,247,148,175,175,120,106,54,2,0,32,0,65,16,106,32,1,54,2,0,32,0,65,20,106,32,1,65,177,243,221,241,121,107,54,2,0,11,211,4,1,6,127,32,1,32,2,106,33,6,32,0,65,24,106,33,5,32,0,65,40,106,40,2,0,33,3,32,0,32,0,40,2,0,32,2,106,54,2,0,32,0,65,4,106,34,4,32,4,40,2,0,32,2,65,16,79,32,0,40,2,0,65,16,79,114,114,54,2,0,32,2,32,3,106,65,16,73,4,64,32,3,32,5,106,32,1,32,2,252,10,0,0,32,0,65,40,106,32,2,32,3,106,54,2,0,15,11,32,3,4,64,32,3,32,5,106,32,1,65,16,32,3,107,34,2,252,10,0,0,32,0,65,8,106,34,3,40,2,0,32,5,40,2,0,65,247,148,175,175,120,108,106,65,13,119,65,177,243,221,241,121,108,33,4,32,3,32,4,54,2,0,32,0,65,12,106,34,3,40,2,0,32,5,65,4,106,40,2,0,65,247,148,175,175,120,108,106,65,13,119,65,177,243,221,241,121,108,33,4,32,3,32,4,54,2,0,32,0,65,16,106,34,3,40,2,0,32,5,65,8,106,40,2,0,65,247,148,175,175,120,108,106,65,13,119,65,177,243,221,241,121,108,33,4,32,3,32,4,54,2,0,32,0,65,20,106,34,3,40,2,0,32,5,65,12,106,40,2,0,65,247,148,175,175,120,108,106,65,13,119,65,177,243,221,241,121,108,33,4,32,3,32,4,54,2,0,32,0,65,40,106,65,0,54,2,0,32,1,32,2,106,33,1,11,32,1,32,6,65,16,107,77,4,64,32,6,65,16,107,33,8,32,0,65,8,106,40,2,0,33,2,32,0,65,12,106,40,2,0,33,3,32,0,65,16,106,40,2,0,33,4,32,0,65,20,106,40,2,0,33,7,3,64,32,1,40,2,0,65,247,148,175,175,120,108,32,2,106,65,13,119,65,177,243,221,241,121,108,33,2,32,1,65,4,106,34,1,40,2,0,65,247,148,175,175,120,108,32,3,106,65,13,119,65,177,243,221,241,121,108,33,3,32,1,65,4,106,34,1,40,2,0,65,247,148,175,175,120,108,32,4,106,65,13,119,65,177,243,221,241,121,108,33,4,32,1,65,4,106,34,1,40,2,0,65,247,148,175,175,120,108,32,7,106,65,13,119,65,177,243,221,241,121,108,33,7,32,1,65,4,106,34,1,32,8,77,13,0,11,32,0,65,8,106,32,2,54,2,0,32,0,65,12,106,32,3,54,2,0,32,0,65,16,106,32,4,54,2,0,32,0,65,20,106,32,7,54,2,0,11,32,1,32,6,73,4,64,32,5,32,1,32,6,32,1,107,34,1,252,10,0,0,32,0,65,40,106,32,1,54,2,0,11,11,97,1,1,127,32,0,65,16,106,40,2,0,33,1,32,0,65,4,106,40,2,0,4,127,32,1,65,12,119,32,0,65,20,106,40,2,0,65,18,119,106,32,0,65,12,106,40,2,0,65,7,119,106,32,0,65,8,106,40,2,0,65,1,119,106,5,32,1,65,177,207,217,178,1,106,11,32,0,40,2,0,106,32,0,65,24,106,32,0,65,40,106,40,2,0,16,1,11,157,4,2,1,127,3,126,32,0,32,1,106,33,3,32,1,65,32,79,4,126,32,3,65,32,107,33,3,32,2,66,135,149,175,175,152,182,222,155,158,127,124,66,207,214,211,190,210,199,171,217,66,124,33,4,32,2,66,207,214,211,190,210,199,171,217,66,124,33,5,32,2,66,0,124,33,6,32,2,66,135,149,175,175,152,182,222,155,158,127,125,33,2,3,64,32,0,41,3,0,66,207,214,211,190,210,199,171,217,66,126,32,4,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,33,4,32,0,65,8,106,34,0,41,3,0,66,207,214,211,190,210,199,171,217,66,126,32,5,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,33,5,32,0,65,8,106,34,0,41,3,0,66,207,214,211,190,210,199,171,217,66,126,32,6,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,33,6,32,0,65,8,106,34,0,41,3,0,66,207,214,211,190,210,199,171,217,66,126,32,2,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,33,2,32,0,65,8,106,34,0,32,3,77,13,0,11,32,6,66,12,137,32,2,66,18,137,124,32,5,66,7,137,124,32,4,66,1,137,124,32,4,66,207,214,211,190,210,199,171,217,66,126,66,0,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,133,66,135,149,175,175,152,182,222,155,158,127,126,66,227,220,202,149,252,206,242,245,133,127,124,32,5,66,207,214,211,190,210,199,171,217,66,126,66,0,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,133,66,135,149,175,175,152,182,222,155,158,127,126,66,227,220,202,149,252,206,242,245,133,127,124,32,6,66,207,214,211,190,210,199,171,217,66,126,66,0,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,133,66,135,149,175,175,152,182,222,155,158,127,126,66,227,220,202,149,252,206,242,245,133,127,124,32,2,66,207,214,211,190,210,199,171,217,66,126,66,0,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,133,66,135,149,175,175,152,182,222,155,158,127,126,66,227,220,202,149,252,206,242,245,133,127,124,5,32,2,66,197,207,217,178,241,229,186,234,39,124,11,32,1,173,124,32,0,32,1,65,31,113,16,6,11,137,2,0,32,1,32,2,106,33,2,3,64,32,1,65,8,106,32,2,77,4,64,32,1,41,3,0,66,207,214,211,190,210,199,171,217,66,126,66,0,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,32,0,133,66,27,137,66,135,149,175,175,152,182,222,155,158,127,126,66,227,220,202,149,252,206,242,245,133,127,124,33,0,32,1,65,8,106,33,1,12,1,11,11,32,1,65,4,106,32,2,77,4,64,32,1,53,2,0,66,135,149,175,175,152,182,222,155,158,127,126,32,0,133,66,23,137,66,207,214,211,190,210,199,171,217,66,126,66,249,243,221,241,153,246,153,171,22,124,33,0,32,1,65,4,106,33,1,11,3,64,32,1,32,2,73,4,64,32,1,49,0,0,66,197,207,217,178,241,229,186,234,39,126,32,0,133,66,11,137,66,135,149,175,175,152,182,222,155,158,127,126,33,0,32,1,65,1,106,33,1,12,1,11,11,32,0,66,33,136,32,0,133,66,207,214,211,190,210,199,171,217,66,126,34,0,32,0,66,29,136,133,66,249,243,221,241,153,246,153,171,22,126,34,0,32,0,66,32,136,133,11,88,0,32,0,65,8,106,32,1,66,135,149,175,175,152,182,222,155,158,127,124,66,207,214,211,190,210,199,171,217,66,124,55,3,0,32,0,65,16,106,32,1,66,207,214,211,190,210,199,171,217,66,124,55,3,0,32,0,65,24,106,32,1,55,3,0,32,0,65,32,106,32,1,66,135,149,175,175,152,182,222,155,158,127,125,55,3,0,11,132,5,2,3,127,4,126,32,1,32,2,106,33,5,32,0,65,40,106,33,4,32,0,65,200,0,106,40,2,0,33,3,32,0,32,0,41,3,0,32,2,173,124,55,3,0,32,2,32,3,106,65,32,73,4,64,32,3,32,4,106,32,1,32,2,252,10,0,0,32,0,65,200,0,106,32,2,32,3,106,54,2,0,15,11,32,3,4,64,32,3,32,4,106,32,1,65,32,32,3,107,34,2,252,10,0,0,32,0,65,8,106,34,3,41,3,0,32,4,41,3,0,66,207,214,211,190,210,199,171,217,66,126,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,33,6,32,3,32,6,55,3,0,32,0,65,16,106,34,3,41,3,0,32,4,65,8,106,41,3,0,66,207,214,211,190,210,199,171,217,66,126,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,33,6,32,3,32,6,55,3,0,32,0,65,24,106,34,3,41,3,0,32,4,65,16,106,41,3,0,66,207,214,211,190,210,199,171,217,66,126,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,33,6,32,3,32,6,55,3,0,32,0,65,32,106,34,3,41,3,0,32,4,65,24,106,41,3,0,66,207,214,211,190,210,199,171,217,66,126,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,33,6,32,3,32,6,55,3,0,32,0,65,200,0,106,65,0,54,2,0,32,1,32,2,106,33,1,11,32,1,65,32,106,32,5,77,4,64,32,5,65,32,107,33,2,32,0,65,8,106,41,3,0,33,6,32,0,65,16,106,41,3,0,33,7,32,0,65,24,106,41,3,0,33,8,32,0,65,32,106,41,3,0,33,9,3,64,32,1,41,3,0,66,207,214,211,190,210,199,171,217,66,126,32,6,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,33,6,32,1,65,8,106,34,1,41,3,0,66,207,214,211,190,210,199,171,217,66,126,32,7,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,33,7,32,1,65,8,106,34,1,41,3,0,66,207,214,211,190,210,199,171,217,66,126,32,8,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,33,8,32,1,65,8,106,34,1,41,3,0,66,207,214,211,190,210,199,171,217,66,126,32,9,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,33,9,32,1,65,8,106,34,1,32,2,77,13,0,11,32,0,65,8,106,32,6,55,3,0,32,0,65,16,106,32,7,55,3,0,32,0,65,24,106,32,8,55,3,0,32,0,65,32,106,32,9,55,3,0,11,32,1,32,5,73,4,64,32,4,32,1,32,5,32,1,107,34,1,252,10,0,0,32,0,65,200,0,106,32,1,54,2,0,11,11,200,2,1,5,126,32,0,65,24,106,41,3,0,33,1,32,0,41,3,0,34,2,66,32,90,4,126,32,0,65,8,106,41,3,0,34,3,66,1,137,32,0,65,16,106,41,3,0,34,4,66,7,137,124,32,1,66,12,137,32,0,65,32,106,41,3,0,34,5,66,18,137,124,124,32,3,66,207,214,211,190,210,199,171,217,66,126,66,0,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,133,66,135,149,175,175,152,182,222,155,158,127,126,66,227,220,202,149,252,206,242,245,133,127,124,32,4,66,207,214,211,190,210,199,171,217,66,126,66,0,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,133,66,135,149,175,175,152,182,222,155,158,127,126,66,227,220,202,149,252,206,242,245,133,127,124,32,1,66,207,214,211,190,210,199,171,217,66,126,66,0,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,133,66,135,149,175,175,152,182,222,155,158,127,126,66,227,220,202,149,252,206,242,245,133,127,124,32,5,66,207,214,211,190,210,199,171,217,66,126,66,0,124,66,31,137,66,135,149,175,175,152,182,222,155,158,127,126,133,66,135,149,175,175,152,182,222,155,158,127,126,66,227,220,202,149,252,206,242,245,133,127,124,5,32,1,66,197,207,217,178,241,229,186,234,39,124,11,32,2,124,32,0,65,40,106,32,2,66,31,131,167,16,6,11]);async function j(){let{instance:{exports:{mem:s,xxh32:i,xxh64:f,init32:p,update32:v,digest32:L,init64:x,update64:S,digest64:A}}}=await WebAssembly.instantiate(M),e=new Uint8Array(s.buffer);function u(t,n){if(s.buffer.byteLength<t+n){let l=Math.ceil((t+n-s.buffer.byteLength)/65536);s.grow(l),e=new Uint8Array(s.buffer)}}r(u,"c");function y(t,n,l,I,T,R){u(t);let a=new Uint8Array(t);return e.set(a),l(0,n),a.set(e.slice(0,t)),{update(g){let d;return e.set(a),typeof g=="string"?(u(3*g.length,t),d=c.encodeInto(g,e.subarray(t)).written):(u(g.byteLength,t),e.set(g,t),d=g.byteLength),I(0,t,d),a.set(e.slice(0,t)),this},digest:()=>(e.set(a),R(T(0)))}}r(y,"l");function h(t){return t>>>0}r(h,"d");let U=2n**64n-1n;function m(t){return t&U}r(m,"y");let c=new TextEncoder,o=0n;function b(t){let n=arguments.length>1&&arguments[1]!==void 0?arguments[1]:0;return u(3*t.length,0),h(i(0,c.encodeInto(t,e).written,n))}r(b,"p");function w(t){let n=arguments.length>1&&arguments[1]!==void 0?arguments[1]:o;return u(3*t.length,0),m(f(0,c.encodeInto(t,e).written,n))}return r(w,"v"),{h32:b,h32ToString(t){return b(t,arguments.length>1&&arguments[1]!==void 0?arguments[1]:0).toString(16).padStart(8,"0")},h32Raw(t){let n=arguments.length>1&&arguments[1]!==void 0?arguments[1]:0;return u(t.byteLength,0),e.set(t),h(i(0,t.byteLength,n))},create32(){return y(48,arguments.length>0&&arguments[0]!==void 0?arguments[0]:0,p,v,L,h)},h64:w,h64ToString(t){return w(t,arguments.length>1&&arguments[1]!==void 0?arguments[1]:o).toString(16).padStart(16,"0")},h64Raw(t){let n=arguments.length>1&&arguments[1]!==void 0?arguments[1]:o;return u(t.byteLength,0),e.set(t),m(f(0,t.byteLength,n))},create64(){return y(88,arguments.length>0&&arguments[0]!==void 0?arguments[0]:o,x,S,A,m)}}}r(j,"e");j`)()).h64ToString;
+// const Glass = eval(`/* const inp = \`\$font-stack: Helvetica, sans-serif;
+\$primary-color: #333;
+
+body {
+  font: 100% \$font-stack;
+  color: \$primary-color;
+}\`; */
+
+/* const inp = \`nav {
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li { display: inline-block; }
+
+  a {
+    display: block;
+    padding: 6px 12px;
+    text-decoration: none;
+  }
+}\`; */
+
+const inp = \`@import"https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@100;200;300;400;500;600;700;800;900&display=swap";@import"https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;600;700&display=swap";@import"https://dev-cats.github.io/code-snippets/JetBrainsMono.css";.container-2RRFHK .content-3AIQZv .tipTitle-3FYEQp::after{content:" ?";font-size:inherit;font-weight:inherit;color:inherit}.wordmarkWindows-2dq6rw{opacity:0}.withFrame-2dL45i{height:20px;margin:5px 10px 0 0}.withFrame-2dL45i:hover .winButton-3UMjdg{opacity:1}.winButton-3UMjdg{color:#b9bbbe;opacity:.2;border-radius:var(--radius-secondary);margin:5px 7px 0 0;padding:0px !important;width:20px;height:20px;transition:.3s ease-in-out}.winButton-3UMjdg:hover{color:#fff;opacity:1}.winButton-3UMjdg:nth-child(2):hover{background-color:#fd282e;color:var(--background-primary)}.winButton-3UMjdg:nth-child(3):hover{background-color:#ffac62;color:var(--background-primary)}.winButton-3UMjdg:nth-child(4):hover{background-color:var(--spotify-color);color:var(--background-primary)}:root{--font: "Source Sans Pro", sans-serif;--font-primary: var(--font);--font-display: var(--font);--font-code: "JetBrainsMono", "Fira Code", "Source Sans Pro", sans-serif;--font-headline: "Source Sans Pro", Ginto Nord,Ginto,"Helvetica Neue",Helvetica,Arial,sans-serif;--font-korean: Whitney,"Apple SD Gothic Neo","NanumBarunGothic","맑은 고딕","Malgun Gothic",Gulim,굴림,Dotum,돋움,"Helvetica Neue",Helvetica,Arial,sans-serif;--font-japanese: Whitney,Hiragino Sans,"ヒラギノ角ゴ ProN W3","Hiragino Kaku Gothic ProN","メイリオ",Meiryo,Osaka,"MS PGothic","Helvetica Neue",Helvetica,Arial,sans-serif;--font-chinese-simplified: Whitney,"Microsoft YaHei New",微软雅黑,"Microsoft Yahei","Microsoft JhengHei",宋体,SimSun,"Helvetica Neue",Helvetica,Arial,sans-serif;--font-chinese-traditional: Whitney,"Microsoft JhengHei",微軟正黑體,"Microsoft JhengHei UI","Microsoft YaHei",微軟雅黑,宋体,SimSun,"Helvetica Neue",Helvetica,Arial,sans-serif}:root{--av-radius: 35%;--activity-img-radius: 35%;--spine-width: 3px;--cl-width: 260px;--ml-width: 300px;--ml-member-height: 55px;--radius-primary: 10px;--radius-secondary: 6px;--textbar-button-width: 43px;--textbar-button-height: 43px;--context-menu-radius: var(--radius-primary)}code{font-family:"JetBrains Mono" !important;font-feature-settings:"liga" on,"calt" on;-webkit-font-feature-settings:"liga" on,"calt" on;text-rendering:optimizeLegibility}.theme-dark,.theme-light{--info-positive-foreground: var(--green-hover);--info-positive-background: var(--green-tertiary);--status-positive-text: var(--text-color);--status-positive-background: var(--info-positive-foreground);--info-warning-foreground: var(--yellow-alt);--info-warning-background: var(--yellow-alt-hover);--status-warning-text: var(--text-color);--status-warning-background: var(--info-warning-foreground);--info-danger-foreground: var(--red-alt);--info-danger-background: var(--red-alt-hover);--status-danger-background: var(--info-danger-foreground);--status-danger-text: var(--text-color);--focus-primary: var(--brand-experiment)}.theme-dark,.theme-light{--blurple: var(--SKIN-accent-primary, #7E7BFE);--blurple-hover: var(--SKIN-accent-secondary, #7E7BFEcc);--blurple-active: var(--SKIN-accent-tertiary, #7E7BFEcc);--blurple-alt: #ADA9F5;--blurple-replace: var(--blurple);--brand-experiment: var(--blurple);--brand-experiment-hover: var(--blurple-hover);--yellow: var(--SKIN-yellow-primary, #F7C954);--yellow-alt: var(--SKIN-yellow-secondary, #FFAC60);--yellow-alt-hover: var(--SKIN-yellow-tertiary, #ffac6066);--red: var(--SKIN-red-primary, #FD2B30);--red-alt: var(--SKIN-red-secondary, #F42028);--red-alt-hover: var(--SKIN-red-primary, #F4202866);--green: var(--SKIN-green-primary, #00D65D);--green-hover: var(--SKIN-green-secondary, #08DA7A);--green-active: var(--SKIN-green-tertiary, #08d97b66);--green-alt: #4DF3BA;--spotify-color: var(--green-hover);--spotify-bg: var(--green);--spotify-bg-alt: var(--green-hover);--activity-bg: var(--blurple);--twitch-bg: linear-gradient(90deg, __rgba(105, 2, 244, 1) 0%, __rgba(208, 3, 255, 1) 100%);--bot-bg: var(--blurple-hover);--xbox-bg: linear-gradient(90deg, __rgba(0, 172, 65, 1) 0%, __rgba(124, 203, 48, 1) 100%);--bg-reaction: var(--background-secondary);--bg-reaction-border: var(--background-secondary-alt);--bg-reaction-hover: var(--background-secondary-alt);--bg-reaction-self: var(--background-mentioned-hover);--bg-reaction-self-border: var(--background-mentioned);--bg-reaction-self-hover: var(--background-mentioned);--online-color: var(--green-alt);--dnd-color: var(--red);--idle-color: var(--yellow);--streaming-color: var(--blurple);--mar-bar-color: var(--red);--mention-badge-color: var(--blurple);--cl-nub-color: var(--blurple);--sl-nub-color: var(--blurple);--chat-nub-color: var(--red);--nul-color: var(--red-alt)}::-moz-selection{background-color:var(--brand-experiment) !important;color:#fff !important}::selection{background-color:var(--brand-experiment) !important;color:#fff !important}.theme-dark{--header-primary: #fff;--header-secondary: #b9bbbe;--text-color: #eee;--text-normal: #C1C1C5;--text-muted: #ffffff40;--text-link: var(--brand-experiment);--text-link-low-saturation: _hsl(197, calc(var(--saturation-factor, 1)*100%), 52.9%);--text-positive: var(--info-positive-foreground);--text-warning: var(--info-warning-foreground);--text-danger: var(--info-danger-foreground);--text-brand: var(--brand-experiment);--toast-background: var(--background-secondary);--toast-header: var(--background-primary);--toast-contents: var(--background-secondary-alt);--toast-box-shadow: __rgba(0, 0, 0, .2);--toast-border: __rgba(28, 36, 43, .6);--interactive-normal: var(--SKIN-interactive-normal, #D9DDE2cc);--interactive-hover: var(--SKIN-interactive-hover, #eee);--interactive-active: var(--SKIN-interactive-active, #e2e4e8);--interactive-muted: var(--SKIN-interactive-muted, #4b4b4b);--background-primary: var(--SKIN-background-primary, #101014);--background-secondary: var(--SKIN-background-secondary);--background-secondary-alt: var(--SKIN-background-tertiary);--background-tertiary: var(--background-primary);--background-tertiary-alt: #0F0E11;--background-accent: var(--background-secondary-alt);--background-floating: var(--background-primary);--background-nested-floating: var(--background-secondary);--background-mobile-primary: var(--background-primary);--background-mobile-secondary: var(--background-secondary);--background-modifier: var(--background-secondary);--background-modifier-accent: var(--background-secondary);--background-modifier-selected: var(--background-secondary-alt);--background-modifier-hover: var(--background-secondary-alt);--background-modifier-active: var(--background-modifier-hover);--info-positive-text: #fff;--info-warning-text: #fff;--info-danger-text: #fff;--info-help-background: __hsla(197, calc(var(--saturation-factor, 1)*100%), 47.8%, 0.1);--info-help-foreground: _hsl(197, calc(var(--saturation-factor, 1)*100%), 47.8%);--info-help-text: #fff;--status-warning-text: #000;--scrollbar-thin-thumb: var(--background-secondary-alt);--scrollbar-thin-track: transparent;--scrollbar-auto-thumb: #00000066;--scrollbar-auto-track: #17161B99;--scrollbar-auto-scrollbar-color-thumb: var(--background-tertiary);--scrollbar-auto-scrollbar-color-track: var(--background-secondary);--elevation-stroke: 0 0 0 1px __rgba(4, 4, 5, 0.15);--elevation-low: 0 1px 0 __rgba(4, 4, 5, 0.2), 0 1.5px 0 __rgba(6, 6, 7, 0.05), 0 2px 0 __rgba(4, 4, 5, 0.05);--elevation-medium: 0 4px 4px __rgba(0, 0, 0, 0.16);--elevation-high: 0 8px 16px __rgba(0, 0, 0, 0.24);--logo-primary: #fff;--control-brand-foreground: _hsl(241, calc(var(--saturation-factor, 1)*86.1%), 77.5%);--control-brand-foreground-new: _hsl(241, calc(var(--saturation-factor, 1)*86.1%), 77.5%);--background-mentioned: #28151D;--background-mentioned-hover: #28151Dae;--background-mentioned-border: var(--red);--spine-color: var(--background-secondary-alt);--mentioned-spine-color: var(--red-alt);--background-message-hover: __rgba(4, 4, 5, 0.1);--background-message-automod: __hsla(359, calc(var(--saturation-factor, 1)*82.6%), 59.4%, 0.05);--background-message-automod-hover: __hsla(359, calc(var(--saturation-factor, 1)*82.6%), 59.4%, 0.1);--channels-default: #808080;--channel-icon: var(--channels-default);--guild-header-text-shadow: 0 1px 1px __rgba(0, 0, 0, 0.4);--channeltextarea-background: var(--background-secondary);--channeltextarea-caret: var(--brand-experiment);--textbox-markdown-syntax: #8e9297;--spoiler-revealed-background: #292b2f;--spoiler-hidden-background: var(--background-tertiary);--deprecated-card-bg: var(--background-tertiary);--deprecated-card-editable-bg: var(--background-tertiary);--deprecated-store-bg: var(--background-primary);--deprecated-quickswitcher-input-background: var(--background-primary);--deprecated-quickswitcher-input-placeholder: __hsla(0, 0%, 100%, 0.3);--deprecated-text-input-bg: __rgba(0, 0, 0, 0.1);--deprecated-text-input-border: __rgba(0, 0, 0, 0.3);--deprecated-text-input-border-hover: #040405;--deprecated-text-input-border-disabled: var(--background-tertiary);--deprecated-text-input-prefix: #dcddde;--input-background: var(--background-secondary)}:root{--inv-dark-background-primary: var(--background-primary);--inv-dark-background-secondary: var(--background-secondary);--inv-dark-background-tertiary: var(--background-secondary-alt);--inv-dark-text: #ddd;--inv-dark-text-alt: #aaa;--inv-light-text: #222;--inv-light-text-alt: #000;--inv-input-color: var(--blurple);--inv-light-background-primary: var(--background-primary);--inv-light-background-secondary: var(--background-secondary);--inv-light-background-tertiary: var(--background-secondary-alt)}[data-popout-root],html{--brand-experiment-100: _hsl(241, calc(var(--saturation-factor, 1)*77.8%), 98.2%);--brand-experiment-130: _hsl(241, calc(var(--saturation-factor, 1)*87.5%), 96.9%);}\`;
+/* const inp = \`one {
+  color: blue;
+
+  two {
+    color: red;
+    three {
+      color: purple;
+    }
+  }
+}\`; */
+
+const parse = (scss) => {
+  const tokens = scss.split(/({|})/g);
+
+  let extraOut = '';
+  const out = {};
+
+  let currentSelector;
+  let selectorTree = [];
+  let last;
+
+  const makeSelector = tree => {
+    let out = '';
+    for (const x of tree) {
+      const outMap = out.split(",").map(y => y.trim());
+      const xMap = x.split(",").map(y => y.trim());
+
+      out = outMap.map(x => xMap.map(y => {
+        if (y[0] === '&') return x + y.slice(1);
+        return x + ' ' + y;
+      })).flat().join(", ");
+    }
+
+    return out;
+  };
+
+  for (let t of tokens) {
+    const imports = t.match(/@(import|use|forward) ?(url\\()?['"](.*?)['"]\\)?;?/g);
+    if (imports) extraOut += imports.join('\\n') + '\\n';
+
+    // console.log([ t, selectorTree ]);
+    if (t === '{') {
+      const selector = last.split(';').pop().trim();
+      currentSelector = selector;
+      selectorTree.push(selector);
+      continue;
+    }
+
+    if (t === '}') {
+      currentSelector = selectorTree.pop();
+      continue;
+    }
+
+    if (currentSelector) {
+      t = t.trim();
+
+      const selector = makeSelector(selectorTree);
+      // const params = t.match(/(.*?): (.*?)(\\r?\\n|\$)/g)?.map(x => x.trim()).join('\\n  ');
+      // const params = t.match(/(.*?): ([(].*[)])?.*(;|(\\r?\\n)|\$)/g)?.map(x => x.trim()).join('\\n  ');
+
+      const params = [];
+      let innerMod = t;
+      innerMod = innerMod.replace(/(.*?): .*?([(].*[)]).*?(;|(\\r?\\n)|\$)/g, _ => params.push(_) || '');
+      params.concat(innerMod.match(/(.*?): (.*?)(;|\\r?\\n|\$)/g));
+
+      if (params.length > 0) {
+        console.log(params);
+        if (!out[selector]) out[selector] = [];
+        out[selector].push(params.map(x => x.trim()).join('\\n  '));
+      }
+    }
+
+    last = t;
+  }
+
+  return extraOut + '\\n\\n' + Object.keys(out).map(x =>\`\${x} {
+  \${out[x].join(';\\n')}
+}\`).join('\\n');
+};
+
+const process = (scss) => {
+  let out = scss;
+
+  const variables = [];
+
+  out = out.replace(/\\\$(.*): (.*);\\n*/g, (_, name, value) => {
+    variables.push([name.trim(), value.trim()]);
+    return '';
+  });
+
+  for (const v of variables) {
+    // console.log(v);
+    out = out.replace(new RegExp(\`\\\\\$\${v[0]}\`, 'g'), v[1]);
+  }
+/*
+  const bracketMatch = /(.*?) {[\\s\\S]*?(?=})/gm;
+
+  const test = t => {
+    const parentSelector = t.split('{')[0].trim();
+    const inside = t.split('{').slice(1).join('{').trim();
+    console.log(inside);
+    // console.log('test', { parentSelector, inside });
+
+    const innerOut = inside.replace(bracketMatch, '');
+    let subOut = inside.replace(bracketMatch, \`\${parentSelector} \$1 {\`);
+
+    // console.log({ innerOut, subOut });
+
+    return t.replace(bracketMatch, _ => test(_));
+  };
+
+  out.replace(bracketMatch, _ => test(_)); */
+
+  return parse(out);
+};
+
+console.log(process(inp));
+
+process`);
+
 const attrs = eval(`const { findByProps } = goosemod.webpackModules;
 
 const anon = true; // use fake values
@@ -836,7 +960,11 @@ const Onyx = eval(`const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) 
   acc[x] = sub.__sentry_original__ ?? sub;
   return acc;
 }, {});
-const makeSourceURL = (name) => topaz.debug ? ('Onyx' + Math.random().toString().slice(2)) : \`\${name} | Topaz\`.replace(/ /g, '%20');
+
+const sourceURLIndex = {};
+sourceURLIndex.increment = function (name) { this[name] = (this[name] ?? 0) + 1; };
+
+const makeSourceURL = (name) => \`\${name} | Topaz \${sourceURLIndex.increment(name)}\`.replace(/ /g, '%20');
 const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
 // discord's toast for simplicity
@@ -1059,7 +1187,7 @@ const containerParent = document.createElement('div');
 document.body.appendChild(containerParent);
 
 const createContainer = (inst) => {
-  containerParent.innerHTML = window.BdApi ? \`<object data="about:blank"></object>\` : '<iframe src="about:blank"></iframe>'; // make iframe. use object (bit slower) if BD is also installed as it breaks sandboxing
+  containerParent.innerHTML = window.BdApi ? \`<object data="about:blank"></object>\` : '<iframe></iframe>'; // make iframe. use object (bit slower) if BD is also installed as it breaks sandboxing
   const el = containerParent.children[0];
 
   const _constructor = el.contentWindow.Function.constructor;
@@ -1193,8 +1321,9 @@ const Onyx = function (entityID, manifest, transformRoot) {
   this.eval = function (_code) {
     // basic static code analysis for predicting needed permissions
     // const objectPredictBlacklist = [ 'clyde' ];
-    // predictedPerms = Object.keys(permissions).filter(x => permissions[x].some(y => [...code.matchAll(new RegExp(\`([^. 	]*?)\\\\.\${y}\`, 'g'))].some(z => z && !objectPredictBlacklist.includes(z[1].toLowerCase()))));
+    // predictedPerms = Object.keys(permissions).filter(x => permissions[x].some(y => [..._code.matchAll(new RegExp(\`([^. 	]*?)\\\\.\${y}\`, 'g'))].some(z => z && !objectPredictBlacklist.includes(z[1].toLowerCase()))));
     // topaz.log('onyx', 'predicted perms for', this.manifest.name, predictedPerms);
+    // permissionsModal(this.manifest, predictedPerms);
 
     const argumentContext = Object.keys(this.context).filter(x => !x.match(/^[0-9]/) && !x.match(/[-,]/));
 
@@ -1207,6 +1336,8 @@ const Onyx = function (entityID, manifest, transformRoot) {
     code += '\\n' + this.MapGen(code, transformRoot, this.manifest.name);
 
     let exported = containedEval.bind(this.context)(code).apply(this.context, argumentContext.map(x => this.context[x]));
+
+    if (Object.keys(exported).length === 1 && exported.default) exported = exported.default;
 
     return exported;
   };
@@ -1380,6 +1511,76 @@ const makeMap = (output, root, name) => {
 
 makeMap`);
 Onyx.prototype.MapGen = MapGen; // import mapgen into onyx
+
+const Autopatch = eval(`const prettyAgo = (timestamp) => {
+  const intervals = [
+    { label: 'year', seconds: 31536000 },
+    { label: 'month', seconds: 2592000 },
+    { label: 'day', seconds: 86400 },
+    { label: 'hour', seconds: 3600 },
+    { label: 'minute', seconds: 60 },
+    { label: 'second', seconds: 1 }
+  ];
+
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  const interval = intervals.find(i => i.seconds <= seconds);
+  const count = Math.floor(seconds / interval.seconds);
+
+  const rtf = new Intl.RelativeTimeFormat("en", {
+    localeMatcher: 'best fit',
+    numeric: 'auto',
+    style: 'long'
+  });
+
+  return rtf.format(count * -1, interval.label);
+};
+
+
+async (entityID, manifest, code) => {
+  let changes = [];
+  const original = code;
+
+  const patch = (original, replacement, change) => {
+    const before = code;
+
+    code = code.replaceAll(original, replacement);
+
+    if (code !== before && !changes.find(x => x[0] === change[0])) changes.push(change);
+  };
+
+
+  patch(/ActionTypes\\.([A-Z_]*)/g, '\\'\$1\\'', [ 'ActionTypes deletion fix', new Date('2022-08-01T06:22:49Z') ]);
+
+  patch('dirtyDispatch', 'dispatch', [ 'dirtyDispatch -> dispatch', new Date('2022-08-03T01:30:44Z') ]);
+
+  patch('\\'_orderedActionHandlers\\'', '\\'_actionHandlers\\'', [ 'FluxDispatcher update', new Date('2022-08-10T20:55:38Z') ]);
+  patch(/([^s])\\.(_orderedActionHandlers|_dependencyGraph|_orderedCallbackTokens|_invalidateCaches)/g, '\$1._actionHandlers.\$2', [ 'FluxDispatcher update', new Date('2022-08-10T20:55:38Z') ]);
+
+
+  let toRevert = undefined;
+  if (changes.length > 0) {
+    const previouslyAsked = topaz.storage.get(entityID + '_autopatch_asked') ?? [];
+    const changesToShow = changes.filter(x => !previouslyAsked.includes(x[0]));
+
+    if (changesToShow.length === 0) return [ code, { changes, toRevert } ];
+
+    const res = goosemod.confirmDialog('Okay', \`\${manifest.name} Patched\`, \`Topaz found that **\${manifest.name}** was likely broken and has attempted to automatically fix it.
+##### ​
+# Patches
+
+\${changesToShow.map(x => \`- \${x[0]} (\${prettyAgo(x[1])})\`).join('\\n')}\`, 'Revert', 'brand');
+    if (document.querySelector('[type="submit"] + [type="button"]')) document.querySelector('[type="submit"] + [type="button"]').onclick = () => toRevert = true; // Only revert button, not ignore
+
+    await res;
+    if (toRevert === true) code = original;
+    else {
+      toRevert = false;
+      topaz.storage.set(entityID + '_autopatch_asked', changes.map(x => x[0]));
+    }
+  }
+
+  return [ code, { changes, toRevert } ];
+}`);
 
 const Editor = { // defer loading until editor is wanted
   get Component() {
@@ -1898,7 +2099,7 @@ code { /* Fix code font variable not being used in some places */
                   avatar: '256174d9f90e1c70c5602ef28efd74ab',
                   username: 'Ducko'
                 },
-                css: \`[class^="toolbar"] a[href="https://support.discord.com/"] {
+                css: \`[class^="toolbar"] a[href^="https://support.discord.com"] {
   display: none;
 }\`
               }
@@ -2213,17 +2414,17 @@ const includeImports = async (root, code, updateProgress) => {
     if (isExternal) {
       if (_.includes('@import') && !_.includes('scss')) return _;
 
-      const req = await fetch(path);
-      if (req.status !== 200) {
-        code = '';
-      } else {
-        code = await req.text();
+      let code = '';
+      try {
+        code = await fetchCache.fetch(path);
+      } catch (e) {
+        console.warn('failed to fetch external', code);
       }
     } else {
       const relativePath = resolvePath('.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
-      console.log(root, '|', basePath, relativePath, '|', '.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
+      // console.log(root, '|', basePath, relativePath, '|', '.' + root.replace(transformRoot, '') + '/' + basePath.replace('./', ''));
 
-      resolved = await resolveFileFromTree(relativePath) ?? await resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/'));
+      resolved = /* await resolveFileFromTree(relativePath + '.scss') ?? */ await resolveFileFromTree(relativePath) ?? await resolveFileFromTree([ ...relativePath.split('/').slice(0, -1), '_' + relativePath.split('/').pop() ].join('/'));
       code = await getCode(transformRoot, resolved);
     }
 
@@ -2236,7 +2437,7 @@ const includeImports = async (root, code, updateProgress) => {
   return res;
 };
 
-const transformCSS = async (root, code, skipTransform = false, updateProgress = false) => {
+const transformCSS = async (root, indexRoot, code, skipTransform = false, updateProgress = false) => {
   transformRoot = root;
 
   if (updateProgress) {
@@ -2246,7 +2447,7 @@ const transformCSS = async (root, code, skipTransform = false, updateProgress = 
 
   if (updateProgress) updatePending(null, 'Importing...');
 
-  let newCode = await includeImports(root, code, updateProgress);
+  let newCode = await includeImports(indexRoot, code, updateProgress);
 
   if (updateProgress) updatePending(null, 'Transforming...');
 
@@ -2258,7 +2459,10 @@ const transformCSS = async (root, code, skipTransform = false, updateProgress = 
   const builtins = [ 'hsla', 'hsl', 'rgb', 'rgba' ];
   for (const x of builtins) newCode = newCode.replaceAll(x, '_' + x);
 
+  const start = performance.now();
+  // if (!skipTransform) newCode = topaz.debug ? Glass(newCode) : grass(newCode, { style: 'expanded', quiet: true, load_paths: [''] });
   if (!skipTransform) newCode = grass(newCode, { style: 'expanded', quiet: true, load_paths: [''] });
+  log('css.transform', `took ${(performance.now() - start).toFixed(2)}ms`);
 
   for (const x of builtins) newCode = newCode.replaceAll('_' + x, x);
 
@@ -2529,7 +2733,8 @@ module.exports = {
 
   AsyncComponent: require('powercord/components/AsyncComponent'),
   settings: require('powercord/components/settings'),
-  modal: require('powercord/components/modal')
+  modal: require('powercord/components/modal'),
+  ContextMenu: require('powercord/components/ContextMenu')
 };`,
   'powercord/components/settings': `const { React } = goosemod.webpackModules.common;
 const OriginalSwitchItem = goosemod.webpackModules.findByDisplayName('SwitchItem');
@@ -2821,8 +3026,173 @@ Flux.connectStoresAsync = (stores, callback) => comp => AsyncComponent.from((asy
 })());
 
 module.exports = AsyncComponent;`,
+  'powercord/components/ContextMenu': `// based on https://github.com/powercord-org/powercord/blob/v2/src/fake_node_modules/powercord/components/ContextMenu.jsx
+const { React } = goosemod.webpackModules.common;
+
+const { closeContextMenu } = goosemod.webpackModules.findByProps('openContextMenu', 'closeContextMenu');
+const { default: Menu, MenuGroup, MenuItem, MenuCheckboxItem, MenuControlItem } = goosemod.webpackModules.findByProps('MenuCheckboxItem');
+const Slider = goosemod.webpackModules.find(m => m.render && m.render.toString().includes('sliderContainer'));
+
+
+class ContextMenu extends React.PureComponent {
+  constructor (props) {
+    super(props);
+    this.state = {};
+  }
+
+  static renderRawItems (items) {
+    return (new ContextMenu()).renderItems(items, {
+      standalone: true,
+
+      depth: 0,
+      group: 0,
+      i: 0
+    });
+  }
+
+  render () {
+    if (this.props.items) {
+      return this.renderItems(this.props.items, {
+        depth: 0,
+        group: 0,
+        i: 0
+      });
+    }
+
+    return React.createElement(Menu, {
+      navId: this.props.navId ?? \`pc-\${Math.random().toString().slice(2)}\`,
+      onClose: closeContextMenu
+    },
+      ...this.props.itemGroups.map((items, i) => (
+        React.createElement(MenuGroup, {},
+          ...this.renderItems(items, {
+            depth: 0,
+            group: i,
+            i: 0
+          })
+        )
+      ))
+    );
+  }
+
+  renderItems (items, ctx) {
+    return items.map(item => {
+      ctx.i++;
+
+      switch (item.type) {
+        case 'button': return this.renderButton(item, ctx);
+        case 'checkbox': return this.renderCheckbox(item, ctx);
+        case 'slider': return this.renderSlider(item, ctx);
+        case 'submenu': return this.renderSubMenu(item, ctx);
+
+        default: return null;
+      }
+    });
+  }
+
+  renderButton (item, ctx) {
+    return React.createElement(MenuItem, {
+      id: item.id ?? \`item-\${ctx.group}-\${ctx.depth}-\${ctx.i}\`,
+
+      disabled: item.disabled,
+      label: item.name,
+      color: item.color,
+      hint: item.hint,
+      subtext: item.subtext,
+
+      action: () => {
+        if (!item.disabled) item.onClick?.();
+      }}
+    );
+  }
+
+  renderCheckbox (item, ctx) {
+    const elementKey = \`active-\${ctx.group}-\${ctx.depth}-\${ctx.i}\`;
+    const active = this.state[elementKey] !== void 0
+      ? this.state[elementKey]
+      : item.defaultState;
+
+    return React.createElement(MenuCheckboxItem, {
+      id: item.id ?? \`item-\${ctx.group}-\${ctx.depth}-\${ctx.i}\`,
+
+      checked: active,
+      label: item.name,
+      color: item.color,
+      hint: item.hint,
+      subtext: item.subtext,
+
+      action: e => {
+        const newActive = !active;
+
+        if (item.onToggle) {
+          item.onToggle(newActive);
+        }
+
+        if (ctx.standalone) {
+          const el = e.target.closest('[role="menu"]');
+          setImmediate(() => goosemod.reactUtils.getOwnerInstance(el).forceUpdate());
+        } else {
+          this.setState({ [elementKey]: newActive });
+        }
+      }
+    });
+  }
+
+  renderSlider (item, ctx) {
+    return React.createElement(MenuControlItem, {
+      id: item.id ?? \`item-\${ctx.group}-\${ctx.depth}-\${ctx.i}\`,
+
+      label: item.name,
+      color: item.color,
+      hint: item.hint,
+      subtext: item.subtext,
+
+      control: (props, ref) => React.createElement(Slider, {
+        mini,
+        ref,
+        equidistant: typeof item.markers !== 'undefined',
+        stickToMarkers: typeof item.markers !== 'undefined',
+        ...props,
+        ...item
+      })
+    });
+  }
+
+  renderSubMenu (item, ctx) {
+    const elementKey = \`items-\${ctx.group}-\${ctx.depth}-\${ctx.i}\`;
+
+    let items = this.state[elementKey];
+    if (items === void 0) {
+      items = item.getItems();
+      this.setState({ [elementKey]: items });
+
+      if (items instanceof Promise) {
+        items.then(fetchedItems => this.setState({ [elementKey]: fetchedItems }));
+      }
+    }
+
+    return React.createElement(MenuItem, {
+      id: item.id ?? \`item-\${ctx.group}-\${ctx.depth}-\${ctx.i}\`,
+
+      disabled: !items || !items.length || item.disabled,
+      label: item.name,
+      color: item.color,
+      hint: item.hint,
+      subtext: item.subtext
+    },
+      items && items.length > 0 && !item.disabled && this.renderItems(items, {
+        depth: ctx.depth + 1,
+        group: 0,
+        i: 0
+      })
+    );
+  }
+}
+
+module.exports = ContextMenu;`,
   'powercord/modal': `const modalManager = goosemod.webpackModules.findByProps('openModal', 'updateModal');
 const Modal = goosemod.webpackModules.findByProps('ModalRoot');
+const { React } = goosemod.webpackModules.common;
 
 let lastId;
 module.exports = {
@@ -2958,7 +3328,13 @@ class SettingsStore extends Flux.Store {
   }
 
   getSetting = (key, def) => {
-    return this._store[key] ?? def;
+    let out = this._store;
+
+    for (const k of key.split('.')) {
+      out = out[k];
+    }
+
+    return out ?? def;
   }
 
   updateSetting = (key, value) => {
@@ -3195,6 +3571,13 @@ powercord = {
       fetchAccounts: async (user) => {
         return undefined;
       }
+    }
+  },
+
+  pluginManager: {
+    get: x => {
+      topaz.log('powercord.pluginManager.get', x);
+      return topaz.internal.plugins[__entityID];
     }
   },
 
@@ -3445,7 +3828,26 @@ BdApi = window.BdApi = {
       const out = (await fetchCache.fetch('https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js'))
         .replace('static async hasUpdate(updateLink) {', 'static async hasUpdate(updateLink) { return Promise.resolve(false);') // disable updating
         .replace('this.listeners = new Set();', 'this.listeners = {};') // webpack patches to use our API
-        .replace('static addListener(listener) {', 'static addListener(listener) { const id = Math.random().toString().slice(2); const int = setInterval(() => { for (const m of goosemod.webpackModules.all()) { if (m) listener(m); } }, 5000); listener._listenerId = id; return this.listeners[id] = () => { clearInterval(int); delete this.listeners[listener._listenerId]; }')
+        .replace('static addListener(listener) {', `static addListener(listener) {
+console.log("addListener", listener);
+const id = Math.random().toString().slice(2);
+
+let lastLength = 0;
+const int = setInterval(() => {
+  const all = goosemod.webpackModules.all();
+  if (lastLength === all.length) return;
+  lastLength = all.length;
+
+  console.log('CHECK', lastLength, all.length, listener);
+
+  for (const m of all) { if (m) listener(m); }
+}, 5000);
+
+listener._listenerId = id;
+return this.listeners[id] = () => {
+  clearInterval(int);
+  delete this.listeners[listener._listenerId];
+};`)
         .replace('static removeListener(listener) {', 'static removeListener(listener) { this.listeners[listener._listenerId]?.(); return;')
         .replace('static getModule(filter, first = true) {', `static getModule(filter, first = true) { return goosemod.webpackModules[first ? 'find' : 'findAll'](filter);`)
         .replace('static getByIndex(index) {', 'static getByIndex(index) { return goosemod.webpackModules.findByModuleId(index);')
@@ -4564,126 +4966,9 @@ vizality = {
 
 })();`,
 
-  'enmity/metro/common': `module.exports = {
-  ContextMenu: goosemod.webpackModules.findByProps('openContextMenu', 'closeContextMenu'),
-  Modals: goosemod.webpackModules.findByProps('openModal', 'closeAllModals'),
-  Dispatcher: goosemod.webpackModules.common.FluxDispatcher,
-  React: goosemod.webpackModules.common.React,
-  Constants: goosemod.webpackModules.findByProps('MAX_MESSAGE_LENGTH'),
-  Messages: goosemod.webpackModules.findByProps('sendMessage'),
-  Users: goosemod.webpackModules.findByProps('getCurrentUser'),
-};`,
-  'enmity/metro': `const bulkify = (original) => (...args) => {
-  const opts = args[args.length - 1];
-  if (opts.bulk) return args.slice(0, -1).map(x => original(...x));
-
-  return original(...args);
-}
-
-module.exports = {
-  findByProps: bulkify(goosemod.webpackModules.findByProps),
-  findByDisplayName: (name, opts = {}) => goosemod.webpackModules.find(x => x.displayName === name || x.default?.displayName === name, opts.interop ?? true),
-
-  bulk: (...filters) => filters.map(x => goosemod.webpackModules.find(x, false)),
-  findLazy: (filter) => new Promise(res => {
-    const check = () => {
-      const ret = goosemod.webpackModules.find(filter);
-      if (!ret) return;
-
-      res(ret);
-      clearInterval(int);
-    };
-
-    const int = setInterval(check, 1000);
-    check();
-  }),
-
-  filters: {
-    byProps: (...props) => (x) => props.every(y => x.hasOwnProperty(y) || (x.__proto__?.hasOwnProperty?.(y))),
-    byDisplayName: (name, exportDefault = false) => (x) => {
-      if (x.displayName === name) return x;
-      if (x.default?.displayName === name) return exportDefault ? x.default : x;
-    }
-  },
-
-  // todo: temporary as astra and unbound use same import names
-  getByProps: goosemod.webpackModules.findByProps,
-  getByDisplayName: (name, opts) => {
-    const ret = goosemod.webpackModules.find(x => x.displayName === name || x.default?.displayName === name, false);
-
-    return opts.ret === 'exports' ? ret : ret[name];
-  },
-
-  MessageActions: goosemod.webpackModules.findByProps('sendMessage')
-};`,
-  'enmity/patcher': `const unpatches = {};
-
-module.exports = {
-  create: (id) => {
-    unpatches[id] = [];
-
-    return {
-      instead: (parent, key, patch) => {
-        const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return patch(this, args, original); }, false, true);
-
-        unpatches[id].push(unpatch);
-        return unpatch;
-      },
-
-      before: (parent, key, patch) => {
-        const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(this, args); }, true);
-
-        unpatches[id].push(unpatch);
-        return unpatch;
-      },
-
-      after: (parent, key, patch) => {
-        const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return patch(this, args, ret); }, false);
-
-        unpatches[id].push(unpatch);
-        return unpatch;
-      },
-
-      unpatchAll: () => {
-        unpatches[id].forEach(x => x());
-      }
-    };
-  },
-
-  // todo: temporary as astra and unbound use same import names
-  instead: (id, parent, key, patch) => {
-    const unpatch = goosemod.patcher.patch(parent, key, function (args, original) { return patch(this, original, args); }, false, true);
-
-    if (!unpatches[id]) unpatches[id] = [];
-    unpatches[id].push(unpatch);
-
-    return unpatch;
-  },
-
-  before: (id, parent, key, patch) => {
-    const unpatch = goosemod.patcher.patch(parent, key, function (args) { return patch(this, args); }, true);
-
-    if (!unpatches[id]) unpatches[id] = [];
-    unpatches[id].push(unpatch);
-
-    return unpatch;
-  },
-
-  after: (id, parent, key, patch) => {
-    const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) { return patch(this, ret, args); }, false);
-
-    if (!unpatches[id]) unpatches[id] = [];
-    unpatches[id].push(unpatch);
-
-    return unpatch;
-  },
-
-  unpatchAll: (id) => {
-    if (!unpatches[id]) return;
-
-    unpatches[id].forEach(x => x());
-  }
-};`,
+  'enmity/metro/common': `module.exports = require('unbound/webpack/common');`,
+  'enmity/metro': `module.exports = require('unbound/webpack/webpack');`,
+  'enmity/patcher': `module.exports = require('unbound/patcher');`,
   'enmity/managers/plugins': `module.exports = { Plugin: {}, registerPlugin: () => {} };`,
   'enmity/global': '',
 
@@ -4710,6 +4995,86 @@ demon = {
   }
 };
 })();`,
+
+  'aliucord/entities': `const { Patcher } = require('aliucord/utils');
+
+class Plugin {
+  _topaz_start() {
+    this.start.bind(this)();
+  }
+
+  _topaz_stop() {
+    Patcher.unpatchAll();
+  }
+}
+
+module.exports = {
+  Plugin
+};`,
+  'aliucord/metro': `module.exports = {
+  getByProps: goosemod.webpackModules.findByProps,
+
+  ...goosemod.webpackModules.common,
+  MessageStore: goosemod.webpackModules.findByProps('getMessage', 'getRawMessages'),
+  UserStore: goosemod.webpackModules.findByProps('getCurrentUser', 'getUser'),
+};`,
+  'aliucord/utils': `const unpatches = [];
+
+module.exports = {
+  Patcher: {
+    instead: (parent, key, patch) => {
+      const unpatch = goosemod.patcher.patch(parent, key, function (args, original) {
+        const ctx = {
+          result: undefined,
+          original
+        };
+
+        patch(ctx, ...args);
+
+        return ctx.result;
+      }, false, true);
+
+      unpatches.push(unpatch);
+      return unpatch;
+    },
+
+    before: (parent, key, patch) => {
+      const unpatch = goosemod.patcher.patch(parent, key, function (args) {
+        const ctx = {
+          result: undefined
+        };
+
+        patch(ctx, ...args);
+
+        return ctx.result;
+      }, true);
+
+      unpatches.push(unpatch);
+      return unpatch;
+    },
+
+    after: (parent, key, patch) => {
+      const unpatch = goosemod.patcher.patch(parent, key, function (args, ret) {
+        const ctx = {
+          result: ret
+        };
+
+        patch(ctx, ret, ...args);
+
+        return ctx.result;
+      }, false);
+
+      unpatches.push(unpatch);
+      return unpatch;
+    },
+
+    unpatchAll: () => {
+      unpatches.forEach(x => x());
+    }
+  }
+};`,
+  'aliucord/utils/patcher': `module.exports = require('aliucord/utils').Patcher;`,
+  'aliucord/global': '',
 
   'react': 'module.exports = goosemod.webpackModules.common.React;',
   'lodash': 'module.exports = window._;',
@@ -5138,7 +5503,7 @@ const makeChunk = async (root, p) => {
   let resPath = builtins[p] ? p : resolvePath(joined).slice(1);
 
   const resolved = await resolveFileFromTree(resPath);
-  console.log('CHUNK', genId(resPath), '|', root.replace(transformRoot, ''), p, '|', joined, resPath, resolved);
+  // console.log('CHUNK', genId(resPath), '|', root.replace(transformRoot, ''), p, '|', joined, resPath, resolved);
 
   const finalPath = resolved ?? p;
 
@@ -5251,7 +5616,7 @@ ${(await Promise.all(files.map(async x => {
   });
 
   code = await replaceAsync(code, /this\.loadStylesheet\(['"`](.*?)['"`]\)/g, async (_, p) => {
-    const css = (await transformCSS(root, await getCode(root, './' + p.replace(/^.\//, '')))).replace(/\\/g, '\\\\').replace(/\`/g, '\`');
+    const css = (await transformCSS(transformRoot, root, await getCode(root, './' + p.replace(/^.\//, '')))).replace(/\\/g, '\\\\').replace(/\`/g, '\`');
 
     return `this.loadStylesheet(\`${css}\`)`;
   });
@@ -5391,11 +5756,15 @@ const install = async (info, settings = undefined, disabled = false) => {
     }
   }
 
-  // disable final cache for now as currently no way to make it update after changes
-  // let [ newCode, manifest, isTheme ] = finalCache.get(info) ?? [];
-  let [ newCode, manifest, isTheme ] = [];
+  const fetchSum = fetchCache.keys().filter(x => !x.includes('api.github.com') && x.includes(info.replace('/blob', '').replace('/tree', '').replace('github.com', 'raw.githubusercontent.com'))).reduce((acc, x) => acc += x + '|' + fetchCache.get(x), '');
+  const fetchHash = XXHash(fetchSum);
 
-  if (!newCode) {
+  let [ newCode, manifest, isTheme, _mod, autopatchResult, oldHash ] = finalCache.get(info) ?? [];
+  mod =_mod ?? mod;
+
+  log('manager.cacheload', '\ncurrent:', fetchHash, '\ncached: ', oldHash, '\nto build:', oldHash !== fetchHash || !newCode)
+
+  if (oldHash !== fetchHash || !newCode) {
     updatePending(info, 'Treeing...');
 
     tree = [];
@@ -5427,10 +5796,11 @@ const install = async (info, settings = undefined, disabled = false) => {
     isTheme = info.endsWith('.theme.css') || await resolveFileFromTree('powercord_manifest.json');
     if (isTheme) {
       let skipTransform = false;
+      const fullRoot = root;
 
       switch (mod) {
         case 'bd':
-          indexURL = join(root, './' + info.split('/').slice(-1)[0]);
+          indexUrl = join(root, './' + info.split('/').slice(-1)[0]);
           indexCode = await getCode(root, './' + info.split('/').slice(-1)[0]);
           manifest = [...indexCode.matchAll(/^ *\* @([^ ]*) (.*)/gm)].reduce((a, x) => { a[x[1]] = x[2]; return a; }, {});
           skipTransform = true;
@@ -5440,16 +5810,16 @@ const install = async (info, settings = undefined, disabled = false) => {
         default: // default to pc
           mod = 'pc';
 
-          manifest = await (await fetch(join(root, './powercord_manifest.json'))).json();
+          manifest = JSON.parse(await getCode(root, './powercord_manifest.json'));
 
           const main = manifest.theme.replace(/^\.?\//, '');
-          indexURL = join(root, './' + main);
+          indexUrl = join(root, './' + main);
           indexCode = await getCode(root, './' + main);
           root = getDir(join(root, './' + main));
           skipTransform = main.endsWith('.css');
 
-          subdir = getDir(main);
-          if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
+          // subdir = getDir(main);
+          // if (subdir) tree = tree.filter(x => x.path.startsWith(subdir + '/')).map(x => { x.path = x.path.replace(subdir + '/', ''); return x; });
 
           break;
       }
@@ -5458,11 +5828,11 @@ const install = async (info, settings = undefined, disabled = false) => {
       if (pend) pend.manifest = manifest;
 
       updatePending(info, 'Bundling...');
-      newCode = await transformCSS(root, indexCode, skipTransform, true);
+      newCode = await transformCSS(fullRoot, root, indexCode, skipTransform, true);
     } else {
       switch (mod) {
         case 'pc':
-          manifest = await (await fetch(join(root, './manifest.json'))).json();
+          manifest = JSON.parse(await getCode(root, './manifest.json'));
 
           if (manifest.id && manifest.authors && manifest.main) {
             mod = 'un';
@@ -5497,6 +5867,7 @@ const install = async (info, settings = undefined, disabled = false) => {
           if (indexCode.includes('extends UPlugin')) mod = 'ast';
           if (indexCode.includes('@rikka')) mod = 'rk';
           if (indexCode.includes('@vizality')) mod = 'vz';
+          if (indexCode.includes('aliucord')) mod = 'ac';
 
           if (mod === 'em') {
             indexCode = indexCode.replace(/registerPlugin\((.*?)\)/, (_, v) => `module.exports = ${v};`);
@@ -5506,7 +5877,7 @@ const install = async (info, settings = undefined, disabled = false) => {
           break;
 
         case 'gm':
-          manifest = await (await fetch(join(root, './goosemodModule.json'))).json();
+          manifest = JSON.parse(await getCode(root, './goosemodManifest.json'));
 
           if (typeof manifest.authors === 'string') manifest.authors = [ manifest.authors.split(' (')[0] ];
           manifest.author = (await Promise.all(manifest.authors.map(x => x.length === 18 ? goosemod.webpackModules.findByProps('getUser', 'fetchCurrentUser').getUser(x) : x))).join(', ');
@@ -5522,7 +5893,7 @@ const install = async (info, settings = undefined, disabled = false) => {
           break;
 
         case 'vel': {
-          manifest = await (await fetch(join(root, './velocity_manifest.json'))).json();
+          manifest = JSON.parse(await getCode(root, './velocity_manifest.json'));
 
           const main = './' + manifest.main.replace('./', '');
           indexFile = './' + main.split('/').pop();
@@ -5537,12 +5908,12 @@ const install = async (info, settings = undefined, disabled = false) => {
 
         case 'cc': {
           if (info.endsWith('/plugin.js')) {
-            manifest = await (await fetch(join(root, './plugin.json'))).json();
+            manifest = JSON.parse(await getCode(root, './plugin.json'));
 
             indexCode = await getCode(root, indexFile ?? ('./' + info.split('/').slice(-1)[0]));
             indexCode = 'module.exports = ' + indexCode;
           } else {
-            manifest = await (await fetch(join(root, './cumcord_manifest.json'))).json();
+            manifest = JSON.parse(await getCode(root, './cumcord_manifest.json'));
 
             const main = './' + manifest.file.replace('./', '');
             indexFile = './' + main.split('/').pop();
@@ -5594,7 +5965,9 @@ const install = async (info, settings = undefined, disabled = false) => {
       isTheme = false;
     }
 
-    finalCache.set(info, [ newCode, manifest, isTheme ]);
+    [ newCode, autopatchResult ] = await Autopatch(info, manifest, newCode);
+
+    finalCache.set(info, [ newCode, manifest, isTheme, mod, autopatchResult, fetchHash ]);
   }
 
   updatePending(info, 'Executing...');
@@ -5903,6 +6276,9 @@ const install = async (info, settings = undefined, disabled = false) => {
 
         break;
     }
+
+    if (!manifest.name && PluginClass.name) manifest.name = PluginClass.name;
+    if (!manifest.author && isGitHub) manifest.author = repo.split('/')[0];
   }
 
   plugins[info] = plugin;
@@ -5914,6 +6290,7 @@ const install = async (info, settings = undefined, disabled = false) => {
   plugin.__enabled = !disabled;
   plugin.__mod = mod;
   plugin.__root = transformRoot;
+  plugin.__autopatch = autopatchResult;
 
   if (!disabled) plugin._topaz_start();
 
@@ -5943,6 +6320,7 @@ const fullMod = (mod) => {
     case 'vz': return 'vizality';
     case 'em': return 'enmity';
     case 'dc': return 'demoncord';
+    case 'ac': return 'aliucord';
   }
 };
 
@@ -5960,6 +6338,7 @@ const displayMod = (mod) => {
     case 'vz': return 'Vizality';
     case 'em': return 'Enmity';
     case 'dc': return 'Demoncord';
+    case 'ac': return 'Aliucord (RN)';
   }
 };
 
@@ -6109,7 +6488,13 @@ window.topaz = {
     if (!plugins[info]) return log('enable', 'plugin not installed');
     log('enable', info);
 
-    plugins[info]._topaz_start();
+    try { // wrap in try incase plugin failed to install so then fails to uninstall as it never inited properly
+      plugins[info]._topaz_start();
+    } catch (e) {
+      console.error('START', e);
+      // notify user?
+    }
+
     plugins[info].__enabled = true;
 
     setDisabled(info, false);
@@ -6118,13 +6503,25 @@ window.topaz = {
     if (!plugins[info]) return log('disable', 'plugin not installed');
     log('disable', info);
 
-    plugins[info]._topaz_stop();
+    try { // wrap in try incase plugin failed to install so then fails to uninstall as it never inited properly
+      plugins[info]._topaz_stop();
+    } catch (e) {
+      console.error('STOP', e);
+      // notify user?
+    }
+
     plugins[info].__enabled = false;
 
     setDisabled(info, true);
   },
   reload: (info) => {
-    plugins[info]._topaz_stop();
+    try { // wrap in try incase plugin failed to install so then fails to uninstall as it never inited properly
+      plugins[info]._topaz_stop();
+    } catch (e) {
+      console.error('STOP', e);
+      // notify user?
+    }
+
     delete plugins[info];
 
     setTimeout(() => topaz.install(info), 200);
@@ -6987,6 +7384,10 @@ body .footer-31IekZ { /* Fix modal footers using special var */
   flex-grow: 1;
   overflow: auto;
   padding-right: 0;
+}
+
+.topaz-autopatcher-icon {
+  vertical-align: text-bottom;
 }`));
 document.head.appendChild(cssEl);
 
@@ -7014,7 +7415,7 @@ const startSnippet = async (file, content) => {
   let code;
 
   if (file.endsWith('css')) {
-    code = await transformCSS('https://discord.com/channels/@me', content, !file.endsWith('scss'), false);
+    code = await transformCSS('https://discord.com/channels/@me', 'https://discord.com/channels/@me', content, !file.endsWith('scss'), false);
 
     const cssEl = document.createElement('style');
     cssEl.appendChild(document.createTextNode(code));
@@ -7353,7 +7754,7 @@ const openSub_modal = (header, content, type) => {
 
 class Plugin extends React.PureComponent {
   render() {
-    const { manifest, repo, state, substate, settings, entityID, mod, isTheme } = this.props;
+    const { manifest, repo, state, substate, settings, entityID, mod, isTheme, autopatch } = this.props;
 
     return React.createElement(TextAndChild, {
       text: !manifest ? repo : [
@@ -7367,6 +7768,25 @@ class Plugin extends React.PureComponent {
             onMouseLeave
           }, mod.toUpperCase()),
         ),
+
+        autopatch && autopatch.changes.length > 0 && React.createElement(Tooltip, {
+          position: 'top',
+          color: 'primary',
+          tooltipClassName: 'topaz-nomax-tooltip',
+
+          text: `Autopatched${autopatch.changes.length > 1 ? ` (${autopatch.changes.length} changes)` : ''}`
+        }, ({
+          onMouseLeave,
+          onMouseEnter
+        }) => React.createElement(goosemod.webpackModules.findByDisplayName('BugCatcher'), {
+          // className: 'topaz-permission-danger-icon',
+          className: 'topaz-autopatcher-icon',
+          width: 20,
+          height: 20,
+
+          onMouseEnter,
+          onMouseLeave
+        })),
 
         manifest.name,
 
@@ -7731,7 +8151,7 @@ class TopazSettings extends React.PureComponent {
               topaz.storage.set(k, obj[k]);
             }
 
-            location.reload();
+            setTimeout(() => location.reload(), 500);
           };
 
           reader.readAsText(file);
@@ -8128,11 +8548,12 @@ class Settings extends React.PureComponent {
 
         React.createElement(Divider),
 
-        ...modules.map(({ entityID, __enabled, manifest, __entityID, __settings, __mod, __theme }) => React.createElement(Plugin, {
+        ...modules.map(({ entityID, __enabled, manifest, __entityID, __settings, __mod, __theme, __autopatch }) => React.createElement(Plugin, {
           manifest,
           entityID: __entityID,
           enabled: __enabled,
           settings: __settings,
+          autopatch: __autopatch,
           mod: __mod,
           isTheme: !!__theme,
           onUninstall: async () => {
@@ -8174,7 +8595,7 @@ let settingsUnpatch = goosemod.patcher.patch(goosemod.webpackModules.findByDispl
 const Terminal = eval(`const closeTerminal = () => document.querySelector('.topaz-terminal')?.remove?.();
 
 const openTerminal = (e) => {
-  if (e) if (/* !e.ctrlKey || */ !e.altKey || e.key !== 't') return;
+  if (e) if (!e.altKey || e.code !== 'KeyT') return;
 
   const alreadyOpen = document.querySelector('.topaz-terminal');
   if (e && alreadyOpen) return closeTerminal();
