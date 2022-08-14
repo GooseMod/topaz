@@ -46,15 +46,15 @@ async (entityID, manifest, code) => {
   let toRevert = undefined;
   if (changes.length > 0) {
     const previouslyAsked = topaz.storage.get(entityID + '_autopatch_asked') ?? [];
-    changes = changes.filter(x => !previouslyAsked.includes(x[0]));
+    const changesToShow = changes.filter(x => !previouslyAsked.includes(x[0]));
 
-    if (changes.length === 0) return [ code, { changes, toRevert } ];
+    if (changesToShow.length === 0) return [ code, { changes, toRevert } ];
 
     const res = goosemod.confirmDialog('Okay', `${manifest.name} Patched`, `Topaz found that **${manifest.name}** was likely broken and has attempted to automatically fix it.
 ##### ​
 # Patches
 
-${changes.map(x => `- ${x[0]} (${prettyAgo(x[1])})`).join('\n')}`, 'Revert', 'brand');
+${changesToShow.map(x => `- ${x[0]} (${prettyAgo(x[1])})`).join('\n')}`, 'Revert', 'brand');
     if (document.querySelector('[type="submit"] + [type="button"]')) document.querySelector('[type="submit"] + [type="button"]').onclick = () => toRevert = true; // Only revert button, not ignore
 
     await res;
