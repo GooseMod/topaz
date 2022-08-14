@@ -25,6 +25,9 @@ __Manager__
 - Use GitHub username if no manifest author and plugin is from GitHub
 - Wrap plugin calls in try catch to avoid failing to disable/enable completely
 
+__Backup__
+- Fixed restoring sometimes not working
+
 __AliucordRN__
 - **Initial AliucordRN support.** A few AliucordRN (React Native) plugins are now supported, very early/WIP.
 
