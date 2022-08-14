@@ -72,11 +72,12 @@ const pc = {
     '12944qwerty/profile-stats',
     'pythonmcpi/simple-eval',
     'Luna-devv/rp.replace-discord-link',
+    'Oocrop/show-sessions',
   ],
 
   themes: [
     'leeprky/MaterialYouTheme',
-    'eternal404/dark-discord',
+    'discord-modifications/dark-discord',
     'DiscordStyles/Slate@deploy',
     'DiscordStyles/HorizontalServerList',
     'DiscordStyles/RadialStatus@deploy',
@@ -131,6 +132,9 @@ const bd = {
     // 'https://raw.githubusercontent.com/NomadNaomie/BD-Tone-Indicators/main/ToneIndicator.plugin.js',
     'https://github.com/Farcrada/DiscordPlugins/blob/master/Double-click-to-edit/DoubleClickToEdit.plugin.js',
     'https://github.com/QbDesu/BetterDiscordAddons/blob/potato/Plugins/RemoveChatButtons/RemoveChatButtons.plugin.js',
+    'https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js',
+    'https://github.com/Strencher/BetterDiscordStuff/blob/master/QuickMuteChannels/QuickMuteChannels.plugin.js',
+    'https://github.com/Strencher/BetterDiscordStuff/blob/master/SuppressReplyMentions/SuppressReplyMentions.plugin.js',
   ],
 
   themes: [
