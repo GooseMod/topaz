@@ -1,7 +1,7 @@
 const closeTerminal = () => document.querySelector('.topaz-terminal')?.remove?.();
 
 const openTerminal = (e) => {
-  if (e) if (/* !e.ctrlKey || */ !e.altKey || e.key !== 't') return;
+  if (e) if (!e.altKey || e.code !== 'KeyT') return;
 
   const alreadyOpen = document.querySelector('.topaz-terminal');
   if (e && alreadyOpen) return closeTerminal();
