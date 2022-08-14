@@ -76,8 +76,8 @@ let categoryAssign = {
 
 let changelog = {
   image: '',
-  version: topaz.version[0].toUpperCase() + topaz.version.slice(1),
   date: '2022-08-08',
+  version: topaz.version[0].toUpperCase() + topaz.version.slice(1).split('.')[0],
 
   body: bodySplit.reduce((acc, x, i) => {
     if (x[0] === '_') {
