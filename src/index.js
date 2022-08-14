@@ -1927,7 +1927,7 @@ class Plugin extends React.PureComponent {
           color: 'primary',
           tooltipClassName: 'topaz-nomax-tooltip',
 
-          text: `Autopatched`
+          text: `Autopatched${autopatch.changes.length > 1 ? ` (${autopatch.changes.length} changes)` : ''}`
         }, ({
           onMouseLeave,
           onMouseEnter
