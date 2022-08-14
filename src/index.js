@@ -45,7 +45,7 @@ const openChangelog = async () => eval(await (await fetch('http://localhost:1337
 
 const lastVersion = Storage.get('last_version');
 if (!lastVersion || lastVersion !== topaz.version) {
-  if (lastVersion.split('.')[0] !== topaz.version.split('.')[0]) setTimeout(openChangelog, 2000);
+  if (lastVersion?.split('.')[0] !== topaz.version.split('.')[0]) setTimeout(openChangelog, 2000);
   Storage.delete('cache_final'); // delete final cache
 }
 // if (lastVersion && lastVersion !== topaz.version) setTimeout(openChangelog, 5000);
