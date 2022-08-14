@@ -6,13 +6,15 @@ A "next-gen" mod bundling client-side in web, designed for wide compat and with 
 
 ## Features
 - Permissions / sandboxing system
-- Works with a wide range plugins/themes from various mods (see below)
+- Works with a wide range plugins/themes from a wide range of mods (see below)
 - Install plugins/themes just via GitHub repo / URL
 - Editing plugin/theme source in client
 - Fully functional in web and desktop
 - Hardened injection / anti-crash
-- Full built-in support for JSX and TypeScript
+- Full built-in support for JSX and TypeScript, no compiling
 - Easy to use snippets for custom CSS/SCSS/JS/JSX/TS/TSX
+- Sandbox with permissions system
+- Autopatcher for automatically fixing some common issues caused by updates
 
 <br>
 
@@ -36,6 +38,7 @@ A "next-gen" mod bundling client-side in web, designed for wide compat and with 
 | Enmity | ![](https://img.shields.io/badge/initial-orange?style=for-the-badge) | ![](https://img.shields.io/badge/unsupported-red?style=for-the-badge) |
 | Astra | ![](https://img.shields.io/badge/some-yellow?style=for-the-badge) |  |
 | Vizality | ![](https://img.shields.io/badge/initial-orange?style=for-the-badge) | ![](https://img.shields.io/badge/unsupported-red?style=for-the-badge) |
+| AliucordRN | ![](https://img.shields.io/badge/initial-orange?style=for-the-badge) | ![](https://img.shields.io/badge/unsupported-red?style=for-the-badge) |
 | Velocity | ![](https://img.shields.io/badge/most-green?style=for-the-badge) | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |
 | Discord Re-envisioned | ![](https://img.shields.io/badge/most-green?style=for-the-badge) | ![](https://img.shields.io/badge/most-green?style=for-the-badge) |
 | Demoncord | ![](https://img.shields.io/badge/most-green?style=for-the-badge) | |
@@ -48,11 +51,3 @@ A "next-gen" mod bundling client-side in web, designed for wide compat and with 
 
 ## Usage
 - Enable Topaz in Goosemod's Experimental settings (in Discord, open Settings > GooseMod > Experimental (scroll down and expand category)
-
-<br>
-
-### Testing
-
-- Go to Topaz setting at top of your settings
-- Try it out with recommended plugins/themes (or try random ones)
-- Report bugs, have fun :)
