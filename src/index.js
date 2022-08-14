@@ -59,7 +59,6 @@ const initStartTime = performance.now();
 const sucrase = eval(await (await fetch('http://localhost:1337/src/sucrase.js')).text());
 const grass = await eval(await (await fetch('http://localhost:1337/src/grass.js')).text());
 const XXHash = (await eval(await (await fetch('http://localhost:1337/src/xxhash.js')).text())()).h64ToString;
-// const Glass = eval(await (await fetch('http://localhost:1337/src/glass.js')).text());
 
 const attrs = eval(await (await fetch('http://localhost:1337/src/attrs.js')).text());
 
