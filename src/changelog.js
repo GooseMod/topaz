@@ -1,16 +1,15 @@
 const sleep = x => new Promise(res => setTimeout(res, x));
 
 let body = `
-__Autopatch__
-- **Added Autopatch.** Autopatch can now partially fix plugins broken by recent common breakages from Discord updates.
+__Autopatcher__
+- **Added Autopatcher.** The new autopatcher can now try to fix plugins broken by recent common breakages from Discord updates.
 
 __Performance__
-- **Cache final bundler outputs.** Installing a plugin after the first time should be much faster.
+- **Installing plugins and themes after the first time is now significantly faster.** The final output of bundling is now cached so bundling each install is no longer needed.
 - **Added more caching throughout.** Essentially everything fetched for plugins/themes should be cached now, helping increase perf and decreasing network usage.
 
-__CSS Bundler__
-- Rewrote to use separate indexRoot and transformRoot
-- Time transforming in console
+__Bundler__
+- **Partially rewrote CSS bundler to work with more complex PC themes.** Now use separated main and index roots.
 
 __Onyx__
 - Added ESM default export support
@@ -29,7 +28,7 @@ __Backup__
 - Fixed restoring sometimes not working
 
 __AliucordRN__
-- **Initial AliucordRN support.** A few AliucordRN (React Native) plugins are now supported, very early/WIP.
+- **Initial AliucordRN plugin support.** A few AliucordRN (React Native) plugins are now supported, very early/WIP.
 
 __BetterDiscord__
 - ZeresLib: Only run Webpack listeners when modules are added
