@@ -2304,7 +2304,7 @@ class TopazSettings extends React.PureComponent {
               topaz.storage.set(k, obj[k]);
             }
 
-            location.reload();
+            setTimeout(() => location.reload(), 500);
           };
 
           reader.readAsText(file);
