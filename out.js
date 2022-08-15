@@ -1150,9 +1150,12 @@ const Onyx = function (entityID, manifest, transformRoot) {
 
   // mock node
   context.global = context;
+
   context.module = {
     exports: {}
   };
+  context.exports = context.module.exports;
+
   context.process = {
     versions: {
       electron: '13.6.6'
@@ -5733,7 +5736,7 @@ const install = async (info, settings = undefined, disabled = false) => {
           break;
 
         case 'gm':
-          manifest = JSON.parse(await getCode(root, './goosemodManifest.json'));
+          manifest = JSON.parse(await getCode(root, './goosemodModule.json'));
 
           if (typeof manifest.authors === 'string') manifest.authors = [ manifest.authors.split(' (')[0] ];
           manifest.author = (await Promise.all(manifest.authors.map(x => x.length === 18 ? goosemod.webpackModules.findByProps('getUser', 'fetchCurrentUser').getUser(x) : x))).join(', ');
@@ -6224,7 +6227,11 @@ const transform = async (path, code, mod) => {
   Object.values(chunks).join('\n\n') + '\n\n' +
   subGlobal +
     `// MAP_START|${'.' + path.replace(transformRoot, '')}
-${replaceLast(indexCode, 'export default', 'module.exports =').replaceAll(/export const (.*?)=/g, (_, key) => `module.exports.${key}=`)}
+${replaceLast(indexCode, 'export default', 'module.exports =')
+  .replaceAll(/export const (.*?)=/g, (_, key) => `const ${key} = module.exports.${key}=`)
+  .replaceAll(/export function (.*?)\(/g, (_, key) => `const ${key} = module.exports.${key} = function ${key}(`)
+  .replaceAll(/export class ([^ ]*)/g, (_, key) => `const ${key} = module.exports.${key} = class ${key}`)
+}
 // MAP_END`;
 
   if (mod === 'dr') out = replaceLast(out, 'return class ', 'module.exports = class ');
@@ -6232,6 +6239,8 @@ ${replaceLast(indexCode, 'export default', 'module.exports =').replaceAll(/expor
   console.log({ pre: out });
 
   updatePending(null, 'Transforming...');
+
+  lastError = '';
 
   try {
     out = sucrase.transform(out, { transforms: [ "typescript", "jsx" ], disableESTransforms: true }).code;
@@ -7280,7 +7289,8 @@ const startSnippet = async (file, content) => {
     activeSnippets[file] = () => cssEl.remove();
   } else if (file.includes('.js')) {
     code = await transform('https://discord.com/channels/@me', content, 'pc');
-    const ret = eval(code);
+    const ret = eval(`const __entityID = 'snippet';
+\n` + code);
 
     activeSnippets[file] = () => {}; // no way to stop?
     if (typeof ret === 'function') activeSnippets[file] = ret; // if returned a function, guess it's a stop handler
