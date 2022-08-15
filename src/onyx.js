@@ -337,9 +337,12 @@ const Onyx = function (entityID, manifest, transformRoot) {
 
   // mock node
   context.global = context;
+
   context.module = {
     exports: {}
   };
+  context.exports = context.module.exports;
+
   context.process = {
     versions: {
       electron: '13.6.6'
