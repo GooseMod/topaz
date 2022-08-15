@@ -1576,7 +1576,8 @@ const startSnippet = async (file, content) => {
     activeSnippets[file] = () => cssEl.remove();
   } else if (file.includes('.js')) {
     code = await transform('https://discord.com/channels/@me', content, 'pc');
-    const ret = eval(code);
+    const ret = eval(`const __entityID = 'snippet';
+\n` + code);
 
     activeSnippets[file] = () => {}; // no way to stop?
     if (typeof ret === 'function') activeSnippets[file] = ret; // if returned a function, guess it's a stop handler
