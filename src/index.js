@@ -1343,7 +1343,11 @@ const transform = async (path, code, mod) => {
   Object.values(chunks).join('\n\n') + '\n\n' +
   subGlobal +
     `// MAP_START|${'.' + path.replace(transformRoot, '')}
-${replaceLast(indexCode, 'export default', 'module.exports =').replaceAll(/export const (.*?)=/g, (_, key) => `module.exports.${key}=`)}
+${replaceLast(indexCode, 'export default', 'module.exports =')
+  .replaceAll(/export const (.*?)=/g, (_, key) => `const ${key} = module.exports.${key}=`)
+  .replaceAll(/export function (.*?)\(/g, (_, key) => `const ${key} = module.exports.${key} = function ${key}(`)
+  .replaceAll(/export class ([^ ]*)/g, (_, key) => `const ${key} = module.exports.${key} = class ${key}`)
+}
 // MAP_END`;
 
   if (mod === 'dr') out = replaceLast(out, 'return class ', 'module.exports = class ');
