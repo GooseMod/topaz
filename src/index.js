@@ -1356,6 +1356,8 @@ ${replaceLast(indexCode, 'export default', 'module.exports =')
 
   updatePending(null, 'Transforming...');
 
+  lastError = '';
+
   try {
     out = sucrase.transform(out, { transforms: [ "typescript", "jsx" ], disableESTransforms: true }).code;
   } catch (e) {
