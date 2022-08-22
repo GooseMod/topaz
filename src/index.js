@@ -35,7 +35,7 @@ if (window.topaz && topaz.purge) { // live reload handling
 }
 
 window.topaz = {
-  version: 'alpha 11.1',
+  version: 'alpha 11.2',
   log
 };
 
