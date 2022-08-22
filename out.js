@@ -35,7 +35,7 @@ if (window.topaz && topaz.purge) { // live reload handling
 }
 
 window.topaz = {
-  version: 'alpha 11.1',
+  version: 'alpha 11.2',
   log
 };
 
@@ -2618,6 +2618,8 @@ const SelectTempWrapper = goosemod.webpackModules.findByDisplayName('SelectTempW
 
 const OriginalRadioGroup = goosemod.webpackModules.findByDisplayName('RadioGroup');
 
+const OriginalTextArea = goosemod.webpackModules.findByDisplayName('TextArea');
+
 const Tooltip = goosemod.webpackModules.findByDisplayName('Tooltip');
 const Button = goosemod.webpackModules.findByProps('DropdownSizes');
 
@@ -2653,6 +2655,26 @@ class FormItem extends React.PureComponent {
 
 module.exports = {
   SwitchItem: OriginalSwitchItem,
+
+  TextAreaInput: class TextAreaInput extends React.PureComponent {
+    render() {
+      const title = this.props.children;
+      delete this.props.children;
+
+      return React.createElement(FormItem, {
+          title,
+          note: this.props.note,
+          required: this.props.required,
+
+          noteHasMargin: true
+        },
+
+        React.createElement(OriginalTextArea, {
+          ...this.props
+        })
+      );
+    }
+  },
 
   TextInput: class TextInput extends React.PureComponent {
     render() {
