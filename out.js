@@ -2383,7 +2383,7 @@ const builtins = {
 module.exports = {
   Plugin
 };`,
-  ...['Plugin'].reduce((acc, x) => { acc[`powercord/components/settings/${x}`] = `module.exports = require('powercord/entities').${x};`; return acc; }, {}),
+  ...['Plugin'].reduce((acc, x) => { acc[`powercord/entities/${x}`] = `module.exports = require('powercord/entities').${x};`; return acc; }, {}),
   'powercord/webpack': `const makeFinalFilter = (filter) => {
   if (Array.isArray(filter)) return (mod) => filter.every(p => mod.hasOwnProperty(p) || mod.__proto__?.hasOwnProperty?.(p));
   return filter;

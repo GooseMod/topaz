@@ -162,7 +162,7 @@ const getBuiltin = async (name) => await (await fetch('http://localhost:1337/src
 const builtins = {
   'powercord': await getBuiltin('powercord/wrapper'),
   'powercord/entities': await getBuiltin('powercord/entities'),
-  ...['Plugin'].reduce((acc, x) => { acc[`powercord/components/settings/${x}`] = `module.exports = require('powercord/entities').${x};`; return acc; }, {}),
+  ...['Plugin'].reduce((acc, x) => { acc[`powercord/entities/${x}`] = `module.exports = require('powercord/entities').${x};`; return acc; }, {}),
   'powercord/webpack': await getBuiltin('powercord/webpack'),
   'powercord/injector': await getBuiltin('powercord/injector'),
   'powercord/util': await getBuiltin('powercord/util'),
