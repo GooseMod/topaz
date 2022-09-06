@@ -288,6 +288,7 @@ return function Editor(props) {
     },
       ...Object.keys(files).map(x => React.createElement(TabBar.Item, {
         id: x,
+        'aria-label': x,
         className: TabBarClasses2.item
       },
         !fileIcons ? null : React.createElement(SingleSelect, {
@@ -369,6 +370,7 @@ return function Editor(props) {
 
       React.createElement(TabBar.Item, {
         id: '#new',
+        'aria-label': 'New',
 
         className: TabBarClasses2.item
       }, React.createElement(PanelButton, {
@@ -390,6 +392,7 @@ return function Editor(props) {
 
       plugin.entityID !== 'snippets' ? null : React.createElement(TabBar.Item, {
         id: '#library',
+        'aria-label': 'Library',
 
         className: TabBarClasses2.item
       }, React.createElement(PanelButton, {
@@ -662,7 +665,8 @@ code { /* Fix code font variable not being used in some places */
                         }
                       },
                         React.createElement(TabBar.Item, {
-                          id: 'CSS'
+                          id: 'CSS',
+                          'aria-label': 'CSS'
                         }, 'CSS'),
                         /* React.createElement(TabBar.Item, {
                           id: 'CHANNELS',
@@ -719,6 +723,7 @@ code { /* Fix code font variable not being used in some places */
 
       React.createElement(TabBar.Item, {
         id: '#settings',
+        'aria-label': 'Settings',
 
         className: TabBarClasses2.item
       }, React.createElement(PanelButton, {
@@ -761,6 +766,7 @@ code { /* Fix code font variable not being used in some places */
 
       React.createElement(TabBar.Item, {
         id: '#reload',
+        'aria-label': 'Reload',
 
         className: TabBarClasses2.item
       }, React.createElement(PanelButton, {

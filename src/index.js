@@ -35,7 +35,7 @@ if (window.topaz && topaz.purge) { // live reload handling
 }
 
 window.topaz = {
-  version: 'alpha 11.2',
+  version: 'alpha 11.3',
   log
 };
 
@@ -2619,27 +2619,32 @@ class Settings extends React.PureComponent {
         },
           React.createElement(TabBar.Item, {
             id: 'PLUGINS',
+            'aria-label': 'Plugins',
 
             className: TabBarClasses2.item
           }, 'Plugins'),
           React.createElement(TabBar.Item, {
             id: 'THEMES',
+            'aria-label': 'Themes',
 
             className: TabBarClasses2.item
           }, 'Themes'),
           React.createElement(TabBar.Item, {
             id: 'SNIPPETS',
+            'aria-label': 'Snippets',
 
             className: TabBarClasses2.item
           }, 'Snippets'),
           React.createElement(TabBar.Item, {
             id: 'SETTINGS',
+            'aria-label': 'Settings',
 
             className: TabBarClasses2.item
           }, 'Settings'),
 
           React.createElement(TabBar.Item, {
             id: 'RELOAD',
+            'aria-label': 'Reload',
 
             className: TabBarClasses2.item
           }, React.createElement(PanelButton, {
@@ -2652,6 +2657,7 @@ class Settings extends React.PureComponent {
 
           React.createElement(TabBar.Item, {
             id: 'CHANGELOG',
+            'aria-label': 'Changelog',
 
             className: TabBarClasses2.item
           }, React.createElement(PanelButton, {
