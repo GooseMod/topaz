@@ -74,6 +74,10 @@ BdApi = window.BdApi = {
   findModuleByProps: Webpack.findByProps,
   findModuleByDisplayName: Webpack.findByDisplayName,
 
+  Webpack: {
+    getModule: Webpack.find,
+  },
+
   getInternalInstance: goosemod.reactUtils.getReactInstance,
 
   injectCSS: (id, css) => {
