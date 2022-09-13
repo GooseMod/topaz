@@ -68,6 +68,8 @@ Onyx.prototype.MapGen = MapGen; // import mapgen into onyx
 
 const Autopatch = eval(await (await fetch('http://localhost:1337/src/autopatch.js')).text());
 
+const { React, ReactDOM } = goosemod.webpackModules.common;
+
 const Editor = { // defer loading until editor is wanted
   get Component() {
     return (async () => { // async getter
@@ -1618,8 +1620,6 @@ const updateOpenSettings = async () => {
     document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop = prevScroll;
   } catch { }
 };
-
-const { React, ReactDOM } = goosemod.webpackModules.common;
 
 const TabBar = goosemod.webpackModules.findByDisplayName('TabBar');
 const TabBarClasses1 = goosemod.webpackModules.findByProps('topPill');
