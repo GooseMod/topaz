@@ -75,7 +75,45 @@ BdApi = window.BdApi = {
   findModuleByDisplayName: Webpack.findByDisplayName,
 
   Webpack: {
-    getModule: Webpack.find,
+    getModule: (filter, { first = true, defaultExport = true } = {}) => Webpack[first ? 'find' : 'findAll'](filter, defaultExport),
+    getBulk: (...filters) => filters.map(x => goosemod.webpackModules.find(x)),
+
+
+    Filters: {
+      combine: filters => x => filters.every(y => y(x)),
+
+      byProps: (props, filter = x => x) => x => {
+        if (!x || (typeof x !== 'object' && typeof x !== 'function')) return false;
+
+        const toTest = filter(x);
+        if (!toTest) return false;
+
+        return props.every(p => p in toTest) ?? false;
+      },
+
+      byPrototypeFields: (props, filter = x => x) => x => {
+        if (!x || (typeof x !== 'object' && typeof x !== 'function')) return false;
+
+        const toTest = filter(x);
+        if (!toTest?.prototype) return false;
+
+        return props.every(p => p in toTest.prototype) ?? false;
+      },
+
+      byRegex: (reg, filter = x => x) => x => {
+        const toTest = filter(x);
+        if (!toTest) return false;
+
+        return toTest.toString([]).search(reg) !== -1;
+      },
+
+      byStrings: (...strings) => x => {
+        const str = x.toString([]);
+        return strings.every(x => str.includes(x));
+      },
+
+      byDisplayName: name => x => x?.displayName === name
+    }
   },
 
   getInternalInstance: goosemod.reactUtils.getReactInstance,
