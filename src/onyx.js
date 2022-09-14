@@ -5,9 +5,10 @@ const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) => {
 }, {});
 
 const sourceURLIndex = {};
-sourceURLIndex.increment = function (name) { this[name] = (this[name] ?? 0) + 1; };
+sourceURLIndex.increment = function (name) { return this[name] = (this[name] ?? 0) + 1; };
 
-const makeSourceURL = (name) => `${name} | Topaz ${sourceURLIndex.increment(name)}`.replace(/ /g, '%20');
+// const makeSourceURL = (name) => `${name} | Topaz ${sourceURLIndex.increment(name)}`.replace(/ /g, '%20');
+const makeSourceURL = (name) => `${name} | Topaz`.replace(/ /g, '%20');
 const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
 // discord's toast for simplicity
