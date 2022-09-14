@@ -76,7 +76,7 @@ BdApi = window.BdApi = {
 
   Webpack: {
     getModule: (filter, { first = true, defaultExport = true } = {}) => Webpack[first ? 'find' : 'findAll'](filter, defaultExport),
-    getBulk: (...filters) => filters.map(x => goosemod.webpackModules.find(x)),
+    getBulk: (...filters) => filters.map(({ filter, first = true, defaultExport = true } = {}) => Webpack[first ? 'find' : 'findAll'](filter, defaultExport)),
 
 
     Filters: {
