@@ -36,6 +36,7 @@ if (window.topaz && topaz.purge) { // live reload handling
 
 window.topaz = {
   version: 'alpha 11.2',
+  debug: window.topaz?.debug ?? false,
   log
 };
 
@@ -1432,6 +1433,7 @@ const purgePermsForPlugin = (info) => {
 
 window.topaz = {
   version: topaz.version,
+  debug: topaz.debug,
   settings: topazSettings,
   storage: Storage,
 
