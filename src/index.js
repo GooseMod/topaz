@@ -1084,6 +1084,19 @@ const install = async (info, settings = undefined, disabled = false) => {
         if (mod === 'vel') plugin = plugin.Plugin;
         break;
 
+      case 'bd':
+        if (!PluginClass.prototype?.start && !PluginClass.start) PluginClass = PluginClass();
+
+        if (PluginClass.prototype) {
+          PluginClass.prototype.entityID = PluginClass.name ?? info; // Setup internal metadata
+          PluginClass.prototype.manifest = manifest;
+          PluginClass.prototype.data = manifest;
+
+          plugin = new PluginClass();
+        } else plugin = PluginClass;
+
+        break;
+
       default:
         PluginClass.prototype.entityID = PluginClass.name ?? info; // Setup internal metadata
         PluginClass.prototype.manifest = manifest;
