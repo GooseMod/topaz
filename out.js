@@ -36,6 +36,7 @@ if (window.topaz && topaz.purge) { // live reload handling
 
 window.topaz = {
   version: 'alpha 11.2',
+  debug: window.topaz?.debug ?? false,
   log
 };
 
@@ -818,9 +819,10 @@ const Onyx = eval(`const unsentrify = (obj) => Object.keys(obj).reduce((acc, x) 
 }, {});
 
 const sourceURLIndex = {};
-sourceURLIndex.increment = function (name) { this[name] = (this[name] ?? 0) + 1; };
+sourceURLIndex.increment = function (name) { return this[name] = (this[name] ?? 0) + 1; };
 
-const makeSourceURL = (name) => \`\${name} | Topaz \${sourceURLIndex.increment(name)}\`.replace(/ /g, '%20');
+// const makeSourceURL = (name) => \`\${name} | Topaz \${sourceURLIndex.increment(name)}\`.replace(/ /g, '%20');
+const makeSourceURL = (name) => \`\${name} | Topaz\`.replace(/ /g, '%20');
 const prettifyString = (str) => str.replaceAll('_', ' ').split(' ').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
 
 // discord's toast for simplicity
@@ -1441,6 +1443,8 @@ async (entityID, manifest, code) => {
 
   return [ code, { changes, toRevert } ];
 }`);
+
+const { React, ReactDOM } = goosemod.webpackModules.common;
 
 const Editor = { // defer loading until editor is wanted
   get Component() {
@@ -3609,6 +3613,48 @@ BdApi = window.BdApi = {
   findAllModules: Webpack.findAll,
   findModuleByProps: Webpack.findByProps,
   findModuleByDisplayName: Webpack.findByDisplayName,
+
+  Webpack: {
+    getModule: (filter, { first = true, defaultExport = true } = {}) => Webpack[first ? 'find' : 'findAll'](filter, defaultExport),
+    getBulk: (...filters) => filters.map(({ filter, first = true, defaultExport = true } = {}) => Webpack[first ? 'find' : 'findAll'](filter, defaultExport)),
+
+
+    Filters: {
+      combine: filters => x => filters.every(y => y(x)),
+
+      byProps: (props, filter = x => x) => x => {
+        if (!x || (typeof x !== 'object' && typeof x !== 'function')) return false;
+
+        const toTest = filter(x);
+        if (!toTest) return false;
+
+        return props.every(p => p in toTest) ?? false;
+      },
+
+      byPrototypeFields: (props, filter = x => x) => x => {
+        if (!x || (typeof x !== 'object' && typeof x !== 'function')) return false;
+
+        const toTest = filter(x);
+        if (!toTest?.prototype) return false;
+
+        return props.every(p => p in toTest.prototype) ?? false;
+      },
+
+      byRegex: (reg, filter = x => x) => x => {
+        const toTest = filter(x);
+        if (!toTest) return false;
+
+        return toTest.toString([]).search(reg) !== -1;
+      },
+
+      byStrings: (...strings) => x => {
+        const str = x.toString([]);
+        return strings.every(x => str.includes(x));
+      },
+
+      byDisplayName: name => x => x?.displayName === name
+    }
+  },
 
   getInternalInstance: goosemod.reactUtils.getReactInstance,
 
@@ -5994,6 +6040,19 @@ const install = async (info, settings = undefined, disabled = false) => {
         if (mod === 'vel') plugin = plugin.Plugin;
         break;
 
+      case 'bd':
+        if (!PluginClass.prototype?.start && !PluginClass.start) PluginClass = PluginClass();
+
+        if (PluginClass.prototype) {
+          PluginClass.prototype.entityID = PluginClass.name ?? info; // Setup internal metadata
+          PluginClass.prototype.manifest = manifest;
+          PluginClass.prototype.data = manifest;
+
+          plugin = new PluginClass();
+        } else plugin = PluginClass;
+
+        break;
+
       default:
         PluginClass.prototype.entityID = PluginClass.name ?? info; // Setup internal metadata
         PluginClass.prototype.manifest = manifest;
@@ -6343,6 +6402,7 @@ const purgePermsForPlugin = (info) => {
 
 window.topaz = {
   version: topaz.version,
+  debug: topaz.debug,
   settings: topazSettings,
   storage: Storage,
 
@@ -7352,8 +7412,6 @@ const updateOpenSettings = async () => {
     document.querySelector('.standardSidebarView-E9Pc3j .sidebarRegionScroller-FXiQOh').scrollTop = prevScroll;
   } catch { }
 };
-
-const { React, ReactDOM } = goosemod.webpackModules.common;
 
 const TabBar = goosemod.webpackModules.findByDisplayName('TabBar');
 const TabBarClasses1 = goosemod.webpackModules.findByProps('topPill');
